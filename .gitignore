@@ -1,0 +1,57 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.pyright/
+.ruff_cache/
+.hypothesis/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Packaging and build output
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Test, coverage, and benchmark output
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+junit.xml
+TestResults/
+allure-results/
+allure-report/
+.pytest_benchmark/
+
+# Environment and local configuration
+.env
+.env.*
+!.env.example
+*.local
+
+# Logs and runtime files
+*.log
+*.pid
+
+# IDEs and editors
+.vscode/
+.idea/
+*.suo
+*.user
+*.code-workspace
+
+# Operating systems
+.DS_Store
+Thumbs.db
+
+# uv
+.uv-cache/
