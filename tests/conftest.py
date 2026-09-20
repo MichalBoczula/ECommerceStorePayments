@@ -1,3 +1,5 @@
+from collections.abc import Generator
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -6,7 +8,7 @@ from ecommerce_store_payments.infrastructure.config.settings import Settings
 
 
 @pytest.fixture
-def client() -> TestClient:
+def client() -> Generator[TestClient, None, None]:
     settings = Settings(environment="test")
     with TestClient(create_app(settings)) as test_client:
         yield test_client
