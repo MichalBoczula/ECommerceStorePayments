@@ -8,7 +8,7 @@ from ecommerce_store_payments.infrastructure.config.settings import Settings
 
 
 @pytest.fixture
-def client() -> Generator[TestClient, None, None]:
+def client() -> Generator[TestClient]:
     settings = Settings(environment="test")
     with TestClient(create_app(settings)) as test_client:
         yield test_client
