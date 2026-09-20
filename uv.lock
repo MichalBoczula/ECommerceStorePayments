@@ -225,6 +225,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpx2" },
     { name = "pydantic-settings" },
     { name = "pymongo" },
     { name = "uvicorn", extra = ["standard"] },
@@ -233,7 +234,6 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "allure-pytest" },
-    { name = "httpx2" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -246,6 +246,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.116,<1" },
+    { name = "httpx2", specifier = ">=2.13,<3" },
     { name = "pydantic-settings", specifier = ">=2.10,<3" },
     { name = "pymongo", specifier = ">=4.13,<5" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.35,<1" },
@@ -254,7 +255,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "allure-pytest", specifier = ">=2.14,<3" },
-    { name = "httpx2", specifier = ">=2.13.0" },
     { name = "pyright", specifier = ">=1.1.403,<2" },
     { name = "pytest", specifier = ">=8.4,<9" },
     { name = "pytest-asyncio", specifier = ">=1.1,<2" },
