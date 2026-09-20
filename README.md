@@ -8,7 +8,7 @@ Python service responsible for the payment area of the ECommerce Store portfolio
 - FastAPI
 - Pydantic and pydantic-settings
 - PyMongo Async API
-- pytest, HTTPX, and Testcontainers
+- pytest, HTTPX2, and Testcontainers
 - pytest-bdd and Allure
 - Ruff and Pyright
 - uv for dependency and environment management
@@ -41,7 +41,7 @@ uv run uvicorn ecommerce_store_payments.main:app --reload
 
 Open:
 
-- Swagger UI: http://127.0.0.1:8000/docs
+- Swagger UI: http://127.0.0.1:8000/swagger
 - OpenAPI: http://127.0.0.1:8000/openapi.json
 - Health: http://127.0.0.1:8000/health
 
