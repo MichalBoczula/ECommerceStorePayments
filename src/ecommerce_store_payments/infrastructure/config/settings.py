@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     mongodb_connection_string: str = "mongodb://localhost:27017"
     mongodb_database_name: str = "ecommerce_store_payments"
     mongodb_payments_collection_name: str = "payments"
+    orders_api_base_url: str = "http://localhost:5000"
 
 
 @lru_cache
