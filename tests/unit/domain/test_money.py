@@ -28,4 +28,4 @@ def test_money_is_immutable() -> None:
     money = Money(amount_minor=100, currency="PLN")
 
     with pytest.raises(FrozenInstanceError):
-        setattr(money, "amount_minor", 200)
+        money.amount_minor = 200  # pyright: ignore[reportAttributeAccessIssue]
