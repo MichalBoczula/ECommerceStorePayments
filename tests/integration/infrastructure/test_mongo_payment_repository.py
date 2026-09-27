@@ -2,12 +2,14 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
+from pymongo import AsyncMongoClient
 from pymongo.errors import DuplicateKeyError
 
 from ecommerce_store_payments.domain.aggregates.payments.enums.payment_status import PaymentStatus
 from ecommerce_store_payments.domain.aggregates.payments.payment import Payment
 from ecommerce_store_payments.domain.aggregates.payments.value_objects.money import Money
 from ecommerce_store_payments.infrastructure.config.settings import Settings
+from ecommerce_store_payments.infrastructure.persistence.mongodb.documents.payment_document import PaymentDocument
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database import MongoDatabase
 from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.payment_repository import (
     MongoPaymentRepository,
@@ -105,17 +107,28 @@ async def test_database_names_isolate_documents(mongo_database: MongoDatabase, m
     payment = Payment.create(uuid4(), Money(amount_minor=500, currency="PLN"))
     await repository.create(payment)
 
+    other_name = f"payments_isolation_{uuid4().hex}"
     other_database = MongoDatabase(
         Settings(
             environment="test",
             mongodb_connection_string=mongo_url,
-            mongodb_database_name=f"payments_isolation_{uuid4().hex}",
+            mongodb_database_name=other_name,
         )
     )
+    cleanup_client: AsyncMongoClient[PaymentDocument] = AsyncMongoClient(mongo_url)
     try:
         other_repository = MongoPaymentRepository(other_database.payments)
+        other_payment = Payment.create(uuid4(), Money(amount_minor=600, currency="EUR"))
+        await other_repository.create(other_payment)
         assert await other_repository.get_by_id(payment.id) is None
         assert await other_repository.get_by_order_id(payment.order_id) is None
+        assert await repository.get_by_id(other_payment.id) is None
+        assert await repository.get_by_order_id(other_payment.order_id) is None
         assert await repository.get_by_id(payment.id) is not None
+        assert await other_repository.get_by_id(other_payment.id) is not None
     finally:
-        await other_database.close()
+        try:
+            await cleanup_client.drop_database(other_name)
+        finally:
+            await other_database.close()
+            await cleanup_client.close()

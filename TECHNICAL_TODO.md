@@ -18,7 +18,7 @@ This tracks the Payments work compared with the reference practices in ECommerce
 ## Domain and persistence
 
 - [x] **PAY/3 — Payment/Money invariants.** Typed domain errors, valid transitions, repeat-call semantics, payment/provider identifiers, currency validation, and domain unit tests. Verified locally and by the clean PR runner; the accepted behavior is in ADR-0003.
-- [ ] **PAY/4 — MongoDB Testcontainers.** Isolated databases, real indexes, create/update/read/uniqueness, mapper roundtrip, UUID/time preservation and cleanup. Fake collection tests remain unit tests.
+- [x] **PAY/4 — MongoDB Testcontainers.** Isolated databases, real indexes, create/update/read/uniqueness, mapper roundtrip, UUID/time preservation and cleanup. Fake collection tests remain unit tests. Verified by the clean PR runner with real MongoDB.
 - [ ] **PAY/5 — Optimistic concurrency.** Persisted version, compare-and-update, explicit missing/conflict/duplicate errors, concurrent-create handling and policy for existing versionless documents; real MongoDB tests.
 - [ ] **PAY/6 — Startup and health.** Configuration validation, bounded database probe, named indexes, cleanup after startup failure, liveness/readiness with an explicit `/health` compatibility decision, and OpenAPI generation without a live database.
 - [ ] **PAY/7 — Payment history decision.** Decide if separate change history is needed now and record it in ADR. If adopted, implement consistent state/history writes with MongoDB transactions and rollback tests. A webhook event ledger is a separate concern.
