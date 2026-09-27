@@ -9,6 +9,7 @@ from ecommerce_store_payments.application.payments.exceptions import (
     OrderNotPayableError,
     PaymentNotFoundError,
 )
+from ecommerce_store_payments.domain.aggregates.payments.repositories.exceptions import PaymentDuplicateError
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -25,6 +26,8 @@ async def pay_order(order_id: UUID, payment_service: PaymentServiceDependency) -
     except OrderNotFoundError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except OrderNotPayableError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
+    except PaymentDuplicateError as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
 
     return PaymentResponse.from_domain(payment)

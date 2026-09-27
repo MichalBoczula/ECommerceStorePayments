@@ -12,6 +12,7 @@ class PaymentErrorCode(StrEnum):
     INVALID_FAILURE_CODE = "invalid_failure_code"
     INVALID_PAYMENT_STATE = "invalid_payment_state"
     INVALID_PAYMENT_TIMESTAMP = "invalid_payment_timestamp"
+    INVALID_PAYMENT_VERSION = "invalid_payment_version"
     INVALID_PAYMENT_TRANSITION = "invalid_payment_transition"
 
 

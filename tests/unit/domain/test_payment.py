@@ -29,6 +29,7 @@ def test_create_initializes_new_payment() -> None:
     assert payment.failure_code is None
     assert payment.created_at.tzinfo is UTC
     assert payment.updated_at is None
+    assert payment.version == 0
 
 
 def test_payment_can_transition_from_created_to_succeeded() -> None:
@@ -73,6 +74,7 @@ def test_rehydrate_restores_persisted_state() -> None:
         failure_code=None,
         created_at=created_at,
         updated_at=updated_at,
+        version=7,
     )
 
     assert payment.id == payment_id
@@ -81,6 +83,25 @@ def test_rehydrate_restores_persisted_state() -> None:
     assert payment.status is PaymentStatus.SUCCEEDED
     assert payment.created_at == created_at
     assert payment.updated_at == updated_at
+    assert payment.version == 7
+
+
+@pytest.mark.parametrize("version", [-1, True, 1.5, "1"])
+def test_rehydrate_rejects_invalid_version(version: object) -> None:
+    with pytest.raises(PaymentValidationError) as error:
+        Payment.rehydrate(
+            payment_id=uuid4(),
+            order_id=uuid4(),
+            money=Money(amount_minor=100, currency="PLN"),
+            status=PaymentStatus.CREATED,
+            provider_session_id=None,
+            provider_payment_id=None,
+            failure_code=None,
+            created_at=datetime.now(UTC),
+            updated_at=None,
+            version=cast(int, version),
+        )
+    assert error.value.code is PaymentErrorCode.INVALID_PAYMENT_VERSION
 
 
 @pytest.mark.parametrize("order_id", [UUID(int=0)])

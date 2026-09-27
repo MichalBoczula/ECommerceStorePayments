@@ -43,10 +43,15 @@ class PaymentPolicy:
         failure_code: str | None,
         created_at: object,
         updated_at: object,
+        version: object,
     ) -> None:
         """Reject invalid persisted states instead of bypassing aggregate invariants."""
         PaymentPolicy.require_identifier(payment_id, PaymentErrorCode.INVALID_PAYMENT_ID)
         PaymentPolicy.require_identifier(order_id, PaymentErrorCode.INVALID_ORDER_ID)
+        if isinstance(version, bool) or not isinstance(version, int) or version < 0:
+            raise PaymentValidationError(
+                PaymentErrorCode.INVALID_PAYMENT_VERSION, "Payment version must be nonnegative."
+            )
         if not isinstance(money, Money) or not isinstance(status, PaymentStatus):
             raise PaymentValidationError(PaymentErrorCode.INVALID_PAYMENT_STATE, "Payment money or status is invalid.")
 

@@ -21,6 +21,7 @@ class PaymentMapper:
             failure_code=payment.failure_code,
             created_at=payment.created_at,
             updated_at=payment.updated_at,
+            version=payment.version,
         )
 
     @staticmethod
@@ -38,4 +39,5 @@ class PaymentMapper:
             failure_code=document["failure_code"],
             created_at=document["created_at"],
             updated_at=document["updated_at"],
+            version=document.get("version", 0),
         )
