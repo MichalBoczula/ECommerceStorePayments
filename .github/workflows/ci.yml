@@ -35,5 +35,7 @@ jobs:
         run: bash scripts/ci.sh types
       - name: Unit tests
         run: bash scripts/ci.sh test
+      - name: MongoDB integration tests
+        run: bash scripts/ci.sh integration
       - name: Build and verify wheel
         run: bash scripts/ci.sh build
