@@ -23,7 +23,7 @@ src/ecommerce_store_payments/
 └── infrastructure/   # configuration, persistence, and external clients
 ```
 
-The Domain layer must remain independent of FastAPI, Pydantic, PyMongo, and generated API clients.
+The Domain layer must remain independent of FastAPI, Pydantic, PyMongo, and generated API clients. MongoDB documents are mapped explicitly to the Payment aggregate and reconstructed with `rehydrate`. See [ADR-0001](docs/adr/0001-payment-layers-and-mongodb-mapping.md).
 
 ## Local setup
 
@@ -33,7 +33,7 @@ Install Python 3.14 and uv, then run:
 uv sync --all-groups
 ```
 
-Start the API:
+Start the API with MongoDB available at the configured address:
 
 ```bash
 uv run uvicorn ecommerce_store_payments.main:app --reload
@@ -54,8 +54,17 @@ uv run pyright
 uv run pytest
 ```
 
+The current tests are unit tests. MongoDB Testcontainers integration and HTTP acceptance suites, CI and security gates are tracked in the [technical backlog](TECHNICAL_TODO.md).
+
 ## Generated API clients
 
 Kiota-generated clients will live under
 `src/ecommerce_store_payments/infrastructure/clients/<service>/generated`.
 Kiota runtime packages will be added with the first generated client so the repository does not carry unused dependencies.
+
+## Engineering documentation
+
+- [Agent and contributor instructions](AGENTS.md)
+- [Definition of done](docs/definition-of-done.md)
+- [Technical backlog](TECHNICAL_TODO.md)
+- [Architecture decisions](docs/adr/README.md)
