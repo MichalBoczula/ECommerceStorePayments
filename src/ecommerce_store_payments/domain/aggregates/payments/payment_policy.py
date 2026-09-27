@@ -18,6 +18,8 @@ class PaymentPolicy:
     _ALLOWED_TRANSITIONS: ClassVar[dict[PaymentStatus, frozenset[PaymentStatus]]] = {
         PaymentStatus.CREATED: frozenset({PaymentStatus.PENDING, PaymentStatus.CANCELED}),
         PaymentStatus.PENDING: frozenset({PaymentStatus.SUCCEEDED, PaymentStatus.FAILED, PaymentStatus.CANCELED}),
+        PaymentStatus.FAILED: frozenset({PaymentStatus.CREATED}),
+        PaymentStatus.CANCELED: frozenset({PaymentStatus.CREATED}),
     }
 
     @staticmethod
@@ -75,7 +77,7 @@ class PaymentPolicy:
 
         if status is PaymentStatus.CREATED:
             valid = (
-                updated_at is None
+                ((version == 0 and updated_at is None) or (version > 0 and updated_at is not None))
                 and provider_session_id is None
                 and provider_payment_id is None
                 and failure_code is None
@@ -106,6 +108,6 @@ class PaymentPolicy:
 
     @classmethod
     def require_transition(cls, current: PaymentStatus, target: PaymentStatus) -> None:
-        """Only Created -> Pending/Canceled and Pending -> terminal are new transitions."""
+        """Only defined state changes, including a fresh attempt after failure/cancellation."""
         if target not in cls._ALLOWED_TRANSITIONS.get(current, frozenset()):
             raise PaymentTransitionError(current.value, target.value)

@@ -185,5 +185,16 @@ class Payment:
         self._status = PaymentStatus.CANCELED
         self._touch()
 
+    def retry(self) -> None:
+        if self._status is PaymentStatus.CREATED:
+            return
+
+        PaymentPolicy.require_transition(self._status, PaymentStatus.CREATED)
+        self._provider_session_id = None
+        self._provider_payment_id = None
+        self._failure_code = None
+        self._status = PaymentStatus.CREATED
+        self._touch()
+
     def _touch(self) -> None:
         self._updated_at = max(datetime.now(UTC), self._updated_at or self._created_at)
