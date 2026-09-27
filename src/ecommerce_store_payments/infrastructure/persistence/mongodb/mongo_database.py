@@ -1,3 +1,4 @@
+import asyncio
 from typing import final
 
 from pymongo import AsyncMongoClient
@@ -15,13 +16,18 @@ class MongoDatabase:
             settings.mongodb_connection_string,
             uuidRepresentation="standard",
             tz_aware=True,
+            serverSelectionTimeoutMS=settings.mongodb_server_selection_timeout_ms,
         )
         self._database: AsyncDatabase[PaymentDocument] = self._client[settings.mongodb_database_name]
         self._payments_collection_name = settings.mongodb_payments_collection_name
+        self._probe_timeout_seconds = settings.mongodb_probe_timeout_seconds
 
     @property
     def payments(self) -> AsyncCollection[PaymentDocument]:
         return self._database[self._payments_collection_name]
+
+    async def probe(self) -> None:
+        await asyncio.wait_for(self._client.admin.command("ping"), timeout=self._probe_timeout_seconds)
 
     async def ensure_indexes(self) -> None:
         await self.payments.create_index("order_id", unique=True, name="ux_payments_order_id")
