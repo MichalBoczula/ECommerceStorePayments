@@ -15,13 +15,13 @@ State snapshots follow these rules:
 
 | Status | Required provider data | Other state |
 | --- | --- | --- |
-| Created | None | No update time or failure code. |
+| Created | None | Initially no update time; retried Created has a positive version and update time. No failure code. |
 | Pending | Session ID | Update time; no payment ID or failure code. |
 | Succeeded | Session and payment IDs | Update time; no failure code. |
 | Failed | Session ID; failure code optional | Update time; no payment ID. |
 | Canceled | Session ID optional | Update time; no payment ID or failure code. |
 
-New transitions are Created → Pending/Canceled and Pending → Succeeded/Failed/Canceled. An exact repeat of Pending with the same session ID, Succeeded with the same payment ID, Failed with the same failure code, or Canceled is a no-op that does not change `updated_at`. A different repeated identifier or an operation from another terminal state raises `PaymentTransitionError`. Invalid values or snapshots raise `PaymentValidationError` or `MoneyValidationError`. These derive from `PaymentDomainError`, expose stable `PaymentErrorCode` values, and retain `ValueError` compatibility. Mapping these errors to an HTTP problem response belongs to PAY/10.
+New transitions are Created → Pending/Canceled and Pending → Succeeded/Failed/Canceled. ADR-0009 adds Failed/Canceled → Created through `retry`, clearing prior provider data. An exact repeat of Pending with the same session ID, Succeeded with the same payment ID, Failed with the same failure code, Canceled, or a retried Created state is a no-op that does not change `updated_at`. A different repeated identifier or an invalid operation raises `PaymentTransitionError`. Invalid values or snapshots raise `PaymentValidationError` or `MoneyValidationError`. These derive from `PaymentDomainError`, expose stable `PaymentErrorCode` values, and retain `ValueError` compatibility. Mapping these errors to an HTTP problem response belongs to PAY/10.
 
 Money requires a positive integer of minor units and a three-letter ASCII currency code, normalized to uppercase. This checks the code's shape, not membership in an ISO registry or provider support. Decimal conversion and currency-specific exponents belong to the Orders adapter work in PAY/8.
 

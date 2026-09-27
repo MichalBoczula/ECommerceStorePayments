@@ -33,6 +33,8 @@ The `payments` collection holds current state. Each update transactionally store
 
 The Orders adapter reads `GET /orders/{orderId}` and validates the returned ID, total, status and line consistency before creating a payment. It converts exact decimal totals using explicit currency minor units: PLN/EUR/USD/GBP/CHF (2), JPY/KRW (0), BHD/JOD/KWD/OMR/TND (3). Unknown currencies and unrepresentable amounts are rejected. A missing order yields 404; a bad upstream response or outage yields 502; an Orders timeout yields 504. See [ADR-0008](docs/adr/0008-orders-http-adapter.md). Stripe support for individual currencies is decided separately.
 
+`POST /payments/{order_id}/pay` returns 201 only when it creates a Payment. It returns 200 for an existing `Created`, `Pending` or `Succeeded` Payment. A `Failed` or `Canceled` Payment can be retried on the same ID after Orders confirms the original amount/currency and `Created` status; this resets provider data, archives the previous state and returns 200. Changed totals or incompatible order status return 409. Parallel creates/retries resolve to one persisted state and do not duplicate payment history. `GET /payments/order/{order_id}` reads current state (200) or returns 404. See [ADR-0009](docs/adr/0009-pay-get-semantics.md). Starting a provider session is future STRIPE work.
+
 ## Local setup
 
 Install the Python version from `.python-version` and uv 0.12.18. The service supports Python 3.14; this repository pins an exact patch for development and CI. To deliberately update the pin, change `.python-version` and the matching CI install, check `uv.lock`, and run the full verification. Update `[tool.uv].required-version` and the workflow together when upgrading uv.

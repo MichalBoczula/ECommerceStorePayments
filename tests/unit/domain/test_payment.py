@@ -298,6 +298,65 @@ def test_failure_without_code_and_cancellation_after_pending_round_trip() -> Non
     assert canceled.provider_session_id == "cs_2"
 
 
+@pytest.mark.parametrize("terminal", [PaymentStatus.FAILED, PaymentStatus.CANCELED])
+def test_retry_resets_terminal_payment_and_rehydrates_created_snapshot(terminal: PaymentStatus) -> None:
+    payment = _payment_in(terminal)
+    created_at = payment.created_at
+    payment.retry()
+
+    assert payment.status is PaymentStatus.CREATED
+    assert payment.provider_session_id is None
+    assert payment.provider_payment_id is None
+    assert payment.failure_code is None
+    assert payment.updated_at is not None and payment.updated_at >= created_at
+    restored = Payment.rehydrate(
+        payment_id=payment.id,
+        order_id=payment.order_id,
+        money=payment.money,
+        status=payment.status,
+        provider_session_id=payment.provider_session_id,
+        provider_payment_id=payment.provider_payment_id,
+        failure_code=payment.failure_code,
+        created_at=created_at,
+        updated_at=payment.updated_at,
+        version=1,
+    )
+    restored.mark_as_pending("cs_new")
+    assert restored.status is PaymentStatus.PENDING
+    old_updated_at = payment.updated_at
+    payment.retry()
+    assert payment.updated_at == old_updated_at
+
+
+@pytest.mark.parametrize("status", [PaymentStatus.PENDING, PaymentStatus.SUCCEEDED])
+def test_retry_rejects_nonretryable_state(status: PaymentStatus) -> None:
+    payment = _payment_in(status)
+    old_updated_at = payment.updated_at
+    with pytest.raises(PaymentTransitionError) as error:
+        payment.retry()
+    assert error.value.code is PaymentErrorCode.INVALID_PAYMENT_TRANSITION
+    assert payment.status is status and payment.updated_at == old_updated_at
+
+
+@pytest.mark.parametrize(("version", "has_updated_at"), [(0, True), (1, False)])
+def test_rehydrate_rejects_inconsistent_created_retry_snapshot(version: int, has_updated_at: bool) -> None:
+    created_at = datetime(2026, 9, 20, tzinfo=UTC)
+    with pytest.raises(PaymentValidationError) as error:
+        Payment.rehydrate(
+            payment_id=uuid4(),
+            order_id=uuid4(),
+            money=Money(amount_minor=100, currency="PLN"),
+            status=PaymentStatus.CREATED,
+            provider_session_id=None,
+            provider_payment_id=None,
+            failure_code=None,
+            created_at=created_at,
+            updated_at=datetime(2026, 9, 21, tzinfo=UTC) if has_updated_at else None,
+            version=version,
+        )
+    assert error.value.code is PaymentErrorCode.INVALID_PAYMENT_STATE
+
+
 def _payment_in(status: PaymentStatus) -> Payment:
     payment = Payment.create(uuid4(), Money(amount_minor=100, currency="PLN"))
     if status in (PaymentStatus.PENDING, PaymentStatus.SUCCEEDED, PaymentStatus.FAILED):

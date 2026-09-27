@@ -14,3 +14,4 @@ Use repository-local sequential numbers. Each record has a title, `Status` and `
 | [0006](0006-startup-and-health.md) | Accepted | Probe MongoDB at startup and separate liveness from database readiness. |
 | [0007](0007-payment-history.md) | Accepted | Archive previous payment snapshots in a shadow collection in the same transaction as current-state updates. |
 | [0008](0008-orders-http-adapter.md) | Accepted | Validate the Orders response and convert amounts with explicit currency minor units at the HTTP boundary. |
+| [0009](0009-pay-get-semantics.md) | Accepted | Return 201 for new payments, 200 for existing/retried payments, and retry failed/canceled attempts on the same aggregate. |
