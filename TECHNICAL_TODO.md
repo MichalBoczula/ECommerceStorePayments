@@ -25,7 +25,7 @@ This tracks the Payments work compared with the reference practices in ECommerce
 
 ## Application and Orders integration
 
-- [ ] **PAY/8 — Orders contract adapter.** Confirm current Orders/Invoice OpenAPI, map order ID/amount/currency correctly without assuming every currency has two decimal places, handle timeout/404/invalid response/upstream failure, and test the HTTP boundary. If Kiota is adopted, generate reproducibly behind the adapter.
+- [x] **PAY/8 — Orders contract adapter.** Verified the generated Orders/Invoice OpenAPI and DTOs; the HTTP adapter validates ID, line totals and currency, converts exact decimals using explicit minor-unit exponents, and maps timeout/404/invalid response/upstream failure. MockTransport boundary tests and real-MongoDB PR CI passed. ADR-0008 records the decision to keep the small adapter without Kiota for now.
 - [ ] **PAY/9 — Pay/Get semantics.** Define behavior per order and payment status, repeat/parallel request handling, retry of failed/cancelled payments, and 201-created versus 200-existing response semantics. Exercise use cases and persistence conflicts.
 
 ## API contract, acceptance, and architecture
