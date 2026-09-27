@@ -5,8 +5,11 @@ from fastapi import APIRouter, HTTPException, status
 from ecommerce_store_payments.api.contracts.payment_response import PaymentResponse
 from ecommerce_store_payments.api.dependencies import PaymentServiceDependency
 from ecommerce_store_payments.application.payments.exceptions import (
+    OrderInvalidResponseError,
     OrderNotFoundError,
     OrderNotPayableError,
+    OrderTimeoutError,
+    OrderUnavailableError,
     PaymentNotFoundError,
 )
 from ecommerce_store_payments.domain.aggregates.payments.repositories.exceptions import PaymentDuplicateError
@@ -19,6 +22,10 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
     response_model=PaymentResponse,
     status_code=status.HTTP_201_CREATED,
     operation_id="payOrder",
+    responses={
+        502: {"description": "Invalid response or failure from Orders"},
+        504: {"description": "Orders timed out"},
+    },
 )
 async def pay_order(order_id: UUID, payment_service: PaymentServiceDependency) -> PaymentResponse:
     try:
@@ -27,6 +34,10 @@ async def pay_order(order_id: UUID, payment_service: PaymentServiceDependency) -
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except OrderNotPayableError as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
+    except OrderTimeoutError as error:
+        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=str(error)) from error
+    except (OrderUnavailableError, OrderInvalidResponseError) as error:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(error)) from error
     except PaymentDuplicateError as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
 

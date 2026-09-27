@@ -22,7 +22,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         database = MongoDatabase(resolved_settings)
         try:
-            async with AsyncClient(base_url=resolved_settings.orders_api_base_url, trust_env=False) as orders_client:
+            async with AsyncClient(
+                base_url=resolved_settings.orders_api_base_url,
+                timeout=resolved_settings.orders_api_timeout_seconds,
+                trust_env=False,
+            ) as orders_client:
                 await database.probe()
                 await database.ensure_indexes()
                 app.state.database = database

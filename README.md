@@ -31,6 +31,8 @@ Each payment has a nonnegative storage version. A new payment starts at version 
 
 The `payments` collection holds current state. Each update transactionally stores the previous snapshot in `payment_history`, with its payment ID, version and recording time. `get_history(payment_id)` reads prior snapshots in version order; a newly created payment has no history. MongoDB must be configured as a replica set or sharded cluster to support transactions, including for local development. See [ADR-0007](docs/adr/0007-payment-history.md).
 
+The Orders adapter reads `GET /orders/{orderId}` and validates the returned ID, total, status and line consistency before creating a payment. It converts exact decimal totals using explicit currency minor units: PLN/EUR/USD/GBP/CHF (2), JPY/KRW (0), BHD/JOD/KWD/OMR/TND (3). Unknown currencies and unrepresentable amounts are rejected. A missing order yields 404; a bad upstream response or outage yields 502; an Orders timeout yields 504. See [ADR-0008](docs/adr/0008-orders-http-adapter.md). Stripe support for individual currencies is decided separately.
+
 ## Local setup
 
 Install the Python version from `.python-version` and uv 0.12.18. The service supports Python 3.14; this repository pins an exact patch for development and CI. To deliberately update the pin, change `.python-version` and the matching CI install, check `uv.lock`, and run the full verification. Update `[tool.uv].required-version` and the workflow together when upgrading uv.
@@ -58,6 +60,7 @@ Startup validates the settings, probes MongoDB with a bounded timeout and ensure
 | `PAYMENTS_MONGODB_PROBE_TIMEOUT_SECONDS` | `5.0` | Wall-clock deadline for the MongoDB ping. |
 | `PAYMENTS_MONGODB_SERVER_SELECTION_TIMEOUT_MS` | `5000` | Driver's server-selection deadline. |
 | `PAYMENTS_ORDERS_API_BASE_URL` | `http://localhost:5000` | Orders service base URL. |
+| `PAYMENTS_ORDERS_API_TIMEOUT_SECONDS` | `5.0` | Orders request timeout, at most 30 seconds. |
 
 Open:
 
