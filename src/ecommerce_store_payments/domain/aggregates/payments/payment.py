@@ -20,6 +20,7 @@ class Payment:
         "_provider_session_id",
         "_status",
         "_updated_at",
+        "_version",
     )
 
     def __init__(
@@ -33,6 +34,7 @@ class Payment:
         failure_code: str | None,
         created_at: datetime,
         updated_at: datetime | None,
+        version: int,
     ) -> None:
         PaymentPolicy.validate_snapshot(
             payment_id,
@@ -44,6 +46,7 @@ class Payment:
             failure_code,
             created_at,
             updated_at,
+            version,
         )
         self._id = payment_id
         self._order_id = order_id
@@ -54,6 +57,7 @@ class Payment:
         self._failure_code = failure_code
         self._created_at = created_at
         self._updated_at = updated_at
+        self._version = version
 
     @classmethod
     def create(cls, order_id: UUID, money: Money) -> Self:
@@ -67,6 +71,7 @@ class Payment:
             failure_code=None,
             created_at=datetime.now(UTC),
             updated_at=None,
+            version=0,
         )
 
     @classmethod
@@ -81,6 +86,7 @@ class Payment:
         failure_code: str | None,
         created_at: datetime,
         updated_at: datetime | None,
+        version: int = 0,
     ) -> Self:
         return cls(
             payment_id=payment_id,
@@ -92,6 +98,7 @@ class Payment:
             failure_code=failure_code,
             created_at=created_at,
             updated_at=updated_at,
+            version=version,
         )
 
     @property
@@ -129,6 +136,10 @@ class Payment:
     @property
     def updated_at(self) -> datetime | None:
         return self._updated_at
+
+    @property
+    def version(self) -> int:
+        return self._version
 
     def mark_as_pending(self, provider_session_id: str) -> None:
         PaymentPolicy.require_provider_identifier(provider_session_id, PaymentErrorCode.INVALID_PROVIDER_SESSION_ID)

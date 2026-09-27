@@ -14,3 +14,4 @@ class PaymentDocument(TypedDict):
     failure_code: str | None
     created_at: datetime
     updated_at: datetime | None
+    version: int

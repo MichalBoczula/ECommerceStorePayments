@@ -27,6 +27,8 @@ The Domain layer must remain independent of FastAPI, Pydantic, PyMongo, and gene
 
 The aggregate validates both new and rehydrated state, allows only defined status transitions, and treats an identical repeated transition as a no-op. Domain failures have typed, stable codes. Money stores integer minor units and an uppercase three-letter ASCII currency code; actual currency support and minor-unit conversion are handled at the integration boundary. See [ADR-0003](docs/adr/0003-payment-invariants-and-rehydration.md).
 
+Each payment has a nonnegative storage version. A new payment starts at version 0; repository updates atomically match the payment ID, order ID and expected version. `update` returns a new aggregate with the next version, which callers must use for later writes. A versionless legacy document reads as version 0 and receives version 1 on its first successful update. Missing records, stale updates and duplicate creates produce separate typed errors. See [ADR-0005](docs/adr/0005-payment-optimistic-concurrency.md).
+
 ## Local setup
 
 Install the Python version from `.python-version` and uv 0.12.18. The service supports Python 3.14; this repository pins an exact patch for development and CI. To deliberately update the pin, change `.python-version` and the matching CI install, check `uv.lock`, and run the full verification. Update `[tool.uv].required-version` and the workflow together when upgrading uv.

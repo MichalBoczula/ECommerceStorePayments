@@ -10,3 +10,4 @@ Use repository-local sequential numbers. Each record has a title, `Status` and `
 | [0002](0002-pinned-python-and-basic-ci.md) | Accepted | Pin local/CI tools and run the same baseline quality stages. |
 | [0003](0003-payment-invariants-and-rehydration.md) | Accepted | Validate payment snapshots and make transitions and domain errors explicit. |
 | [0004](0004-isolated-mongodb-integration-tests.md) | Accepted | Run real MongoDB repository tests in isolated per-test databases. |
+| [0005](0005-payment-optimistic-concurrency.md) | Accepted | Version payment writes and migrate versionless documents on their first update. |

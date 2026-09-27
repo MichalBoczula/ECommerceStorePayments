@@ -8,6 +8,7 @@ from ecommerce_store_payments.application.payments.order_details import OrderPay
 from ecommerce_store_payments.application.payments.order_reader import OrderReader
 from ecommerce_store_payments.application.payments.payment_service import PaymentService
 from ecommerce_store_payments.domain.aggregates.payments.payment import Payment
+from ecommerce_store_payments.domain.aggregates.payments.repositories.exceptions import PaymentDuplicateError
 from ecommerce_store_payments.domain.aggregates.payments.repositories.payment_repository import PaymentRepository
 from ecommerce_store_payments.domain.aggregates.payments.value_objects.money import Money
 
@@ -29,6 +30,17 @@ class _PaymentRepository:
 
     async def get_by_order_id(self, order_id: UUID) -> Payment | None:
         return self.payments.get(order_id)
+
+
+class _RacingPaymentRepository(_PaymentRepository):
+    async def create(self, payment: Payment) -> Payment:
+        await super().create(Payment.create(payment.order_id, payment.money))
+        raise PaymentDuplicateError(payment.id, payment.order_id)
+
+
+class _UnrelatedDuplicateRepository(_PaymentRepository):
+    async def create(self, payment: Payment) -> Payment:
+        raise PaymentDuplicateError(payment.id, payment.order_id)
 
 
 class _OrderReader:
@@ -125,3 +137,27 @@ async def test_get_by_order_id_raises_when_payment_is_missing() -> None:
 
     with pytest.raises(PaymentNotFoundError, match=str(order_id)):
         await service.get_by_order_id(order_id)
+
+
+@pytest.mark.asyncio
+async def test_pay_returns_winner_when_another_request_creates_payment_first() -> None:
+    order_id = uuid4()
+    repository = _RacingPaymentRepository()
+    order_reader = _OrderReader(OrderPaymentDetails(order_id, Money(amount_minor=100, currency="PLN"), "Created"))
+    service = _create_service(repository, order_reader)
+
+    payment = await service.pay(order_id)
+
+    assert payment is await repository.get_by_order_id(order_id)
+    assert order_reader.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_pay_propagates_duplicate_when_no_payment_exists_for_order() -> None:
+    order_id = uuid4()
+    repository = _UnrelatedDuplicateRepository()
+    order_reader = _OrderReader(OrderPaymentDetails(order_id, Money(amount_minor=100, currency="PLN"), "Created"))
+    service = _create_service(repository, order_reader)
+
+    with pytest.raises(PaymentDuplicateError):
+        await service.pay(order_id)

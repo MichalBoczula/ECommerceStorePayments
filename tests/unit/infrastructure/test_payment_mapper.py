@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import cast
 from uuid import uuid4
 
 from ecommerce_store_payments.domain.aggregates.payments.enums.payment_status import PaymentStatus
@@ -20,6 +21,7 @@ def test_to_document_maps_payment_aggregate() -> None:
     assert document["currency"] == "PLN"
     assert document["status"] == "pending"
     assert document["provider_session_id"] == "cs_test_123"
+    assert document["version"] == 0
 
 
 def test_to_domain_rehydrates_payment_aggregate() -> None:
@@ -38,6 +40,7 @@ def test_to_domain_rehydrates_payment_aggregate() -> None:
         failure_code=None,
         created_at=created_at,
         updated_at=updated_at,
+        version=4,
     )
 
     payment = PaymentMapper.to_domain(document)
@@ -50,3 +53,15 @@ def test_to_domain_rehydrates_payment_aggregate() -> None:
     assert payment.provider_payment_id == "pi_test_123"
     assert payment.created_at == created_at
     assert payment.updated_at == updated_at
+    assert payment.version == 4
+
+
+def test_to_domain_treats_versionless_document_as_version_zero() -> None:
+    payment = Payment.create(uuid4(), Money(amount_minor=100, currency="PLN"))
+    document = cast(
+        PaymentDocument, {key: value for key, value in PaymentMapper.to_document(payment).items() if key != "version"}
+    )
+
+    restored = PaymentMapper.to_domain(document)
+
+    assert restored.version == 0
