@@ -12,7 +12,7 @@ This tracks the Payments work compared with the reference practices in ECommerce
 
 ## Repository and repeatable verification
 
-- [ ] **PAY/1 — Repository standard.** AGENTS.md, Definition of Done, PR template, ADR index and first implemented architecture decision, this backlog, and README links. Close after paths and instructions match current code and proposed decisions are clearly marked.
+- [x] **PAY/1 — Repository standard.** AGENTS.md, Definition of Done, PR template, ADR index and first implemented architecture decision, this backlog, and README links. Close after paths and instructions match current code and proposed decisions are clearly marked.
 - [ ] **PAY/2 — Reproducible Python environment and basic CI.** Define Python/uv pin policy, frozen lock install, Ruff/Pyright, wheel build/install check, existing tests, shared local/CI entry points and PR/push workflow. Close after all gates work in a clean runner and locally.
 
 ## Domain and persistence
