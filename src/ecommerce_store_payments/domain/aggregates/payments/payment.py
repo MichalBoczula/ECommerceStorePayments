@@ -3,6 +3,8 @@ from typing import Self, final
 from uuid import UUID, uuid4
 
 from ecommerce_store_payments.domain.aggregates.payments.enums.payment_status import PaymentStatus
+from ecommerce_store_payments.domain.aggregates.payments.exceptions import PaymentErrorCode
+from ecommerce_store_payments.domain.aggregates.payments.payment_policy import PaymentPolicy
 from ecommerce_store_payments.domain.aggregates.payments.value_objects.money import Money
 
 
@@ -32,6 +34,17 @@ class Payment:
         created_at: datetime,
         updated_at: datetime | None,
     ) -> None:
+        PaymentPolicy.validate_snapshot(
+            payment_id,
+            order_id,
+            money,
+            status,
+            provider_session_id,
+            provider_payment_id,
+            failure_code,
+            created_at,
+            updated_at,
+        )
         self._id = payment_id
         self._order_id = order_id
         self._money = money
@@ -118,29 +131,36 @@ class Payment:
         return self._updated_at
 
     def mark_as_pending(self, provider_session_id: str) -> None:
-        if not provider_session_id.strip():
-            raise ValueError("Provider session identifier cannot be empty.")
+        PaymentPolicy.require_provider_identifier(provider_session_id, PaymentErrorCode.INVALID_PROVIDER_SESSION_ID)
 
-        self._ensure_status(PaymentStatus.CREATED)
+        if self._status is PaymentStatus.PENDING and self._provider_session_id == provider_session_id:
+            return
+
+        PaymentPolicy.require_transition(self._status, PaymentStatus.PENDING)
         self._provider_session_id = provider_session_id
         self._status = PaymentStatus.PENDING
         self._touch()
 
     def mark_as_succeeded(self, provider_payment_id: str) -> None:
-        if not provider_payment_id.strip():
-            raise ValueError("Provider payment identifier cannot be empty.")
+        PaymentPolicy.require_provider_identifier(provider_payment_id, PaymentErrorCode.INVALID_PROVIDER_PAYMENT_ID)
 
         if self._status is PaymentStatus.SUCCEEDED and self._provider_payment_id == provider_payment_id:
             return
 
-        self._ensure_status(PaymentStatus.PENDING)
+        PaymentPolicy.require_transition(self._status, PaymentStatus.SUCCEEDED)
         self._provider_payment_id = provider_payment_id
         self._failure_code = None
         self._status = PaymentStatus.SUCCEEDED
         self._touch()
 
     def mark_as_failed(self, failure_code: str | None = None) -> None:
-        self._ensure_status(PaymentStatus.PENDING)
+        if failure_code is not None:
+            PaymentPolicy.require_provider_identifier(failure_code, PaymentErrorCode.INVALID_FAILURE_CODE)
+
+        if self._status is PaymentStatus.FAILED and self._failure_code == failure_code:
+            return
+
+        PaymentPolicy.require_transition(self._status, PaymentStatus.FAILED)
         self._failure_code = failure_code
         self._status = PaymentStatus.FAILED
         self._touch()
@@ -149,15 +169,10 @@ class Payment:
         if self._status is PaymentStatus.CANCELED:
             return
 
-        if self._status not in (PaymentStatus.CREATED, PaymentStatus.PENDING):
-            raise ValueError(f"Payment cannot transition from {self._status} to {PaymentStatus.CANCELED}.")
+        PaymentPolicy.require_transition(self._status, PaymentStatus.CANCELED)
 
         self._status = PaymentStatus.CANCELED
         self._touch()
 
-    def _ensure_status(self, expected_status: PaymentStatus) -> None:
-        if self._status is not expected_status:
-            raise ValueError(f"Payment status must be {expected_status}; current status is {self._status}.")
-
     def _touch(self) -> None:
-        self._updated_at = datetime.now(UTC)
+        self._updated_at = max(datetime.now(UTC), self._updated_at or self._created_at)

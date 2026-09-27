@@ -6,6 +6,7 @@ Read this file and [the definition of done](docs/definition-of-done.md) before e
 
 - Preserve the FastAPI `api`, `application`, `domain`, and `infrastructure` layers under `src/ecommerce_store_payments`.
 - `domain` owns the Payment aggregate, Money, status transitions, and the repository contract. It must not depend on FastAPI, Pydantic, PyMongo, or generated clients.
+- Preserve `PaymentPolicy` checks in both creation and rehydration. New domain validation and transitions need typed error codes, tests for invalid snapshots and repeats, and an ADR update when the state policy changes.
 - `application` owns use-case orchestration and the OrderReader port. It may depend on Domain, but not on concrete HTTP/MongoDB adapters.
 - `infrastructure` owns settings, the HTTP Orders adapter, MongoDB documents, mapper, repository implementation, and indexes. Persist Payment through the mapper and `Payment.rehydrate`; do not put BSON or driver details into the aggregate.
 - `api` owns FastAPI routes/contracts and the composition root (`api/app.py`); it wires concrete adapters to the application service. Keep business decisions in the service and aggregate.

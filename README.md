@@ -25,6 +25,8 @@ src/ecommerce_store_payments/
 
 The Domain layer must remain independent of FastAPI, Pydantic, PyMongo, and generated API clients. MongoDB documents are mapped explicitly to the Payment aggregate and reconstructed with `rehydrate`. See [ADR-0001](docs/adr/0001-payment-layers-and-mongodb-mapping.md).
 
+The aggregate validates both new and rehydrated state, allows only defined status transitions, and treats an identical repeated transition as a no-op. Domain failures have typed, stable codes. Money stores integer minor units and an uppercase three-letter ASCII currency code; actual currency support and minor-unit conversion are handled at the integration boundary. See [ADR-0003](docs/adr/0003-payment-invariants-and-rehydration.md).
+
 ## Local setup
 
 Install the Python version from `.python-version` and uv 0.12.18. The service supports Python 3.14; this repository pins an exact patch for development and CI. To deliberately update the pin, change `.python-version` and the matching CI install, check `uv.lock`, and run the full verification. Update `[tool.uv].required-version` and the workflow together when upgrading uv.
