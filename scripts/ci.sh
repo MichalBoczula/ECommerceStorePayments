@@ -18,14 +18,17 @@ case "${1:-}" in
     uv run --no-sync pyright
     ;;
   test)
-    uv run --no-sync pytest
+    uv run --no-sync pytest tests/unit
+    ;;
+  integration)
+    uv run --no-sync pytest tests/integration
     ;;
   build)
     uv build --wheel --no-sources --clear
     uv run --no-sync python scripts/verify_wheel.py
     ;;
   *)
-    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|test|build}" >&2
+    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|test|integration|build}" >&2
     exit 2
     ;;
 esac

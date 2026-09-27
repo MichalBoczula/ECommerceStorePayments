@@ -51,7 +51,7 @@ Open:
 
 ## Quality checks
 
-With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. After `bash scripts/ci.sh sync`, run a focused stage using `bash scripts/ci.sh format`, `lint`, `types`, `test`, or `build`.
+With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for the integration stage. After `bash scripts/ci.sh sync`, run a focused stage using `bash scripts/ci.sh format`, `lint`, `types`, `test`, `integration`, or `build`.
 
 In PowerShell, the equivalent individual commands are:
 
@@ -61,12 +61,13 @@ uv sync --locked --all-groups
 uv run --no-sync ruff format --check .
 uv run --no-sync ruff check .
 uv run --no-sync pyright
-uv run --no-sync pytest
+uv run --no-sync pytest tests/unit
+uv run --no-sync pytest tests/integration # requires Docker
 uv build --wheel --no-sources --clear
 uv run --no-sync python scripts/verify_wheel.py
 ```
 
-CI runs on pull requests and pushes to `main`. It checks the lockfile, formatting, lint, types, the current unit tests and installation of the built wheel. The current tests are unit tests; MongoDB Testcontainers integration, HTTP acceptance, separate coverage thresholds, image work and security gates remain in the [technical backlog](TECHNICAL_TODO.md).
+CI runs on pull requests and pushes to `main`. It checks the lockfile, formatting, lint, types, unit tests, real MongoDB integration tests via Testcontainers, and installation of the built wheel. Integration tests share one MongoDB container, give each test a separate database, and remove each database after use. HTTP acceptance, separate coverage thresholds, image work and security gates remain in the [technical backlog](TECHNICAL_TODO.md).
 
 ## Generated API clients
 
