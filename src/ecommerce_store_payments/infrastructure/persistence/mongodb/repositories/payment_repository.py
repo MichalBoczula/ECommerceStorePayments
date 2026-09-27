@@ -1,7 +1,7 @@
 from typing import final
 from uuid import UUID
 
-from pymongo.asynchronous.collection import AsyncCollection
+from pymongo.asynchronous.client_session import AsyncClientSession
 from pymongo.errors import DuplicateKeyError
 
 from ecommerce_store_payments.domain.aggregates.payments.payment import Payment
@@ -10,18 +10,21 @@ from ecommerce_store_payments.domain.aggregates.payments.repositories.exceptions
     PaymentDuplicateError,
     PaymentMissingError,
 )
-from ecommerce_store_payments.infrastructure.persistence.mongodb.documents.payment_document import PaymentDocument
+from ecommerce_store_payments.infrastructure.persistence.mongodb.mappers.payment_history_mapper import (
+    PaymentHistoryMapper,
+)
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mappers.payment_mapper import PaymentMapper
+from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database import MongoDatabase
 
 
 @final
 class MongoPaymentRepository:
-    def __init__(self, collection: AsyncCollection[PaymentDocument]) -> None:
-        self._collection = collection
+    def __init__(self, database: MongoDatabase) -> None:
+        self._database = database
 
     async def create(self, payment: Payment) -> Payment:
         try:
-            await self._collection.insert_one(PaymentMapper.to_document(payment))
+            await self._database.payments.insert_one(PaymentMapper.to_document(payment))
         except DuplicateKeyError as error:
             raise PaymentDuplicateError(payment.id, payment.order_id) from error
         return payment
@@ -34,21 +37,37 @@ class MongoPaymentRepository:
             if payment.version == 0
             else {"version": payment.version}
         )
-        result = await self._collection.replace_one(
-            {"_id": payment.id, "order_id": payment.order_id, **version_filter},
-            document,
-        )
-        if result.matched_count == 0:
-            if await self._collection.find_one({"_id": payment.id}) is None:
-                raise PaymentMissingError(payment.id)
-            raise PaymentConflictError(payment.id, payment.version)
+        query = {"_id": payment.id, "order_id": payment.order_id, **version_filter}
 
-        return PaymentMapper.to_domain(document)
+        async def replace_and_archive(session: AsyncClientSession) -> Payment:
+            previous = await self._database.payments.find_one(query, session=session)
+            if previous is None:
+                if await self._database.payments.find_one({"_id": payment.id}, session=session) is None:
+                    raise PaymentMissingError(payment.id)
+                raise PaymentConflictError(payment.id, payment.version)
+
+            result = await self._database.payments.replace_one(query, document, session=session)
+            if result.matched_count == 0:
+                raise PaymentConflictError(payment.id, payment.version)
+            await self._database.payment_history.insert_one(
+                PaymentHistoryMapper.from_payment(previous), session=session
+            )
+            return PaymentMapper.to_domain(document)
+
+        async with self._database.client.start_session() as session:
+            return await session.with_transaction(replace_and_archive)
 
     async def get_by_id(self, payment_id: UUID) -> Payment | None:
-        document = await self._collection.find_one({"_id": payment_id})
+        document = await self._database.payments.find_one({"_id": payment_id})
         return None if document is None else PaymentMapper.to_domain(document)
 
     async def get_by_order_id(self, order_id: UUID) -> Payment | None:
-        document = await self._collection.find_one({"order_id": order_id})
+        document = await self._database.payments.find_one({"order_id": order_id})
         return None if document is None else PaymentMapper.to_domain(document)
+
+    async def get_history(self, payment_id: UUID) -> list[Payment]:
+        documents = [document async for document in self._database.payment_history.find({"payment_id": payment_id})]
+        return [
+            PaymentMapper.to_domain(PaymentHistoryMapper.to_payment(document))
+            for document in sorted(documents, key=lambda item: item["version"])
+        ]

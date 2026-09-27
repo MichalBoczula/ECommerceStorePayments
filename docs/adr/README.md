@@ -12,3 +12,4 @@ Use repository-local sequential numbers. Each record has a title, `Status` and `
 | [0004](0004-isolated-mongodb-integration-tests.md) | Accepted | Run real MongoDB repository tests in isolated per-test databases. |
 | [0005](0005-payment-optimistic-concurrency.md) | Accepted | Version payment writes and migrate versionless documents on their first update. |
 | [0006](0006-startup-and-health.md) | Accepted | Probe MongoDB at startup and separate liveness from database readiness. |
+| [0007](0007-payment-history.md) | Accepted | Archive previous payment snapshots in a shadow collection in the same transaction as current-state updates. |

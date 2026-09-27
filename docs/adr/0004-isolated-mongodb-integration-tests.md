@@ -9,7 +9,7 @@ The in-memory collection used by repository unit tests cannot verify BSON UUID a
 
 ## Decision
 
-Run repository integration tests against a MongoDB Testcontainers instance. Share one container per test session and create a unique database per test. Create indexes through `MongoDatabase.ensure_indexes()` and drop each database during fixture teardown. Keep fake collection tests in the unit suite. Run the integration stage in CI and in the local verification script; a Docker daemon is required.
+Run repository integration tests against a MongoDB Testcontainers instance. The container initializes a single-node replica set so payment/history writes can use transactions (see [ADR-0007](0007-payment-history.md)). Share one container per test session and create a unique database per test. Create indexes through `MongoDatabase.ensure_indexes()` and drop each database during fixture teardown. Keep fake collection tests in the unit suite. Run the integration stage in CI and in the local verification script; a Docker daemon is required.
 
 ## Consequences
 

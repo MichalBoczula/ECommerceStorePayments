@@ -17,7 +17,7 @@ Infrastructure implements the repository using a MongoDB PaymentDocument and exp
 
 Domain rules can be tested without MongoDB or FastAPI. Changes to the stored document or Orders transport remain localized to adapters and mapping, with integration tests needed to prove actual database behavior.
 
-The current repository does not use optimistic version matching, separate payment history, transactionally persisted transitions, or a Stripe webhook ledger. Those choices remain open in PAY/5, PAY/7, and the STRIPE stage of the backlog.
+Later decisions added optimistic version matching in [ADR-0005](0005-payment-optimistic-concurrency.md) and transactionally persisted history in [ADR-0007](0007-payment-history.md). The Stripe webhook ledger remains a separate later decision.
 
 ## Alternatives considered
 

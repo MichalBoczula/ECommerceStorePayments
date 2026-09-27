@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import pytest
 from pymongo import AsyncMongoClient
+from pymongo.errors import DuplicateKeyError
 
 from ecommerce_store_payments.domain.aggregates.payments.enums.payment_status import PaymentStatus
 from ecommerce_store_payments.domain.aggregates.payments.payment import Payment
@@ -28,7 +29,7 @@ def _mongo_datetime(value: datetime) -> datetime:
 
 
 async def test_create_reads_back_domain_and_bson_values(mongo_database: MongoDatabase) -> None:
-    repository = MongoPaymentRepository(mongo_database.payments)
+    repository = MongoPaymentRepository(mongo_database)
     payment = Payment.create(uuid4(), Money(amount_minor=12999, currency="PLN"))
 
     await repository.create(payment)
@@ -50,10 +51,11 @@ async def test_create_reads_back_domain_and_bson_values(mongo_database: MongoDat
     assert restored.created_at.utcoffset() == UTC.utcoffset(restored.created_at)
     assert restored.updated_at is None
     assert restored.version == document["version"] == 0
+    assert await repository.get_history(payment.id) == []
 
 
 async def test_update_round_trip_and_missing_payment(mongo_database: MongoDatabase) -> None:
-    repository = MongoPaymentRepository(mongo_database.payments)
+    repository = MongoPaymentRepository(mongo_database)
     payment = Payment.create(uuid4(), Money(amount_minor=500, currency="EUR"))
     await repository.create(payment)
 
@@ -82,10 +84,22 @@ async def test_update_round_trip_and_missing_payment(mongo_database: MongoDataba
     assert restored.updated_at == document["updated_at"] == _mongo_datetime(pending_payment.updated_at)
     assert restored.updated_at is not None and restored.updated_at.utcoffset() == UTC.utcoffset(restored.updated_at)
     assert await mongo_database.payments.count_documents({}) == 1
+    history = await repository.get_history(payment.id)
+    assert [snapshot.version for snapshot in history] == [0, 1]
+    assert [snapshot.status for snapshot in history] == [PaymentStatus.CREATED, PaymentStatus.PENDING]
+    assert history[0].provider_session_id is None
+    assert history[1].provider_session_id == "cs_test_123"
+    assert [snapshot.order_id for snapshot in history] == [payment.order_id, payment.order_id]
+    assert [snapshot.money for snapshot in history] == [payment.money, payment.money]
+    documents = [item async for item in mongo_database.payment_history.find({"payment_id": payment.id})]
+    assert {item["_id"] for item in documents} == {f"{payment.id}:0", f"{payment.id}:1"}
+    assert all(item["recorded_at"].tzinfo is not None for item in documents)
+    assert all(item["payment_id"] == payment.id for item in documents)
+    assert await mongo_database.payment_history.count_documents({}) == 2
 
 
 async def test_missing_reads_and_update(mongo_database: MongoDatabase) -> None:
-    repository = MongoPaymentRepository(mongo_database.payments)
+    repository = MongoPaymentRepository(mongo_database)
     payment = Payment.create(uuid4(), Money(amount_minor=500, currency="PLN"))
 
     assert await repository.get_by_id(payment.id) is None
@@ -93,13 +107,17 @@ async def test_missing_reads_and_update(mongo_database: MongoDatabase) -> None:
     with pytest.raises(PaymentMissingError, match=str(payment.id)):
         await repository.update(payment)
     assert await mongo_database.payments.count_documents({}) == 0
+    assert await mongo_database.payment_history.count_documents({}) == 0
 
 
 async def test_unique_order_index_rejects_second_payment(mongo_database: MongoDatabase) -> None:
-    repository = MongoPaymentRepository(mongo_database.payments)
+    repository = MongoPaymentRepository(mongo_database)
     indexes = await mongo_database.payments.index_information()
     assert indexes["ux_payments_order_id"]["key"] == [("order_id", 1)]
     assert indexes["ux_payments_order_id"]["unique"] is True
+    history_indexes = await mongo_database.payment_history.index_information()
+    assert set(history_indexes) == {"_id_", "ix_payment_history_payment_id"}
+    assert history_indexes["ix_payment_history_payment_id"]["key"] == [("payment_id", 1)]
     order_id = uuid4()
     first = Payment.create(order_id, Money(amount_minor=500, currency="PLN"))
     second = Payment.create(order_id, Money(amount_minor=600, currency="PLN"))
@@ -112,10 +130,11 @@ async def test_unique_order_index_rejects_second_payment(mongo_database: MongoDa
     stored = await repository.get_by_order_id(order_id)
     assert stored is not None and stored.id == first.id
     assert await mongo_database.payments.count_documents({}) == 1
+    assert await mongo_database.payment_history.count_documents({}) == 0
 
 
 async def test_competing_updates_leave_one_winner(mongo_database: MongoDatabase) -> None:
-    repository = MongoPaymentRepository(mongo_database.payments)
+    repository = MongoPaymentRepository(mongo_database)
     initial = Payment.create(uuid4(), Money(amount_minor=500, currency="PLN"))
     await repository.create(initial)
     pending = await repository.get_by_id(initial.id)
@@ -136,10 +155,11 @@ async def test_competing_updates_leave_one_winner(mongo_database: MongoDatabase)
     assert stored.status is successes[0].status
     assert stored.version == successes[0].version == 1
     assert await mongo_database.payments.count_documents({}) == 1
+    assert [snapshot.version for snapshot in await repository.get_history(initial.id)] == [0]
 
 
 async def test_competing_creates_for_order_leave_one_payment(mongo_database: MongoDatabase) -> None:
-    repository = MongoPaymentRepository(mongo_database.payments)
+    repository = MongoPaymentRepository(mongo_database)
     order_id = uuid4()
     first = Payment.create(order_id, Money(amount_minor=500, currency="PLN"))
     second = Payment.create(order_id, Money(amount_minor=600, currency="PLN"))
@@ -157,7 +177,7 @@ async def test_competing_creates_for_order_leave_one_payment(mongo_database: Mon
 
 
 async def test_first_update_of_versionless_document_migrates_it_atomically(mongo_database: MongoDatabase) -> None:
-    repository = MongoPaymentRepository(mongo_database.payments)
+    repository = MongoPaymentRepository(mongo_database)
     payment = Payment.create(uuid4(), Money(amount_minor=500, currency="PLN"))
     legacy_document = cast(
         PaymentDocument, {key: value for key, value in PaymentMapper.to_document(payment).items() if key != "version"}
@@ -178,10 +198,13 @@ async def test_first_update_of_versionless_document_migrates_it_atomically(mongo
     assert stored is not None
     assert stored["version"] == migrated.version == 1
     assert stored["status"] == PaymentStatus.PENDING.value
+    assert [snapshot.version for snapshot in await repository.get_history(payment.id)] == [0]
+    archived = await mongo_database.payment_history.find_one({"payment_id": payment.id})
+    assert archived is not None and archived["status"] == PaymentStatus.CREATED.value
 
 
 async def test_update_cannot_reassign_payment_to_another_order(mongo_database: MongoDatabase) -> None:
-    repository = MongoPaymentRepository(mongo_database.payments)
+    repository = MongoPaymentRepository(mongo_database)
     original = Payment.create(uuid4(), Money(amount_minor=500, currency="PLN"))
     await repository.create(original)
     reassigned = Payment.rehydrate(
@@ -206,10 +229,42 @@ async def test_update_cannot_reassign_payment_to_another_order(mongo_database: M
     assert stored.order_id == original.order_id
     assert stored.status is PaymentStatus.CREATED
     assert stored.version == 0
+    assert await repository.get_history(original.id) == []
+
+
+async def test_failed_archive_rolls_back_current_update(mongo_database: MongoDatabase) -> None:
+    repository = MongoPaymentRepository(mongo_database)
+    payment = Payment.create(uuid4(), Money(amount_minor=500, currency="PLN"))
+    await repository.create(payment)
+    payment.mark_as_pending("cs_test_123")
+    await mongo_database.payment_history.insert_one(
+        {
+            "_id": f"{payment.id}:0",
+            "payment_id": payment.id,
+            "order_id": payment.order_id,
+            "amount_minor": 500,
+            "currency": "PLN",
+            "status": PaymentStatus.CREATED.value,
+            "provider_session_id": None,
+            "provider_payment_id": None,
+            "failure_code": None,
+            "created_at": payment.created_at,
+            "updated_at": None,
+            "version": 0,
+            "recorded_at": datetime.now(UTC),
+        }
+    )
+
+    with pytest.raises(DuplicateKeyError):
+        await repository.update(payment)
+
+    stored = await repository.get_by_id(payment.id)
+    assert stored is not None and stored.status is PaymentStatus.CREATED and stored.version == 0
+    assert await mongo_database.payment_history.count_documents({"payment_id": payment.id}) == 1
 
 
 async def test_database_names_isolate_documents(mongo_database: MongoDatabase, mongo_url: str) -> None:
-    repository = MongoPaymentRepository(mongo_database.payments)
+    repository = MongoPaymentRepository(mongo_database)
     payment = Payment.create(uuid4(), Money(amount_minor=500, currency="PLN"))
     await repository.create(payment)
 
@@ -223,7 +278,7 @@ async def test_database_names_isolate_documents(mongo_database: MongoDatabase, m
     )
     cleanup_client: AsyncMongoClient[PaymentDocument] = AsyncMongoClient(mongo_url)
     try:
-        other_repository = MongoPaymentRepository(other_database.payments)
+        other_repository = MongoPaymentRepository(other_database)
         other_payment = Payment.create(uuid4(), Money(amount_minor=600, currency="EUR"))
         await other_repository.create(other_payment)
         assert await other_repository.get_by_id(payment.id) is None

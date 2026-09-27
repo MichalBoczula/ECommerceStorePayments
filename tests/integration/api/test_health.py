@@ -41,6 +41,8 @@ async def test_startup_creates_named_index_and_readiness_uses_real_mongodb(mongo
         indexes = await cleanup_client[database_name]["payments"].index_information()
         assert indexes["ux_payments_order_id"]["key"] == [("order_id", 1)]
         assert indexes["ux_payments_order_id"]["unique"] is True
+        history_indexes = await cleanup_client[database_name]["payment_history"].index_information()
+        assert history_indexes["ix_payment_history_payment_id"]["key"] == [("payment_id", 1)]
     finally:
         try:
             await cleanup_client.drop_database(database_name)

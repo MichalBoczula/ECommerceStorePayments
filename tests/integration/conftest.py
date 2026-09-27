@@ -1,8 +1,10 @@
 from collections.abc import AsyncGenerator, Generator
+from time import monotonic, sleep
 from uuid import uuid4
 
 import pytest
-from pymongo import AsyncMongoClient
+from pymongo import AsyncMongoClient, MongoClient
+from pymongo.errors import PyMongoError
 from testcontainers.community.mongodb import MongoDbContainer
 
 from ecommerce_store_payments.infrastructure.config.settings import Settings
@@ -10,10 +12,37 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.documents.payme
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database import MongoDatabase
 
 
+class _ReplicaSetMongoContainer(MongoDbContainer):
+    def _configure(self) -> None:
+        self.with_command(["mongod", "--replSet", "rs0", "--bind_ip_all"])
+
+    def get_connection_url(self) -> str:
+        return f"mongodb://{self.get_container_host_ip()}:{self.get_exposed_port(27017)}/?directConnection=true"
+
+
 @pytest.fixture(scope="session")
 def mongo_url() -> Generator[str]:
-    with MongoDbContainer("mongo:8.0") as container:
-        yield container.get_connection_url()
+    with _ReplicaSetMongoContainer("mongo:8.0") as container:
+        initiated = container.exec(
+            ["mongosh", "--quiet", "--eval", "rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]})"]
+        )
+        assert initiated.exit_code == 0, initiated.output.decode()
+        url = container.get_connection_url()
+        client: MongoClient[PaymentDocument] = MongoClient(url, serverSelectionTimeoutMS=1000)
+        try:
+            deadline = monotonic() + 30
+            while monotonic() < deadline:
+                try:
+                    if client.admin.command("hello").get("isWritablePrimary"):
+                        break
+                except PyMongoError:
+                    pass
+                sleep(0.25)
+            else:
+                raise RuntimeError("MongoDB replica set did not elect a primary")
+        finally:
+            client.close()
+        yield url
 
 
 @pytest.fixture
