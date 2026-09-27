@@ -52,8 +52,8 @@ Startup validates the settings, probes MongoDB with a bounded timeout and ensure
 | `PAYMENTS_MONGODB_CONNECTION_STRING` | `mongodb://localhost:27017` | MongoDB URI. |
 | `PAYMENTS_MONGODB_DATABASE_NAME` | `ecommerce_store_payments` | Database name. |
 | `PAYMENTS_MONGODB_PAYMENTS_COLLECTION_NAME` | `payments` | Payments collection name. |
-| `PAYMENTS_MONGODB_PROBE_TIMEOUT_SECONDS` | `2.0` | Wall-clock deadline for the MongoDB ping. |
-| `PAYMENTS_MONGODB_SERVER_SELECTION_TIMEOUT_MS` | `2000` | Driver's server-selection deadline. |
+| `PAYMENTS_MONGODB_PROBE_TIMEOUT_SECONDS` | `5.0` | Wall-clock deadline for the MongoDB ping. |
+| `PAYMENTS_MONGODB_SERVER_SELECTION_TIMEOUT_MS` | `5000` | Driver's server-selection deadline. |
 | `PAYMENTS_ORDERS_API_BASE_URL` | `http://localhost:5000` | Orders service base URL. |
 
 Open:

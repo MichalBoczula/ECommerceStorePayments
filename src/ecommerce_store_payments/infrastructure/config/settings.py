@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     mongodb_connection_string: str = "mongodb://localhost:27017"
     mongodb_database_name: str = Field(default="ecommerce_store_payments", pattern=r"^[A-Za-z0-9_-]+$")
     mongodb_payments_collection_name: str = Field(default="payments", pattern=r"^[A-Za-z0-9_-]+$")
-    mongodb_probe_timeout_seconds: float = Field(default=2.0, gt=0, le=30)
-    mongodb_server_selection_timeout_ms: int = Field(default=2000, gt=0, le=30000)
+    mongodb_probe_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
+    mongodb_server_selection_timeout_ms: int = Field(default=5000, gt=0, le=30000)
     orders_api_base_url: str = "http://localhost:5000"
 
     @field_validator("mongodb_connection_string")
