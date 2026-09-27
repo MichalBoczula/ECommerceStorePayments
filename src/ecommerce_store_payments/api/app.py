@@ -21,23 +21,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         database = MongoDatabase(resolved_settings)
-        orders_client = AsyncClient(base_url=resolved_settings.orders_api_base_url, trust_env=False)
-        app.state.payment_service = PaymentService(
-            payment_repository=MongoPaymentRepository(database.payments),
-            order_reader=HttpOrderReader(orders_client),
-        )
-
-        if resolved_settings.environment != "test":
-            await database.ensure_indexes()
-
         try:
-            yield
+            async with AsyncClient(base_url=resolved_settings.orders_api_base_url, trust_env=False) as orders_client:
+                await database.probe()
+                await database.ensure_indexes()
+                app.state.database = database
+                app.state.payment_service = PaymentService(
+                    payment_repository=MongoPaymentRepository(database.payments),
+                    order_reader=HttpOrderReader(orders_client),
+                )
+                yield
         finally:
-            await orders_client.aclose()
             await database.close()
 
     app = FastAPI(
-        title="ECommerce Store Payments API",
+        title=resolved_settings.app_name,
         docs_url="/swagger",
         redoc_url="/redoc",
         openapi_url="/openapi.json",

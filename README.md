@@ -45,11 +45,25 @@ Start the API with MongoDB available at the configured address:
 uv run --locked uvicorn ecommerce_store_payments.main:app --reload
 ```
 
+Startup validates the settings, probes MongoDB with a bounded timeout and ensures the named unique `ux_payments_order_id` index. A failed probe or index build prevents the API from starting; both the MongoDB and Orders clients are closed on failure. Relevant environment variables use the `PAYMENTS_` prefix:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PAYMENTS_MONGODB_CONNECTION_STRING` | `mongodb://localhost:27017` | MongoDB URI. |
+| `PAYMENTS_MONGODB_DATABASE_NAME` | `ecommerce_store_payments` | Database name. |
+| `PAYMENTS_MONGODB_PAYMENTS_COLLECTION_NAME` | `payments` | Payments collection name. |
+| `PAYMENTS_MONGODB_PROBE_TIMEOUT_SECONDS` | `5.0` | Wall-clock deadline for the MongoDB ping. |
+| `PAYMENTS_MONGODB_SERVER_SELECTION_TIMEOUT_MS` | `5000` | Driver's server-selection deadline. |
+| `PAYMENTS_ORDERS_API_BASE_URL` | `http://localhost:5000` | Orders service base URL. |
+
 Open:
 
 - Swagger UI: http://127.0.0.1:8000/swagger
 - OpenAPI: http://127.0.0.1:8000/openapi.json
-- Health: http://127.0.0.1:8000/health
+- Liveness: http://127.0.0.1:8000/health/live
+- Readiness: http://127.0.0.1:8000/health/ready
+
+`/health` remains a compatibility alias of liveness and responds without querying MongoDB. `/health/ready` probes MongoDB for each request; it returns HTTP 200 with `{"status":"healthy"}` when available and HTTP 503 with `{"status":"unhealthy"}` when unavailable. The response does not include connection details. OpenAPI can be generated without starting the API or connecting to MongoDB. See [ADR-0006](docs/adr/0006-startup-and-health.md).
 
 ## Quality checks
 
