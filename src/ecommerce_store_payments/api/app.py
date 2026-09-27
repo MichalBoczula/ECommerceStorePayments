@@ -27,7 +27,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 await database.ensure_indexes()
                 app.state.database = database
                 app.state.payment_service = PaymentService(
-                    payment_repository=MongoPaymentRepository(database.payments),
+                    payment_repository=MongoPaymentRepository(database),
                     order_reader=HttpOrderReader(orders_client),
                 )
                 yield

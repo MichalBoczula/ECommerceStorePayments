@@ -15,6 +15,7 @@ from ecommerce_store_payments.infrastructure.config.settings import Settings
         {"mongodb_database_name": ""},
         {"mongodb_database_name": "../other"},
         {"mongodb_payments_collection_name": "system.payments"},
+        {"mongodb_payment_history_collection_name": "system.history"},
         {"mongodb_probe_timeout_seconds": 0},
         {"mongodb_probe_timeout_seconds": 31},
         {"mongodb_server_selection_timeout_ms": 0},

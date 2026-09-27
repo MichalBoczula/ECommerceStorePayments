@@ -29,6 +29,8 @@ The aggregate validates both new and rehydrated state, allows only defined statu
 
 Each payment has a nonnegative storage version. A new payment starts at version 0; repository updates atomically match the payment ID, order ID and expected version. `update` returns a new aggregate with the next version, which callers must use for later writes. A versionless legacy document reads as version 0 and receives version 1 on its first successful update. Missing records, stale updates and duplicate creates produce separate typed errors. See [ADR-0005](docs/adr/0005-payment-optimistic-concurrency.md).
 
+The `payments` collection holds current state. Each update transactionally stores the previous snapshot in `payment_history`, with its payment ID, version and recording time. `get_history(payment_id)` reads prior snapshots in version order; a newly created payment has no history. MongoDB must be configured as a replica set or sharded cluster to support transactions, including for local development. See [ADR-0007](docs/adr/0007-payment-history.md).
+
 ## Local setup
 
 Install the Python version from `.python-version` and uv 0.12.18. The service supports Python 3.14; this repository pins an exact patch for development and CI. To deliberately update the pin, change `.python-version` and the matching CI install, check `uv.lock`, and run the full verification. Update `[tool.uv].required-version` and the workflow together when upgrading uv.
@@ -39,19 +41,20 @@ Install the locked project dependencies:
 uv sync --locked --all-groups
 ```
 
-Start the API with MongoDB available at the configured address:
+Start the API with a MongoDB replica set available at the configured address:
 
 ```bash
 uv run --locked uvicorn ecommerce_store_payments.main:app --reload
 ```
 
-Startup validates the settings, probes MongoDB with a bounded timeout and ensures the named unique `ux_payments_order_id` index. A failed probe or index build prevents the API from starting; both the MongoDB and Orders clients are closed on failure. Relevant environment variables use the `PAYMENTS_` prefix:
+Startup validates the settings, probes MongoDB with a bounded timeout and ensures the named `ux_payments_order_id` unique index and `ix_payment_history_payment_id` lookup index. A failed probe or index build prevents the API from starting; both the MongoDB and Orders clients are closed on failure. Relevant environment variables use the `PAYMENTS_` prefix:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PAYMENTS_MONGODB_CONNECTION_STRING` | `mongodb://localhost:27017` | MongoDB URI. |
 | `PAYMENTS_MONGODB_DATABASE_NAME` | `ecommerce_store_payments` | Database name. |
 | `PAYMENTS_MONGODB_PAYMENTS_COLLECTION_NAME` | `payments` | Payments collection name. |
+| `PAYMENTS_MONGODB_PAYMENT_HISTORY_COLLECTION_NAME` | `payment_history` | Prior payment snapshots collection. |
 | `PAYMENTS_MONGODB_PROBE_TIMEOUT_SECONDS` | `5.0` | Wall-clock deadline for the MongoDB ping. |
 | `PAYMENTS_MONGODB_SERVER_SELECTION_TIMEOUT_MS` | `5000` | Driver's server-selection deadline. |
 | `PAYMENTS_ORDERS_API_BASE_URL` | `http://localhost:5000` | Orders service base URL. |
@@ -83,7 +86,7 @@ uv build --wheel --no-sources --clear
 uv run --no-sync python scripts/verify_wheel.py
 ```
 
-CI runs on pull requests and pushes to `main`. It checks the lockfile, formatting, lint, types, unit tests, real MongoDB integration tests via Testcontainers, and installation of the built wheel. Integration tests share one MongoDB container, give each test a separate database, and remove each database after use. HTTP acceptance, separate coverage thresholds, image work and security gates remain in the [technical backlog](TECHNICAL_TODO.md).
+CI runs on pull requests and pushes to `main`. It checks the lockfile, formatting, lint, types, unit tests, real MongoDB integration tests via Testcontainers, and installation of the built wheel. Integration tests share a single-node MongoDB replica set container, give each test a separate database, and remove each database after use. HTTP acceptance, separate coverage thresholds, image work and security gates remain in the [technical backlog](TECHNICAL_TODO.md).
 
 ## Generated API clients
 
