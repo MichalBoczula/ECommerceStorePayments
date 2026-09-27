@@ -28,8 +28,8 @@ def test_startup_failure_closes_database_and_orders_client(monkeypatch: pytest.M
                 raise RuntimeError("index build failed")
 
     class TrackingOrdersClient(AsyncClient):
-        def __init__(self, base_url: str, trust_env: bool) -> None:
-            super().__init__(base_url=base_url, trust_env=trust_env)
+        def __init__(self, base_url: str, timeout: float, trust_env: bool) -> None:
+            super().__init__(base_url=base_url, timeout=timeout, trust_env=trust_env)
             orders_clients.append(self)
 
     monkeypatch.setattr("ecommerce_store_payments.api.app.MongoDatabase", FailingDatabase)

@@ -22,6 +22,8 @@ from ecommerce_store_payments.infrastructure.config.settings import Settings
         {"orders_api_base_url": "ftp://localhost:5000"},
         {"orders_api_base_url": "http://"},
         {"orders_api_base_url": "http://localhost:bad"},
+        {"orders_api_timeout_seconds": 0},
+        {"orders_api_timeout_seconds": 31},
     ],
 )
 def test_rejects_invalid_configuration(override: dict[str, object]) -> None:
@@ -42,3 +44,4 @@ def test_accepts_explicit_bounded_connection_settings() -> None:
 
     assert settings.mongodb_probe_timeout_seconds == 1.5
     assert settings.mongodb_server_selection_timeout_ms == 1000
+    assert settings.orders_api_timeout_seconds == 5.0
