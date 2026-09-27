@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import final
 
+from ecommerce_store_payments.domain.aggregates.payments.exceptions import MoneyValidationError, PaymentErrorCode
+
 
 @final
 @dataclass(frozen=True, slots=True)
@@ -9,11 +11,19 @@ class Money:
     currency: str
 
     def __post_init__(self) -> None:
-        if self.amount_minor <= 0:
-            raise ValueError("Money amount must be greater than zero.")
+        object.__setattr__(self, "currency", self._validate(self.amount_minor, self.currency))
 
-        normalized_currency = self.currency.strip().upper()
-        if len(normalized_currency) != 3 or not normalized_currency.isalpha():
-            raise ValueError("Currency must be a three-letter ISO 4217 code.")
+    @staticmethod
+    def _validate(amount_minor: object, currency: object) -> str:
+        """Require a positive minor-unit integer and normalize an ASCII currency code."""
+        if isinstance(amount_minor, bool) or not isinstance(amount_minor, int) or amount_minor <= 0:
+            raise MoneyValidationError(PaymentErrorCode.INVALID_AMOUNT, "Money amount must be a positive integer.")
 
-        object.__setattr__(self, "currency", normalized_currency)
+        if not isinstance(currency, str):
+            raise MoneyValidationError(PaymentErrorCode.INVALID_CURRENCY, "Currency must contain three ASCII letters.")
+
+        raw_currency = currency.strip()
+        if len(raw_currency) != 3 or not raw_currency.isascii() or not raw_currency.isalpha():
+            raise MoneyValidationError(PaymentErrorCode.INVALID_CURRENCY, "Currency must contain three ASCII letters.")
+
+        return raw_currency.upper()

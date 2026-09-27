@@ -8,3 +8,4 @@ Use repository-local sequential numbers. Each record has a title, `Status` and `
 | --- | --- | --- |
 | [0001](0001-payment-layers-and-mongodb-mapping.md) | Accepted | Separate Payment domain state from MongoDB documents and HTTP transport. |
 | [0002](0002-pinned-python-and-basic-ci.md) | Accepted | Pin local/CI tools and run the same baseline quality stages. |
+| [0003](0003-payment-invariants-and-rehydration.md) | Accepted | Validate payment snapshots and make transitions and domain errors explicit. |
