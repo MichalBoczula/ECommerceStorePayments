@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.27,<2"]
+requires = ["hatchling==1.27.0"]
 build-backend = "hatchling.build"
 
 [project]
@@ -63,3 +63,6 @@ pythonVersion = "3.14"
 typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"
+
+[tool.uv]
+required-version = "==0.12.18"

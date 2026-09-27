@@ -4,7 +4,7 @@ Python service responsible for the payment area of the ECommerce Store portfolio
 
 ## Technology
 
-- Python 3.14
+- Python 3.14 (the development and CI patch version is pinned in `.python-version`)
 - FastAPI
 - Pydantic and pydantic-settings
 - PyMongo Async API
@@ -27,16 +27,18 @@ The Domain layer must remain independent of FastAPI, Pydantic, PyMongo, and gene
 
 ## Local setup
 
-Install Python 3.14 and uv, then run:
+Install the Python version from `.python-version` and uv 0.12.18. The service supports Python 3.14; this repository pins an exact patch for development and CI. To deliberately update the pin, change `.python-version` and the matching CI install, check `uv.lock`, and run the full verification. Update `[tool.uv].required-version` and the workflow together when upgrading uv.
+
+Install the locked project dependencies:
 
 ```bash
-uv sync --all-groups
+uv sync --locked --all-groups
 ```
 
 Start the API with MongoDB available at the configured address:
 
 ```bash
-uv run uvicorn ecommerce_store_payments.main:app --reload
+uv run --locked uvicorn ecommerce_store_payments.main:app --reload
 ```
 
 Open:
@@ -47,14 +49,22 @@ Open:
 
 ## Quality checks
 
-```bash
-uv run ruff format --check .
-uv run ruff check .
-uv run pyright
-uv run pytest
+With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. After `bash scripts/ci.sh sync`, run a focused stage using `bash scripts/ci.sh format`, `lint`, `types`, `test`, or `build`.
+
+In PowerShell, the equivalent individual commands are:
+
+```powershell
+uv lock --check
+uv sync --locked --all-groups
+uv run --no-sync ruff format --check .
+uv run --no-sync ruff check .
+uv run --no-sync pyright
+uv run --no-sync pytest
+uv build --wheel --no-sources --clear
+uv run --no-sync python scripts/verify_wheel.py
 ```
 
-The current tests are unit tests. MongoDB Testcontainers integration and HTTP acceptance suites, CI and security gates are tracked in the [technical backlog](TECHNICAL_TODO.md).
+CI runs on pull requests and pushes to `main`. It checks the lockfile, formatting, lint, types, the current unit tests and installation of the built wheel. The current tests are unit tests; MongoDB Testcontainers integration, HTTP acceptance, separate coverage thresholds, image work and security gates remain in the [technical backlog](TECHNICAL_TODO.md).
 
 ## Generated API clients
 

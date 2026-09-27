@@ -20,17 +20,15 @@ Read this file and [the definition of done](docs/definition-of-done.md) before e
 
 ## Local verification
 
-With Python 3.14 and uv installed, use the commands currently available:
+Use the versions pinned in `.python-version` and `[tool.uv].required-version` in `pyproject.toml`. With Bash available, run the same stages as CI:
 
 ```bash
-uv sync --all-groups
-uv run ruff format --check .
-uv run ruff check .
-uv run pyright
-uv run pytest
+bash scripts/verify.sh
 ```
 
-Running the API: `uv run uvicorn ecommerce_store_payments.main:app --reload`; Swagger UI: `/swagger`. Tests that exercise MongoDB require a running MongoDB service or Testcontainers fixture; current `tests/unit` are the only implemented test suite. Local verification scripts and CI are tracked in [PAY/2](TECHNICAL_TODO.md); do not describe them as available yet. Report only commands actually run.
+To focus on one stage, run `bash scripts/ci.sh sync` first and then `bash scripts/ci.sh {format|lint|types|test|build}`. The latter stages use the synced environment without changing the lockfile. The workflow in `.github/workflows/ci.yml` calls these same stages.
+
+Running the API: `uv run --locked uvicorn ecommerce_store_payments.main:app --reload`; Swagger UI: `/swagger`. Tests that exercise MongoDB require a running MongoDB service or Testcontainers fixture; current `tests/unit` are the only implemented test suite. Coverage and security gates are later backlog items. Report only commands actually run.
 
 ## Handoff
 
