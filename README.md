@@ -33,7 +33,7 @@ Each payment has a nonnegative storage version. A new payment starts at version 
 
 The `payments` collection holds current state. Each update transactionally stores the previous snapshot in `payment_history`, with its payment ID, version and recording time. `get_history(payment_id)` reads prior snapshots in version order; a newly created payment has no history. MongoDB must be configured as a replica set or sharded cluster to support transactions, including for local development. See [ADR-0007](docs/adr/0007-payment-history.md).
 
-The Orders adapter reads `GET /orders/{orderId}` and validates the returned ID, total, status and line consistency before creating a payment. It converts exact decimal totals using explicit currency minor units: PLN/EUR/USD/GBP/CHF (2), JPY/KRW (0), BHD/JOD/KWD/OMR/TND (3). Unknown currencies and unrepresentable amounts are rejected. A missing order yields 404; a bad upstream response or outage yields 502; an Orders timeout yields 504. See [ADR-0008](docs/adr/0008-orders-http-adapter.md). Stripe support for individual currencies is decided separately.
+The Orders adapter uses a Kiota Python client generated from the pinned Invoice `GET /orders/{orderId}` OpenAPI contract. The generated client stays inside Infrastructure behind `OrderReader`; a handwritten mapper validates the returned ID, total, status and line consistency. The Invoice schema declares money as `number/double`, so our Kiota JSON factory reads wire tokens as exact `Decimal` values and the mapper rejects anything else. It converts exact decimal totals using explicit currency minor units: PLN/EUR/USD/GBP/CHF (2), JPY/KRW (0), BHD/JOD/KWD/OMR/TND (3). Unknown currencies and unrepresentable amounts are rejected. A missing order yields 404; a bad upstream response or outage yields 502; an Orders timeout yields 504. See [ADR-0008](docs/adr/0008-orders-http-adapter.md) and [ADR-0016](docs/adr/0016-invoice-kiota-orders-client.md). Stripe support for individual currencies is decided separately.
 
 `POST /payments/{order_id}/pay` returns 201 only when it creates a Payment. It returns 200 for an existing `Created`, `Pending` or `Succeeded` Payment. A `Failed` or `Canceled` Payment can be retried on the same ID after Orders confirms the original amount/currency and `Created` status; this resets provider data, archives the previous state and returns 200. Changed totals or incompatible order status return 409. Parallel creates/retries resolve to one persisted state and do not duplicate payment history. `GET /payments/order/{order_id}` reads current state (200) or returns 404. See [ADR-0009](docs/adr/0009-pay-get-semantics.md). Starting a provider session is future STRIPE work.
 
@@ -85,7 +85,9 @@ Invalid path parameters return 400 `invalid_request`; malformed JSON returns 400
 
 ## Quality checks
 
-With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for Application, Infrastructure and Acceptance suites. After `bash scripts/ci.sh sync`, run a focused source/build stage with `bash scripts/ci.sh format`, `lint`, `types`, `architecture`, `links`, `openapi`, or `build`; run a test suite with `bash scripts/ci.sh suite domain` (or `application`, `infrastructure`, `externalproviders`, `acceptance`).
+The Invoice OpenAPI snapshot in `contracts/invoice/openapi.json` came from its successful CI artifact at commit `03a0ce67d55091c8593a078f3b8977e4cd836dfd`. After syncing, run `bash scripts/ci.sh orders-client` to verify that Kiota 1.34.1 regenerates exactly the committed client. The script downloads the pinned Linux binary when Kiota is absent and checks its SHA-256; set `KIOTA_BIN` to use a local executable. The Infrastructure integration suite pulls the [matching Invoice image](https://hub.docker.com/r/mb0101/ecommerce-store-invoice-api) by digest and checks a seeded order against MongoDB. Docker is required for that test. Unit and acceptance tests keep a controlled Orders transport for adverse responses.
+
+With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for Application, Infrastructure and Acceptance suites. After `bash scripts/ci.sh sync`, run a focused source/build stage with `bash scripts/ci.sh format`, `lint`, `types`, `architecture`, `orders-client`, `links`, `openapi`, or `build`; run a test suite with `bash scripts/ci.sh suite domain` (or `application`, `infrastructure`, `externalproviders`, `acceptance`).
 
 In PowerShell, the equivalent individual commands are:
 
@@ -96,6 +98,7 @@ uv run --no-sync ruff format --check .
 uv run --no-sync ruff check .
 uv run --no-sync pyright
 uv run --no-sync python scripts/check_architecture.py
+bash scripts/ci.sh orders-client # Bash/WSL and pinned Kiota binary
 uv run --no-sync python scripts/generate_operation_links.py --check
 uv run --no-sync python -m scripts.export_openapi
 uv run --no-sync python -m scripts.run_suite domain
@@ -107,7 +110,7 @@ uv build --wheel --no-sources --clear
 uv run --no-sync python scripts/verify_wheel.py
 ```
 
-CI runs on pull requests and pushes to `main`. Its source/build job checks the lockfile, formatting, lint, types, architecture boundaries, operation links, generated OpenAPI and wheel installation. Five independent suite jobs run Domain, Application, Infrastructure, ExternalProviders and Acceptance with JUnit, Cobertura XML, HTML coverage and Markdown summaries under ignored `artifacts/verification/<suite>/` directories, uploaded as separate CI artifacts. Domain, Application and the full Infrastructure package each require at least 70% **line** coverage; ExternalProviders and Acceptance publish coverage without a threshold. The Infrastructure suite includes Orders adapter tests, repeated independently in ExternalProviders for its boundary report. A failed test, zero tests, missing/wrong report or a failed coverage gate fails its suite and the final CI gate. See [ADR-0015](docs/adr/0015-suite-reporting-and-coverage.md).
+CI runs on pull requests and pushes to `main`. Its source/build job checks the lockfile, formatting, lint, types, architecture boundaries, regenerated Orders client, operation links, generated OpenAPI and wheel installation. Five independent suite jobs run Domain, Application, Infrastructure, ExternalProviders and Acceptance with JUnit, Cobertura XML, HTML coverage and Markdown summaries under ignored `artifacts/verification/<suite>/` directories, uploaded as separate CI artifacts. Domain, Application and the full Infrastructure package each require at least 70% **line** coverage; ExternalProviders and Acceptance publish coverage without a threshold. The Infrastructure suite includes Orders adapter tests, repeated independently in ExternalProviders for its boundary report. A failed test, zero tests, missing/wrong report or a failed coverage gate fails its suite and the final CI gate. See [ADR-0015](docs/adr/0015-suite-reporting-and-coverage.md).
 
 MongoDB suites use Testcontainers, give each test or scenario a separate database, and remove each database after use. Acceptance uses a controlled Orders HTTP transport while exercising the real adapter and FastAPI lifecycle. The [acceptance matrix](docs/acceptance-matrix.tsv) links source scenarios to operation, cause, status, code and requirement; see [ADR-0011](docs/adr/0011-acceptance-isolation.md).
 
@@ -117,9 +120,7 @@ Run `bash scripts/ci.sh openapi` to export and lint the database-free OpenAPI at
 
 ## Generated API clients
 
-Kiota-generated clients will live under
-`src/ecommerce_store_payments/infrastructure/clients/<service>/generated`.
-Kiota runtime packages will be added with the first generated client so the repository does not carry unused dependencies.
+The Orders Kiota client lives under `src/ecommerce_store_payments/infrastructure/clients/orders/generated` and is regenerated from the pinned Invoice OpenAPI. Its generated files are excluded from Ruff, Pyright and coverage; the handwritten adapter, decimal parser, request adapter and all other Infrastructure source remain inside the 70% gate. Regeneration uses `bash scripts/ci.sh orders-client` after `sync`; see ADR-0016 for source provenance and version pins.
 
 ## Engineering documentation
 

@@ -3,13 +3,17 @@ from contextlib import asynccontextmanager
 from typing import Any, cast
 
 from fastapi import FastAPI
-from httpx2 import AsyncClient
+from httpx import AsyncClient
+from kiota_abstractions.authentication.anonymous_authentication_provider import AnonymousAuthenticationProvider
 
 from ecommerce_store_payments.api.errors import install_error_handlers
 from ecommerce_store_payments.api.routes.health import router as health_router
 from ecommerce_store_payments.api.routes.payments import router as payments_router
 from ecommerce_store_payments.application.payments.payment_service import PaymentService
+from ecommerce_store_payments.infrastructure.clients.orders.generated.orders_client import OrdersClient
 from ecommerce_store_payments.infrastructure.clients.orders.http_order_reader import HttpOrderReader
+from ecommerce_store_payments.infrastructure.clients.orders.precise_json import PreciseOrderJsonFactory
+from ecommerce_store_payments.infrastructure.clients.orders.request_adapter import OrdersRequestAdapter
 from ecommerce_store_payments.infrastructure.config.settings import Settings, get_settings
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database import MongoDatabase
 from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.payment_repository import (
@@ -34,7 +38,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 app.state.database = database
                 app.state.payment_service = PaymentService(
                     payment_repository=MongoPaymentRepository(database),
-                    order_reader=HttpOrderReader(orders_client),
+                    order_reader=HttpOrderReader(
+                        OrdersClient(
+                            OrdersRequestAdapter(
+                                AnonymousAuthenticationProvider(),
+                                parse_node_factory=PreciseOrderJsonFactory(),
+                                http_client=orders_client,
+                                base_url=resolved_settings.orders_api_base_url,
+                            )
+                        )
+                    ),
                 )
                 yield
         finally:
