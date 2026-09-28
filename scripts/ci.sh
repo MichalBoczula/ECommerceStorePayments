@@ -17,6 +17,9 @@ case "${1:-}" in
   types)
     uv run --no-sync pyright
     ;;
+  architecture)
+    uv run --no-sync python scripts/check_architecture.py
+    ;;
   links)
     uv run --no-sync python scripts/generate_operation_links.py --check
     ;;
@@ -37,7 +40,7 @@ case "${1:-}" in
     uv run --no-sync python scripts/verify_wheel.py
     ;;
   *)
-    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|links|openapi|test|integration|acceptance|build}" >&2
+    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|architecture|links|openapi|test|integration|acceptance|build}" >&2
     exit 2
     ;;
 esac

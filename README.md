@@ -25,6 +25,8 @@ src/ecommerce_store_payments/
 
 The Domain layer must remain independent of FastAPI, Pydantic, PyMongo, and generated API clients. MongoDB documents are mapped explicitly to the Payment aggregate and reconstructed with `rehydrate`. See [ADR-0001](docs/adr/0001-payment-layers-and-mongodb-mapping.md).
 
+The `architecture` verification stage scans Python imports: Domain depends only on Domain, Application on Domain/Application, Infrastructure on the inner layers, and API on Domain/Application/API. `api/app.py` composes concrete adapters; the readiness route has a narrow exception to probe MongoDB. MongoDB documents stay inside Infrastructure, and driver imports stay in MongoDB persistence apart from the readiness error type. A negative fixture proves that forbidden imports fail the same CI command. See [ADR-0014](docs/adr/0014-python-architecture-gate.md).
+
 The aggregate validates both new and rehydrated state, allows only defined status transitions, and treats an identical repeated transition as a no-op. Domain failures have typed, stable codes. Money stores integer minor units and an uppercase three-letter ASCII currency code; actual currency support and minor-unit conversion are handled at the integration boundary. See [ADR-0003](docs/adr/0003-payment-invariants-and-rehydration.md).
 
 Each payment has a nonnegative storage version. A new payment starts at version 0; repository updates atomically match the payment ID, order ID and expected version. `update` returns a new aggregate with the next version, which callers must use for later writes. A versionless legacy document reads as version 0 and receives version 1 on its first successful update. Missing records, stale updates and duplicate creates produce separate typed errors. See [ADR-0005](docs/adr/0005-payment-optimistic-concurrency.md).
@@ -83,7 +85,7 @@ Invalid path parameters return 400 `invalid_request`; malformed JSON returns 400
 
 ## Quality checks
 
-With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for the integration and acceptance stages. After `bash scripts/ci.sh sync`, run a focused stage using `bash scripts/ci.sh format`, `lint`, `types`, `links`, `openapi`, `test`, `integration`, `acceptance`, or `build`.
+With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for the integration and acceptance stages. After `bash scripts/ci.sh sync`, run a focused stage using `bash scripts/ci.sh format`, `lint`, `types`, `architecture`, `links`, `openapi`, `test`, `integration`, `acceptance`, or `build`.
 
 In PowerShell, the equivalent individual commands are:
 
@@ -93,6 +95,7 @@ uv sync --locked --all-groups
 uv run --no-sync ruff format --check .
 uv run --no-sync ruff check .
 uv run --no-sync pyright
+uv run --no-sync python scripts/check_architecture.py
 uv run --no-sync python scripts/generate_operation_links.py --check
 uv run --no-sync python -m scripts.export_openapi
 uv run --no-sync pytest tests/unit
@@ -102,7 +105,7 @@ uv build --wheel --no-sources --clear
 uv run --no-sync python scripts/verify_wheel.py
 ```
 
-CI runs on pull requests and pushes to `main`. It checks the lockfile, formatting, lint, types, operation links, generated OpenAPI, unit tests, real MongoDB integration and HTTP acceptance scenarios via Testcontainers, and installation of the built wheel. MongoDB suites share a single-node replica set container, give each test or scenario a separate database, and remove each database after use. Acceptance uses a controlled Orders HTTP transport while exercising the real adapter and FastAPI lifecycle. The [acceptance matrix](docs/acceptance-matrix.tsv) links source scenarios to operation, cause, status, code and requirement; see [ADR-0011](docs/adr/0011-acceptance-isolation.md).
+CI runs on pull requests and pushes to `main`. It checks the lockfile, formatting, lint, types, architecture boundaries, operation links, generated OpenAPI, unit tests, real MongoDB integration and HTTP acceptance scenarios via Testcontainers, and installation of the built wheel. MongoDB suites share a single-node replica set container, give each test or scenario a separate database, and remove each database after use. Acceptance uses a controlled Orders HTTP transport while exercising the real adapter and FastAPI lifecycle. The [acceptance matrix](docs/acceptance-matrix.tsv) links source scenarios to operation, cause, status, code and requirement; see [ADR-0011](docs/adr/0011-acceptance-isolation.md).
 
 Generate the operation projection with `uv run --no-sync python scripts/generate_operation_links.py --output operation-links.json`. The JSON links each published operation ID to its source service flow (including called branches), reachable domain policies and acceptance scenario IDs. The generator reads routes, method bodies, policy docstrings, the acceptance matrix and feature scenarios; the `links` CI stage fails on missing, duplicate or stale links. The generated JSON is an on-demand artifact for documentation tooling and is not checked in. See [ADR-0012](docs/adr/0012-generated-operation-links.md).
 
