@@ -14,7 +14,7 @@ PAY/17 builds and smoke tests a non-root image, but the build alone cannot detec
 - GitHub Dependency Graph must be enabled in the repository settings for Dependency Review to run. An unavailable graph fails the PR gate rather than being treated as a passing review.
 - Gitleaks v3 scans Git history on both events. Any detected secret or scanner failure blocks the gate; automated PR comments and finding artifacts are disabled. The repository is owned by a personal GitHub account, so this action does not require an organization license.
 - Scan the same locally built image that passed the Compose smoke test with Trivy. OS and library vulnerabilities rated HIGH or CRITICAL with an available fix fail; `ignore-unfixed` excludes findings without a fix. Scanner errors also fail. No image is published in this task.
-- Remove unused vulnerable `msgpack` and `setuptools` packages inherited from the Python base image. Neither is in the runtime lockfile; keeping them would add avoidable scan findings.
+- Remove the base image's runtime `pip`: it vendors vulnerable `msgpack` and `setuptools` code although neither package is in the runtime lockfile. The application is installed in the builder stage; the final image does not need a package installer.
 - Require quality, five test suites, lockfile audit, secret scan, conditional PR review and the smoke-tested image scan in `final-gate`. Actions are pinned to commit SHA. The local `scripts/verify.sh` runs the lockfile audit and the container smoke; the Trivy check runs in CI where Docker is available.
 
 ## Consequences

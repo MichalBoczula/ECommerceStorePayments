@@ -18,9 +18,9 @@ ENV PATH="/app/.venv/bin:${PATH}" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# These base-image Python packages are not runtime dependencies; remove their
-# vulnerable versions instead of suppressing the image scan findings.
-RUN python -m pip uninstall --yes msgpack setuptools
+# The base image bundles pip with vendored msgpack and setuptools versions.
+# Runtime installation is complete in the build stage, so pip is unnecessary.
+RUN python -m pip uninstall --yes pip
 
 COPY --from=build --chown=10001:10001 /app/.venv /app/.venv
 USER 10001:10001
