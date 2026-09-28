@@ -12,3 +12,6 @@ for suite in domain application infrastructure externalproviders acceptance; do
   echo "Running $suite suite"
   bash scripts/ci.sh suite "$suite"
 done
+
+echo "Running container smoke"
+bash scripts/ci.sh container

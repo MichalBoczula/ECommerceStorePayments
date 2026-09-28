@@ -36,8 +36,11 @@ case "${1:-}" in
     uv build --wheel --no-sources --clear
     uv run --no-sync python scripts/verify_wheel.py
     ;;
+  container)
+    bash scripts/smoke_container.sh
+    ;;
   *)
-    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|architecture|orders-client|links|openapi|build|suite NAME}" >&2
+    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|architecture|orders-client|links|openapi|build|container|suite NAME}" >&2
     exit 2
     ;;
 esac

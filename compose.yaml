@@ -1,0 +1,57 @@
+services:
+  mongo:
+    image: mongo:8.0
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ping:1}).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mongo-init:
+    image: mongo:8.0
+    depends_on:
+      mongo:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-ec"]
+    command:
+      - |
+        uri='mongodb://mongo:27017/admin?directConnection=true'
+        mongosh "$$uri" --quiet --eval '
+          try { rs.status() } catch (error) {
+            rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongo:27017"}]})
+          }
+        '
+        for attempt in {1..30}; do
+          if mongosh "$$uri" --quiet --eval 'quit(db.hello().isWritablePrimary ? 0 : 1)'; then
+            exit 0
+          fi
+          sleep 2
+        done
+        exit 1
+
+  api:
+    build: .
+    depends_on:
+      mongo-init:
+        condition: service_completed_successfully
+    environment:
+      PAYMENTS_ENVIRONMENT: development
+      PAYMENTS_MONGODB_CONNECTION_STRING: mongodb://mongo:27017/?replicaSet=rs0
+      PAYMENTS_ORDERS_API_BASE_URL: ${PAYMENTS_ORDERS_API_BASE_URL:-http://host.docker.internal:8080}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - 127.0.0.1::8080
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  mongo_data:

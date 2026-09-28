@@ -76,8 +76,17 @@ jobs:
           path: artifacts/verification/${{ matrix.suite }}/
           if-no-files-found: error
 
+  container:
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build and smoke test runtime image
+        run: bash scripts/ci.sh container
+
   final-gate:
-    needs: [quality, suites]
+    needs: [quality, suites, container]
     if: always()
     runs-on: ubuntu-24.04
     steps:
@@ -85,6 +94,8 @@ jobs:
         env:
           QUALITY_RESULT: ${{ needs.quality.result }}
           SUITES_RESULT: ${{ needs.suites.result }}
+          CONTAINER_RESULT: ${{ needs.container.result }}
         run: |
           test "$QUALITY_RESULT" = success
           test "$SUITES_RESULT" = success
+          test "$CONTAINER_RESULT" = success
