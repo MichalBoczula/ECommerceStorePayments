@@ -17,27 +17,24 @@ case "${1:-}" in
   types)
     uv run --no-sync pyright
     ;;
+  architecture)
+    uv run --no-sync python scripts/check_architecture.py
+    ;;
   links)
     uv run --no-sync python scripts/generate_operation_links.py --check
     ;;
   openapi)
     uv run --no-sync python -m scripts.export_openapi
     ;;
-  test)
-    uv run --no-sync pytest tests/unit
-    ;;
-  integration)
-    uv run --no-sync pytest tests/integration
-    ;;
-  acceptance)
-    uv run --no-sync pytest tests/acceptance
+  suite)
+    uv run --no-sync python -m scripts.run_suite "${2:?Provide domain|application|infrastructure|externalproviders|acceptance}"
     ;;
   build)
     uv build --wheel --no-sources --clear
     uv run --no-sync python scripts/verify_wheel.py
     ;;
   *)
-    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|links|openapi|test|integration|acceptance|build}" >&2
+    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|architecture|links|openapi|build|suite NAME}" >&2
     exit 2
     ;;
 esac
