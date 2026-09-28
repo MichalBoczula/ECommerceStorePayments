@@ -22,3 +22,7 @@ The image contains runtime dependencies but no test tools. Docker is required fo
 ## Alternatives considered
 
 Installing the dev group or copying the project directory into the final image would add unnecessary tools and local files. A standalone MongoDB would allow startup but fail payment history transactions. Publishing MongoDB's port is unnecessary for the API smoke test.
+
+## Later evolution
+
+[ADR-0018](0018-security-and-image-gate.md) added the image scan and removed runtime pip; [ADR-0019](0019-ci-graph-and-dockerhub-publication.md) moved the container job behind the full quality gate and publishes the scanned image on successful `main` pushes. The original PAY/17 decision above records the image and Compose baseline.

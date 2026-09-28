@@ -8,7 +8,8 @@ This tracks the Payments work compared with the reference practices in ECommerce
 - [x] Domain Payment aggregate and Money; application PaymentService and OrderReader port.
 - [x] MongoDB document/mapper/repository, unique order ID index, HTTP Orders adapter.
 - [x] uv dependency configuration and lockfile, Ruff, Pyright, pytest unit tests.
-- [ ] Production payment flow, real MongoDB integration/acceptance suites, full CI/security gates, and deployment.
+- [x] Real MongoDB integration and HTTP acceptance suites, full CI/security gates, and a published runtime image.
+- [ ] Production provider charge/webhook, Orders completion callback, application deployment and end-to-end UI integration (STRIPE backlog).
 
 ## Repository and repeatable verification
 
@@ -25,13 +26,13 @@ This tracks the Payments work compared with the reference practices in ECommerce
 
 ## Application and Orders integration
 
-- [x] **PAY/8 — Orders contract adapter.** Verified the generated Orders/Invoice OpenAPI and DTOs; the HTTP adapter validates ID, line totals and currency, converts exact decimals using explicit minor-unit exponents, and maps timeout/404/invalid response/upstream failure. MockTransport boundary tests and real-MongoDB PR CI passed. ADR-0008 records the decision to keep the small adapter without Kiota for now.
+- [x] **PAY/8 — Orders contract adapter.** Verified the generated Orders/Invoice OpenAPI and DTOs; the HTTP boundary validates ID, line totals and currency, converts exact decimals using explicit minor-unit exponents, and maps timeout/404/invalid response/upstream failure. MockTransport boundary tests and real-MongoDB PR CI passed. ADR-0008 records the original handwritten transport; PAY/16 later introduced Kiota behind the same port.
 - [x] **PAY/9 — Pay/Get semantics.** New Pay returns 201; existing and retried payments return 200. Failed/canceled retries keep one Payment ID and check Orders status and Money; repeats are read-only. Unit and real MongoDB tests verify parallel create/retry, optimistic conflicts and history. Verified by the clean PR runner; see ADR-0009.
 
 ## API contract, acceptance, and architecture
 
 - [x] **PAY/10 — Safe public errors.** Central problem+json mapping, stable codes, trace ID, status and media type, route/framework errors, validation policy and no leaked internal details; HTTP tests. Verified locally and on the clean PR runner, including MongoDB integration tests; see ADR-0010.
-- [x] **PAY/11 — Acceptance BDD.** 21 pytest-bdd source scenarios exercise real FastAPI and isolated MongoDB replica-set databases with a controlled Orders HTTP boundary. The status-by-cause matrix, scenario IDs, history assertions and cleanup run in the acceptance CI stage; PR CI passed.
+- [x] **PAY/11 — Acceptance BDD.** 22 current pytest-bdd source scenarios exercise real FastAPI and isolated MongoDB replica-set databases with a controlled Orders HTTP boundary. The status-by-cause matrix, scenario IDs, history assertions and cleanup run in the acceptance CI stage; PR CI passed.
 - [x] **PAY/12 — Flow and policy sources.** A generated projection links all five published operation IDs to source flows, reachable domain rules and acceptance scenarios; checks reject missing, duplicate and stale links. The clean PR runner passed the link stage, unit tests, real MongoDB integration and HTTP acceptance; see ADR-0012.
 - [x] **PAY/13 — Generated OpenAPI contract.** Database-free export, locked OpenAPI 3.1 lint, status/media/schema validation against acceptance responses and an uploaded CI artifact. The clean PR runner passed unit, real MongoDB integration, HTTP acceptance and wheel checks; see ADR-0013.
 - [x] **PAY/14 — Architecture checks.** Source import direction and MongoDB persistence boundaries are enforced in the shared CI gate. Negative fixtures, including a subprocess invocation, prove forbidden imports fail; full PR CI passed unit, real MongoDB integration, HTTP acceptance and wheel stages. See ADR-0014.
@@ -42,7 +43,7 @@ This tracks the Payments work compared with the reference practices in ECommerce
 - [x] **PAY/16 — Invoice Orders via Kiota.** Pin the published Invoice image and generated OpenAPI, generate a reproducible Python Kiota client, use it behind OrderReader while preserving exact monetary and error semantics, and verify the live image with MongoDB. PR CI passed, including the published Invoice image integration test.
 - [x] **PAY/17 — Runtime container.** Lockfile-based non-root image without dev dependencies or secrets, Docker Compose with MongoDB and a smoke test for the API. PR CI passed the image smoke, all five suites and final gate; see ADR-0017.
 - [x] **PAY/18 — Security and quality gate.** Locked dependency audit, PR dependency review, secret scan, Trivy image scan and explicit severity policy all passed the full PR gate; see ADR-0018.
-- [ ] **PAY/19 — CI graph and Docker Hub publication.** Named suite jobs like Users; after a green main push and image scan publish mb0101/ecommerce-store-payments-api using repository Docker Hub secrets, full SHA and latest tags with matching digest.
+- [x] **PAY/19 — CI graph and Docker Hub publication.** Five named suite jobs, quality gate and image scan passed on `main`; commit `4818fab380506b9b88eb2e154bdd4eee276960be` published both full-SHA and `latest` tags with matching digest `sha256:a5d3f5709a7332fb9d351d0ab4e1c17be9ae4d8a67eee2523d229acdb4e53b54`. See ADR-0019.
 - [ ] **PAY/20 — Operational docs review.** Complete README, local startup/verification, API/health, tests, CI, indexes and ADR documentation; reconcile descriptions with working behavior.
 
 ## Later functional stage
@@ -52,4 +53,4 @@ This tracks the Payments work compared with the reference practices in ECommerce
 - [ ] **STRIPE/3 — Orders and invoice completion.** Durable progress and retry for the MVP HTTP callback after successful payment; prevent double update/invoice. Event transport can follow later.
 - [ ] **STRIPE/4 — End-to-end Angular/BFF flow.** Connect UI and backend contracts after the payment and order APIs stabilize.
 
-Next sequence: PAY/19, PAY/20. Update checkboxes only after the criterion is actually met.
+Next sequence: PAY/20, then STRIPE/1–4. Update checkboxes only after the criterion is actually met.

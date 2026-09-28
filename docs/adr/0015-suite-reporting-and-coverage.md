@@ -24,11 +24,11 @@ The Orders client tests run twice intentionally: the Infrastructure gate measure
 
 Each suite clears its old result directory and writes `junit.xml`, Cobertura `coverage.xml`, HTML coverage and `summary.md` under `artifacts/verification/<suite>/`. A verifier reads both reports, requires tests and covered source lines, checks the exact coverage scope and enforces the three thresholds from raw covered/valid line counts. It fails on a missing report, failed test, empty run, wrong source or low coverage; the runner also preserves pytest's nonzero exit status. Ordinary warnings remain visible. Unit tests inject missing/failed reports and a subprocess failure to prove the gate behavior.
 
-CI runs source/build checks first, then five independent suite jobs with `fail-fast: false`. Each uploads its own reports even if the suite fails; a final job requires all source/build and suite results to succeed. `scripts/verify.sh` runs the same stages sequentially. Docker is needed for Application, Infrastructure and Acceptance.
+CI runs source/build checks first, then five independent suite jobs. Each uploads its own reports even if the suite fails; the quality gate requires all source/build, suite and security jobs to succeed before the container job runs. The final gate also requires the container job. `scripts/verify.sh` runs the same stages sequentially. Docker is needed for Application, Infrastructure and Acceptance. See [ADR-0019](0019-ci-graph-and-dockerhub-publication.md) for the later CI graph and publication decision.
 
 ## Consequences
 
-Reviewers can inspect suite-specific failures and reports. New Infrastructure code, including adapters, contributes to its 70% denominator. Tests added under new directories must be assigned to a suite; a unit test guards that every existing test file is assigned. The Acceptance and ExternalProviders percentages are reported without new thresholds while provider capabilities evolve. Matrix jobs use separate runners and may start more than one MongoDB container across jobs.
+Reviewers can inspect suite-specific failures and reports. New Infrastructure code, including adapters, contributes to its 70% denominator. Tests added under new directories must be assigned to a suite; a unit test guards that every existing test file is assigned. The Acceptance and ExternalProviders percentages are reported without new thresholds while provider capabilities evolve. Named suite jobs use separate runners and may start more than one MongoDB container across jobs.
 
 ## Alternatives considered
 

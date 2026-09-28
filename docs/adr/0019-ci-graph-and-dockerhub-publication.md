@@ -22,3 +22,7 @@ The graph shows individual suite results and the source/security gate before the
 ## Alternatives considered
 
 Keeping the suite matrix would preserve less workflow text but not show distinct suite roles in the job graph. A separate publishing runner would rebuild or transfer the scanned image, weakening the direct identity check or adding an image artifact. Publishing during the first build before the suites would allow an unverified commit to replace `latest`.
+
+## Verification
+
+The first [main push CI run](https://github.com/MichalBoczula/ECommerceStorePayments/actions/runs/36484877759) passed source quality, all five suites, the quality gate, container smoke/Trivy and the final gate. It published full-SHA tag `4818fab380506b9b88eb2e154bdd4eee276960be` and `latest` with the same Docker Hub digest `sha256:a5d3f5709a7332fb9d351d0ab4e1c17be9ae4d8a67eee2523d229acdb4e53b54`.
