@@ -27,7 +27,7 @@ Use the versions pinned in `.python-version` and `[tool.uv].required-version` in
 bash scripts/verify.sh
 ```
 
-To focus on one stage, run `bash scripts/ci.sh sync` first and then `bash scripts/ci.sh {format|lint|types|architecture|links|openapi|test|integration|acceptance|build}`. The latter stages use the synced environment without changing the lockfile. The workflow in `.github/workflows/ci.yml` calls these same stages. The integration and acceptance stages require Docker. `architecture` checks source import boundaries; `openapi` exports and checks `artifacts/verification/openapi.json` without starting MongoDB.
+To focus on one stage, run `bash scripts/ci.sh sync` first and then `bash scripts/ci.sh {format|lint|types|architecture|links|openapi|build}` or `bash scripts/ci.sh suite {domain|application|infrastructure|externalproviders|acceptance}`. These stages use the synced environment without changing the lockfile. The workflow in `.github/workflows/ci.yml` calls the same stages. Application, Infrastructure and Acceptance suites require Docker. Suite JUnit, Cobertura XML, HTML and summaries are under `artifacts/verification/<suite>/`; Domain, Application and the entire Infrastructure package each have a 70% line coverage gate. `architecture` checks source import boundaries; `openapi` exports and checks `artifacts/verification/openapi.json` without starting MongoDB.
 
 Running the API: `uv run --locked uvicorn ecommerce_store_payments.main:app --reload`; Swagger UI: `/swagger`. Integration tests start MongoDB with Testcontainers and require Docker. Coverage and security gates are later backlog items. Report only commands actually run.
 

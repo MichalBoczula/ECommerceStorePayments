@@ -20,3 +20,4 @@ Use repository-local sequential numbers. Each record has a title, `Status` and `
 | [0012](0012-generated-operation-links.md) | Accepted | Generate operation-to-flow, policy and acceptance links from executable sources. |
 | [0013](0013-generated-openapi-contract.md) | Accepted | Export and validate OpenAPI against acceptance outcomes and observed HTTP bodies. |
 | [0014](0014-python-architecture-gate.md) | Accepted | Enforce Python layer imports and MongoDB persistence boundaries with source checks. |
+| [0015](0015-suite-reporting-and-coverage.md) | Accepted | Run five isolated test suites with JUnit and scoped coverage, including three line coverage gates. |

@@ -34,7 +34,7 @@ dev = [
 packages = ["src/ecommerce_store_payments"]
 
 [tool.pytest.ini_options]
-addopts = "--strict-config --strict-markers --cov=src/ecommerce_store_payments --cov-report=term-missing"
+addopts = "--strict-config --strict-markers"
 asyncio_mode = "auto"
 pythonpath = ["src"]
 testpaths = ["tests"]
