@@ -34,7 +34,7 @@ This tracks the Payments work compared with the reference practices in ECommerce
 - [x] **PAY/11 — Acceptance BDD.** 21 pytest-bdd source scenarios exercise real FastAPI and isolated MongoDB replica-set databases with a controlled Orders HTTP boundary. The status-by-cause matrix, scenario IDs, history assertions and cleanup run in the acceptance CI stage; PR CI passed.
 - [x] **PAY/12 — Flow and policy sources.** A generated projection links all five published operation IDs to source flows, reachable domain rules and acceptance scenarios; checks reject missing, duplicate and stale links. The clean PR runner passed the link stage, unit tests, real MongoDB integration and HTTP acceptance; see ADR-0012.
 - [x] **PAY/13 — Generated OpenAPI contract.** Database-free export, locked OpenAPI 3.1 lint, status/media/schema validation against acceptance responses and an uploaded CI artifact. The clean PR runner passed unit, real MongoDB integration, HTTP acceptance and wheel checks; see ADR-0013.
-- [ ] **PAY/14 — Architecture checks.** Enforce import direction and persistence boundaries with a negative fixture/test that proves a forbidden import fails.
+- [x] **PAY/14 — Architecture checks.** Source import direction and MongoDB persistence boundaries are enforced in the shared CI gate. Negative fixtures, including a subprocess invocation, prove forbidden imports fail; full PR CI passed unit, real MongoDB integration, HTTP acceptance and wheel stages. See ADR-0014.
 
 ## Full CI, container, and documentation
 
