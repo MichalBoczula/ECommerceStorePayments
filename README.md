@@ -135,7 +135,7 @@ Run `bash scripts/ci.sh openapi` to export and lint the database-free OpenAPI at
 
 ## Security policy
 
-`bash scripts/ci.sh audit` checks the entire locked dependency set, including development tools, and fails on any reported vulnerability or audit error. On pull requests, Dependency Review rejects newly introduced HIGH/CRITICAL vulnerabilities; on `main` pushes that PR-only job is expected to be skipped. Gitleaks scans Git history and blocks detected secrets. Trivy scans the smoke-tested image for OS and library HIGH/CRITICAL vulnerabilities with available fixes (`ignore-unfixed: true`); a scan failure also blocks. All of these results are required by the final CI gate. The exact policy and the pytest security update are in [ADR-0018](docs/adr/0018-security-and-image-gate.md).
+`bash scripts/ci.sh audit` checks the entire locked dependency set, including development tools, and fails on any reported vulnerability or audit error. On pull requests, Dependency Review rejects newly introduced HIGH/CRITICAL vulnerabilities; GitHub Dependency Graph must be enabled in the repository's [security settings](https://github.com/MichalBoczula/ECommerceStorePayments/settings/security_analysis). On `main` pushes that PR-only job is expected to be skipped. Gitleaks scans Git history and blocks detected secrets. Trivy scans the smoke-tested image for OS and library HIGH/CRITICAL vulnerabilities with available fixes (`ignore-unfixed: true`); a scan failure also blocks. All of these results are required by the final CI gate. The exact policy and the pytest security update are in [ADR-0018](docs/adr/0018-security-and-image-gate.md).
 
 ## Generated API clients
 
