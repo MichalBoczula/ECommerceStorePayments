@@ -30,6 +30,7 @@ junit.xml
 TestResults/
 allure-results/
 allure-report/
+artifacts/verification/
 .pytest_benchmark/
 
 # Environment and local configuration

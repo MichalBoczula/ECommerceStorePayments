@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any, cast
 
 from fastapi import FastAPI
 from httpx2 import AsyncClient
@@ -50,4 +51,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     install_error_handlers(app)
     app.include_router(health_router)
     app.include_router(payments_router)
+
+    generated_openapi = app.openapi
+
+    def openapi() -> dict[str, Any]:
+        schema = generated_openapi()
+        # RequestValidationError is mapped to 400 by install_error_handlers.
+        for path_item in schema["paths"].values():
+            for operation in path_item.values():
+                if isinstance(operation, dict) and "responses" in operation:
+                    cast(dict[str, Any], operation["responses"]).pop("422", None)
+        return schema
+
+    app.openapi = openapi
     return app

@@ -19,6 +19,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "allure-pytest>=2.14,<3",
+    "jsonschema==4.25.1",
+    "openapi-spec-validator==0.7.2",
     "pyright>=1.1.403,<2",
     "pytest>=8.4,<9",
     "pytest-asyncio>=1.1,<2",

@@ -83,7 +83,7 @@ Invalid path parameters return 400 `invalid_request`; malformed JSON returns 400
 
 ## Quality checks
 
-With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for the integration and acceptance stages. After `bash scripts/ci.sh sync`, run a focused stage using `bash scripts/ci.sh format`, `lint`, `types`, `links`, `test`, `integration`, `acceptance`, or `build`.
+With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for the integration and acceptance stages. After `bash scripts/ci.sh sync`, run a focused stage using `bash scripts/ci.sh format`, `lint`, `types`, `links`, `openapi`, `test`, `integration`, `acceptance`, or `build`.
 
 In PowerShell, the equivalent individual commands are:
 
@@ -94,6 +94,7 @@ uv run --no-sync ruff format --check .
 uv run --no-sync ruff check .
 uv run --no-sync pyright
 uv run --no-sync python scripts/generate_operation_links.py --check
+uv run --no-sync python -m scripts.export_openapi
 uv run --no-sync pytest tests/unit
 uv run --no-sync pytest tests/integration # requires Docker
 uv run --no-sync pytest tests/acceptance # requires Docker
@@ -101,9 +102,11 @@ uv build --wheel --no-sources --clear
 uv run --no-sync python scripts/verify_wheel.py
 ```
 
-CI runs on pull requests and pushes to `main`. It checks the lockfile, formatting, lint, types, operation links, unit tests, real MongoDB integration and HTTP acceptance scenarios via Testcontainers, and installation of the built wheel. MongoDB suites share a single-node replica set container, give each test or scenario a separate database, and remove each database after use. Acceptance uses a controlled Orders HTTP transport while exercising the real adapter and FastAPI lifecycle. The [acceptance matrix](docs/acceptance-matrix.tsv) links source scenarios to operation, cause, status, code and requirement; see [ADR-0011](docs/adr/0011-acceptance-isolation.md).
+CI runs on pull requests and pushes to `main`. It checks the lockfile, formatting, lint, types, operation links, generated OpenAPI, unit tests, real MongoDB integration and HTTP acceptance scenarios via Testcontainers, and installation of the built wheel. MongoDB suites share a single-node replica set container, give each test or scenario a separate database, and remove each database after use. Acceptance uses a controlled Orders HTTP transport while exercising the real adapter and FastAPI lifecycle. The [acceptance matrix](docs/acceptance-matrix.tsv) links source scenarios to operation, cause, status, code and requirement; see [ADR-0011](docs/adr/0011-acceptance-isolation.md).
 
-Generate the operation projection with `uv run --no-sync python scripts/generate_operation_links.py --output operation-links.json`. The JSON links each published operation ID to its source service flow (including called branches), reachable domain policies and acceptance scenario IDs. The generator reads routes, method bodies, policy docstrings, the acceptance matrix and feature scenarios; the `links` CI stage fails on missing, duplicate or stale links. The generated JSON is an on-demand artifact for documentation tooling and is not checked in. See [ADR-0012](docs/adr/0012-generated-operation-links.md). Separate coverage thresholds, image work and security gates remain in the [technical backlog](TECHNICAL_TODO.md).
+Generate the operation projection with `uv run --no-sync python scripts/generate_operation_links.py --output operation-links.json`. The JSON links each published operation ID to its source service flow (including called branches), reachable domain policies and acceptance scenario IDs. The generator reads routes, method bodies, policy docstrings, the acceptance matrix and feature scenarios; the `links` CI stage fails on missing, duplicate or stale links. The generated JSON is an on-demand artifact for documentation tooling and is not checked in. See [ADR-0012](docs/adr/0012-generated-operation-links.md).
+
+Run `bash scripts/ci.sh openapi` to export and lint the database-free OpenAPI at `artifacts/verification/openapi.json` (or `uv run --no-sync python -m scripts.export_openapi --output <path>`). OpenAPI 3.1 validation and operation/scenario status, media and schema checks use pinned development dependencies in `uv.lock`. Acceptance tests validate each observed HTTP body against its declared JSON Schema, with the unmatched-route response checked against the shared problem schema. CI uploads the generated JSON as `payments-openapi`. The API documents path validation as 400, matching runtime, instead of FastAPI's default 422. See [ADR-0013](docs/adr/0013-generated-openapi-contract.md). Separate coverage thresholds, image work and security gates remain in the [technical backlog](TECHNICAL_TODO.md).
 
 ## Generated API clients
 
