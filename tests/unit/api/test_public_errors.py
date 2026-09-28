@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import BaseModel
 
 from ecommerce_store_payments.application.payments.exceptions import (
     OrderNotFoundError,
@@ -12,7 +13,11 @@ from ecommerce_store_payments.application.payments.exceptions import (
     PaymentNotFoundError,
 )
 from ecommerce_store_payments.application.payments.payment_service import PaymentService
-from ecommerce_store_payments.domain.aggregates.payments.exceptions import PaymentTransitionError
+from ecommerce_store_payments.domain.aggregates.payments.exceptions import (
+    PaymentErrorCode,
+    PaymentTransitionError,
+    PaymentValidationError,
+)
 from ecommerce_store_payments.domain.aggregates.payments.repositories.exceptions import (
     PaymentConflictError,
     PaymentMissingError,
@@ -40,8 +45,11 @@ def _check_problem(client: TestClient, path: str, status: int, code: str, method
         "title": body["title"],
         "status": status,
         "detail": body["detail"],
+        "instance": path.split("?", 1)[0],
         "code": code,
         "traceId": response.headers["x-trace-id"],
+        "errors": [],
+        "missingProperties": [],
     }
     assert len(body["traceId"]) == 32
     assert "private" not in response.text
@@ -56,6 +64,7 @@ def _check_problem(client: TestClient, path: str, status: int, code: str, method
         (PaymentConflictError(uuid4(), 1), 409, "payment_conflict"),
         (PaymentMissingError(uuid4()), 409, "payment_conflict"),
         (PaymentTransitionError("private", "Created"), 409, "invalid_payment_transition"),
+        (PaymentValidationError(PaymentErrorCode.INVALID_ORDER_ID, "private"), 400, "validation_failed"),
         (RuntimeError("private database credentials"), 500, "internal_error"),
     ],
 )
@@ -75,16 +84,57 @@ def test_framework_and_validation_errors_are_sanitized(client: TestClient) -> No
     _check_problem(client, "/not-a-route", 404, "route_not_found")
     _check_problem(client, "/health", 405, "method_not_allowed", "post")
     assert client.post("/health").headers["allow"] == "GET"
-    _check_problem(client, "/payments/invalid-uuid/pay", 422, "invalid_request", "post")
-    _check_problem(client, "/payments/order/invalid-uuid", 422, "invalid_request")
+    _check_problem(client, "/payments/invalid-uuid/pay", 400, "invalid_request", "post")
+    _check_problem(client, "/payments/order/invalid-uuid", 400, "invalid_request")
+
+
+def test_pay_rejects_invalid_json_unsupported_media_type_and_unexpected_body(client: TestClient) -> None:
+    path = f"/payments/{uuid4()}/pay"
+    for content, content_type, status, code in (
+        (b'{"secret":', "application/json", 400, "invalid_json"),
+        (b"secret", "text/plain", 415, "unsupported_media_type"),
+        (b'{"secret":"private"}', "application/json", 400, "invalid_request"),
+    ):
+        response = client.post(path, content=content, headers={"content-type": content_type})
+        assert response.status_code == status
+        assert response.headers["content-type"] == "application/problem+json"
+        assert response.json()["code"] == code
+        assert response.json()["instance"] == path
+        assert "private" not in response.text
+        assert "secret" not in response.text
+
+
+def test_instance_omits_query_and_trace_header_is_not_reflected(client: TestClient) -> None:
+    response = client.get("/not-a-route?secret=private", headers={"X-Trace-Id": "private"})
+    assert response.json()["instance"] == "/not-a-route"
+    assert response.json()["traceId"] == response.headers["x-trace-id"]
+    assert "private" not in response.text
+    assert response.headers["x-trace-id"] != "private"
+
+
+def test_framework_json_validation_reports_only_required_contract_names(client: TestClient) -> None:
+    class RequiredBody(BaseModel):
+        order_id: UUID
+
+    app = cast(FastAPI, client.app)
+
+    @app.post("/test-required")
+    async def required_body(_body: RequiredBody) -> None:
+        pass
+
+    response = client.post("/test-required", json={})
+    assert response.status_code == 400
+    assert response.json()["code"] == "invalid_json"
+    assert response.json()["missingProperties"] == ["order_id"]
+    assert response.json()["errors"] == []
 
 
 def test_problem_openapi_media_and_schema_match_http_contract(client: TestClient) -> None:
     app = cast(FastAPI, client.app)
     paths = app.openapi()["paths"]
     for path, method, statuses in (
-        ("/payments/{order_id}/pay", "post", (404, 405, 409, 422, 500, 502, 504)),
-        ("/payments/order/{order_id}", "get", (404, 405, 422, 500)),
+        ("/payments/{order_id}/pay", "post", (400, 404, 405, 409, 415, 500, 502, 504)),
+        ("/payments/order/{order_id}", "get", (400, 404, 405, 500)),
         ("/health/ready", "get", (405, 500, 503)),
     ):
         responses = paths[path][method]["responses"]
@@ -93,7 +143,9 @@ def test_problem_openapi_media_and_schema_match_http_contract(client: TestClient
             assert set(media) == {"application/problem+json"}
             schema = media["application/problem+json"]["schema"]
             assert "traceId" in schema["properties"]
-            assert {"title", "status", "detail", "code", "traceId"} <= set(schema["required"])
+            assert {"title", "status", "detail", "instance", "code", "traceId", "errors", "missingProperties"} <= set(
+                schema["required"]
+            )
 
 
 def test_success_response_receives_distinct_trace_ids(client: TestClient) -> None:

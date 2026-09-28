@@ -42,7 +42,7 @@ def test_pay_maps_orders_failures_to_gateway_errors(
     assert response.headers["content-type"] == "application/problem+json"
     assert response.json()["code"] == expected_code
     assert response.json()["traceId"] == response.headers["x-trace-id"]
-    assert str(order_id) not in response.text
+    assert str(order_id) not in response.json()["detail"]
     assert "private" not in response.text
     operation = app.openapi()["paths"]["/payments/{order_id}/pay"]["post"]
     assert str(expected_status) in operation["responses"]

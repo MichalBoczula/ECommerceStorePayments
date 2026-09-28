@@ -73,13 +73,13 @@ Open:
 
 `/health` remains a compatibility alias of liveness and responds without querying MongoDB. `/health/ready` probes MongoDB for each request; it returns HTTP 200 with `{"status":"healthy"}` when available and HTTP 503 with a problem response (`service_unavailable`) when unavailable. OpenAPI can be generated without starting the API or connecting to MongoDB. See [ADR-0006](docs/adr/0006-startup-and-health.md) and [ADR-0010](docs/adr/0010-safe-public-errors.md).
 
-API errors use `application/problem+json` with `type`, `title`, `status`, fixed public `detail`, stable `code`, and `traceId`. The `X-Trace-Id` response header matches `traceId` and is also present on successful requests. Example (IDs vary):
+API errors use `application/problem+json` with `type`, `title`, `status`, fixed public `detail`, path-only `instance`, stable `code`, `traceId`, `errors` and `missingProperties`. The last two fields are empty unless validation has safe structured details. The `X-Trace-Id` response header matches `traceId` and is also present on successful requests. Example (IDs vary):
 
 ```json
-{"type":"about:blank","title":"Not Found","status":404,"detail":"Payment was not found.","code":"payment_not_found","traceId":"0123456789abcdef0123456789abcdef"}
+{"type":"about:blank","title":"Not Found","status":404,"detail":"Payment was not found.","instance":"/payments/order/00000000-0000-0000-0000-000000000000","code":"payment_not_found","traceId":"0123456789abcdef0123456789abcdef","errors":[],"missingProperties":[]}
 ```
 
-Invalid path parameters return 422 `invalid_request`; unknown routes return 404 `route_not_found`; wrong methods return 405 `method_not_allowed`. Internal errors return a generic 500 `internal_error` without exception details. Orders failures map to 502 or 504 with distinct codes. The [ADR-0010](docs/adr/0010-safe-public-errors.md) records the public error policy.
+Invalid path parameters return 400 `invalid_request`; malformed JSON returns 400 `invalid_json`; unsupported request media returns 415 `unsupported_media_type`. Pay accepts no request body. Unknown routes return 404 `route_not_found`; wrong methods return 405 `method_not_allowed`. Internal errors return a generic 500 `internal_error` without exception details. Orders failures map to 502 or 504 with distinct codes. The [ADR-0010](docs/adr/0010-safe-public-errors.md) records the public error policy.
 
 ## Quality checks
 
