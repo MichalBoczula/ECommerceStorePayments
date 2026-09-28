@@ -22,3 +22,4 @@ Use repository-local sequential numbers. Each record has a title, `Status` and `
 | [0014](0014-python-architecture-gate.md) | Accepted | Enforce Python layer imports and MongoDB persistence boundaries with source checks. |
 | [0015](0015-suite-reporting-and-coverage.md) | Accepted | Run five isolated test suites with JUnit and scoped coverage, including three line coverage gates. |
 | [0016](0016-invoice-kiota-orders-client.md) | Accepted | Generate a Kiota Orders client from pinned Invoice OpenAPI with exact decimal parsing. |
+| [0017](0017-runtime-container-and-local-compose.md) | Accepted | Build a lockfile-based non-root image and smoke test the API with a local MongoDB replica set. |

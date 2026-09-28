@@ -83,11 +83,26 @@ API errors use `application/problem+json` with `type`, `title`, `status`, fixed 
 
 Invalid path parameters return 400 `invalid_request`; malformed JSON returns 400 `invalid_json`; unsupported request media returns 415 `unsupported_media_type`. Pay accepts no request body. Unknown routes return 404 `route_not_found`; wrong methods return 405 `method_not_allowed`. Internal errors return a generic 500 `internal_error` without exception details. Orders failures map to 502 or 504 with distinct codes. The [ADR-0010](docs/adr/0010-safe-public-errors.md) records the public error policy.
 
+## Runtime container
+
+From the repository root with Docker Compose available:
+
+```bash
+docker compose up --build -d --wait
+docker compose port api 8080
+# Open the printed localhost address with /health/ready or /swagger.
+docker compose down --volumes
+```
+
+Compose starts MongoDB 8 as a single-node replica set, waits for a primary and then starts the API. MongoDB has no published port or authentication in this local stack. The API port is assigned dynamically on localhost. `down --volumes` removes local payment data. To serve actual Pay requests, run Invoice separately and set `PAYMENTS_ORDERS_API_BASE_URL` to its reachable URL (the default from the container is `http://host.docker.internal:8080`). No Orders connection is required for startup or health checks.
+
+`bash scripts/ci.sh container` builds and smoke tests an isolated Compose project, checks `/health/live`, `/health/ready` and `/openapi.json`, and removes its test volume. The image uses locked runtime dependencies, a pinned Python patch and a non-root UID; development tools and `.env` are excluded. See [ADR-0017](docs/adr/0017-runtime-container-and-local-compose.md).
+
 ## Quality checks
 
 The Invoice OpenAPI snapshot in `contracts/invoice/openapi.json` came from its successful CI artifact at commit `03a0ce67d55091c8593a078f3b8977e4cd836dfd`. After syncing, run `bash scripts/ci.sh orders-client` to verify that Kiota 1.34.1 regenerates exactly the committed client. The script downloads the pinned Linux binary when Kiota is absent and checks its SHA-256; set `KIOTA_BIN` to use a local executable. The Infrastructure integration suite pulls the [matching Invoice image](https://hub.docker.com/r/mb0101/ecommerce-store-invoice-api) by digest and checks a seeded order against MongoDB. Docker is required for that test. Unit and acceptance tests keep a controlled Orders transport for adverse responses.
 
-With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for Application, Infrastructure and Acceptance suites. After `bash scripts/ci.sh sync`, run a focused source/build stage with `bash scripts/ci.sh format`, `lint`, `types`, `architecture`, `orders-client`, `links`, `openapi`, or `build`; run a test suite with `bash scripts/ci.sh suite domain` (or `application`, `infrastructure`, `externalproviders`, `acceptance`).
+With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for Application, Infrastructure, Acceptance and container smoke. After `bash scripts/ci.sh sync`, run a focused source/build stage with `bash scripts/ci.sh format`, `lint`, `types`, `architecture`, `orders-client`, `links`, `openapi`, `build`, or `container`; run a test suite with `bash scripts/ci.sh suite domain` (or `application`, `infrastructure`, `externalproviders`, `acceptance`).
 
 In PowerShell, the equivalent individual commands are:
 
@@ -110,13 +125,13 @@ uv build --wheel --no-sources --clear
 uv run --no-sync python scripts/verify_wheel.py
 ```
 
-CI runs on pull requests and pushes to `main`. Its source/build job checks the lockfile, formatting, lint, types, architecture boundaries, regenerated Orders client, operation links, generated OpenAPI and wheel installation. Five independent suite jobs run Domain, Application, Infrastructure, ExternalProviders and Acceptance with JUnit, Cobertura XML, HTML coverage and Markdown summaries under ignored `artifacts/verification/<suite>/` directories, uploaded as separate CI artifacts. Domain, Application and the full Infrastructure package each require at least 70% **line** coverage; ExternalProviders and Acceptance publish coverage without a threshold. The Infrastructure suite includes Orders adapter tests, repeated independently in ExternalProviders for its boundary report. A failed test, zero tests, missing/wrong report or a failed coverage gate fails its suite and the final CI gate. See [ADR-0015](docs/adr/0015-suite-reporting-and-coverage.md).
+CI runs on pull requests and pushes to `main`. Its source/build job checks the lockfile, formatting, lint, types, architecture boundaries, regenerated Orders client, operation links, generated OpenAPI and wheel installation. A container job builds the runtime image and smoke tests it against a local MongoDB replica set. Five independent suite jobs run Domain, Application, Infrastructure, ExternalProviders and Acceptance with JUnit, Cobertura XML, HTML coverage and Markdown summaries under ignored `artifacts/verification/<suite>/` directories, uploaded as separate CI artifacts. Domain, Application and the full Infrastructure package each require at least 70% **line** coverage; ExternalProviders and Acceptance publish coverage without a threshold. The Infrastructure suite includes Orders adapter tests, repeated independently in ExternalProviders for its boundary report. A failed test, zero tests, missing/wrong report, failed coverage gate or failed container smoke fails the final CI gate. See [ADR-0015](docs/adr/0015-suite-reporting-and-coverage.md) and [ADR-0017](docs/adr/0017-runtime-container-and-local-compose.md).
 
 MongoDB suites use Testcontainers, give each test or scenario a separate database, and remove each database after use. Acceptance uses a controlled Orders HTTP transport while exercising the real adapter and FastAPI lifecycle. The [acceptance matrix](docs/acceptance-matrix.tsv) links source scenarios to operation, cause, status, code and requirement; see [ADR-0011](docs/adr/0011-acceptance-isolation.md).
 
 Generate the operation projection with `uv run --no-sync python scripts/generate_operation_links.py --output operation-links.json`. The JSON links each published operation ID to its source service flow (including called branches), reachable domain policies and acceptance scenario IDs. The generator reads routes, method bodies, policy docstrings, the acceptance matrix and feature scenarios; the `links` CI stage fails on missing, duplicate or stale links. The generated JSON is an on-demand artifact for documentation tooling and is not checked in. See [ADR-0012](docs/adr/0012-generated-operation-links.md).
 
-Run `bash scripts/ci.sh openapi` to export and lint the database-free OpenAPI at `artifacts/verification/openapi.json` (or `uv run --no-sync python -m scripts.export_openapi --output <path>`). OpenAPI 3.1 validation and operation/scenario status, media and schema checks use pinned development dependencies in `uv.lock`. Acceptance tests validate each observed HTTP body against its declared JSON Schema, with the unmatched-route response checked against the shared problem schema. CI uploads the generated JSON as `payments-openapi`. The API documents path validation as 400, matching runtime, instead of FastAPI's default 422. See [ADR-0013](docs/adr/0013-generated-openapi-contract.md). Image work and security gates remain in the [technical backlog](TECHNICAL_TODO.md).
+Run `bash scripts/ci.sh openapi` to export and lint the database-free OpenAPI at `artifacts/verification/openapi.json` (or `uv run --no-sync python -m scripts.export_openapi --output <path>`). OpenAPI 3.1 validation and operation/scenario status, media and schema checks use pinned development dependencies in `uv.lock`. Acceptance tests validate each observed HTTP body against its declared JSON Schema, with the unmatched-route response checked against the shared problem schema. CI uploads the generated JSON as `payments-openapi`. The API documents path validation as 400, matching runtime, instead of FastAPI's default 422. See [ADR-0013](docs/adr/0013-generated-openapi-contract.md). Security scanning and publication remain in the [technical backlog](TECHNICAL_TODO.md).
 
 ## Generated API clients
 
