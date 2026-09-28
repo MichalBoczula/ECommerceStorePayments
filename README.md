@@ -37,9 +37,11 @@ The Orders adapter uses a Kiota Python client generated from the pinned Invoice 
 
 `POST /payments/{order_id}/pay` returns 201 only when it creates a Payment. It returns 200 for an existing `Created`, `Pending` or `Succeeded` Payment. A `Failed` or `Canceled` Payment can be retried on the same ID after Orders confirms the original amount/currency and `Created` status; this resets provider data, archives the previous state and returns 200. Changed totals or incompatible order status return 409. Parallel creates/retries resolve to one persisted state and do not duplicate payment history. `GET /payments/order/{order_id}` reads current state (200) or returns 404. See [ADR-0009](docs/adr/0009-pay-get-semantics.md). Starting a provider session is future STRIPE work.
 
+The current public API has five operations: `POST /payments/{order_id}/pay`, `GET /payments/order/{order_id}`, `GET /health`, `GET /health/live` and `GET /health/ready`. The Pay response contains `id`, `order_id`, `amount_minor`, `currency`, `status`, nullable provider IDs and failure code, `created_at` and nullable `updated_at`. The internal storage version and payment history are not exposed in this response. A newly created Payment starts in `Created`; a repeated Pay can return its existing status. Neither path initiates a provider charge or notifies Orders.
+
 ## Local setup
 
-Install the Python version from `.python-version` and uv 0.12.18. The service supports Python 3.14; this repository pins an exact patch for development and CI. To deliberately update the pin, change `.python-version` and the matching CI install, check `uv.lock`, and run the full verification. Update `[tool.uv].required-version` and the workflow together when upgrading uv.
+Install uv 0.12.18 and the Python version from `.python-version` (`uv python install` can install the pinned interpreter). The service supports Python 3.14; this repository pins an exact patch for development and CI. To deliberately update the pin, change `.python-version` and the matching CI install, check `uv.lock`, and run the full verification. Update `[tool.uv].required-version` and the workflow together when upgrading uv.
 
 Install the locked project dependencies:
 
@@ -53,10 +55,12 @@ Start the API with a MongoDB replica set available at the configured address:
 uv run --locked uvicorn ecommerce_store_payments.main:app --reload
 ```
 
-Startup validates the settings, probes MongoDB with a bounded timeout and ensures the named `ux_payments_order_id` unique index and `ix_payment_history_payment_id` lookup index. A failed probe or index build prevents the API from starting; both the MongoDB and Orders clients are closed on failure. Relevant environment variables use the `PAYMENTS_` prefix:
+Startup validates the settings, probes MongoDB with a bounded timeout and ensures the indexes below. A failed probe or index build prevents the API from starting; both the MongoDB and Orders clients are closed on failure. Settings can come from environment variables or a local `.env` file (excluded from the runtime image); variables use the `PAYMENTS_` prefix:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
+| `PAYMENTS_APP_NAME` | `ECommerce Store Payments API` | OpenAPI title. |
+| `PAYMENTS_ENVIRONMENT` | `local` | One of `local`, `test`, `development`, `staging`, `production`. |
 | `PAYMENTS_MONGODB_CONNECTION_STRING` | `mongodb://localhost:27017` | MongoDB URI. |
 | `PAYMENTS_MONGODB_DATABASE_NAME` | `ecommerce_store_payments` | Database name. |
 | `PAYMENTS_MONGODB_PAYMENTS_COLLECTION_NAME` | `payments` | Payments collection name. |
@@ -65,6 +69,19 @@ Startup validates the settings, probes MongoDB with a bounded timeout and ensure
 | `PAYMENTS_MONGODB_SERVER_SELECTION_TIMEOUT_MS` | `5000` | Driver's server-selection deadline. |
 | `PAYMENTS_ORDERS_API_BASE_URL` | `http://localhost:5000` | Orders service base URL. |
 | `PAYMENTS_ORDERS_API_TIMEOUT_SECONDS` | `5.0` | Orders request timeout, at most 30 seconds. |
+
+The database and collection names accept letters, digits, `_` and `-`. The MongoDB connection string must use `mongodb://` or `mongodb+srv://`; the Orders URL must use HTTP(S). An Orders server is contacted only when a new or failed/canceled Payment needs an order lookup; startup and health do not call Orders.
+
+| Collection | Index | Purpose |
+| --- | --- | --- |
+| `payments` | `_id` (MongoDB default) | Payment identity and compare-and-update. |
+| `payments` | `ux_payments_order_id`, unique on `order_id` | One current Payment per order; concurrent creates cannot duplicate it. |
+| `payment_history` | `_id` (MongoDB default) | Snapshot key `<payment UUID>:<previous version>`. |
+| `payment_history` | `ix_payment_history_payment_id` on `payment_id` | Read previous versions for a Payment. |
+
+An update matches the stored version and archives the previous snapshot in the same MongoDB transaction. This requires a replica set or sharded cluster; a standalone `mongod` can pass startup and readiness but cannot complete an update transaction. There is no public history endpoint; `get_history` is a repository operation. See [ADR-0005](docs/adr/0005-payment-optimistic-concurrency.md) and [ADR-0007](docs/adr/0007-payment-history.md).
+
+For the local Compose database, inspect the created indexes with `docker compose exec mongo mongosh --quiet --eval 'db.getSiblingDB("ecommerce_store_payments").payments.getIndexes()'` (substitute `payment_history` for the history index).
 
 Open:
 
@@ -98,11 +115,33 @@ Compose starts MongoDB 8 as a single-node replica set, waits for a primary and t
 
 `bash scripts/ci.sh container` builds and smoke tests an isolated Compose project, checks `/health/live`, `/health/ready` and `/openapi.json`, and removes its test volume. The image uses locked runtime dependencies, a pinned Python patch and a non-root UID; development tools and `.env` are excluded. See [ADR-0017](docs/adr/0017-runtime-container-and-local-compose.md).
 
+For a quick API probe after startup, use the localhost address printed by `docker compose port api 8080` (or `http://127.0.0.1:8000` for the uvicorn command above):
+
+```bash
+base_url=http://127.0.0.1:8000 # use http://$(docker compose port api 8080) for Compose
+order_id=00000000-0000-0000-0000-000000000001 # replace with an existing Created order in Invoice
+curl --fail --show-error "$base_url/health/ready"
+curl --show-error -i -X POST "$base_url/payments/$order_id/pay"
+curl --show-error -i "$base_url/payments/order/$order_id"
+```
+
+The Pay command needs an Invoice API reachable at `PAYMENTS_ORDERS_API_BASE_URL`, with the requested order in `Created` state. A 404 for an unknown order, 409 for a nonpayable order, 502 for an invalid/unavailable Orders response or 504 for an Orders timeout is expected; check the safe `code` in the problem response. If the process fails at startup, check the MongoDB URI, reachability and index creation. If readiness changes from 200 to 503, check MongoDB connectivity; liveness deliberately does not probe it. A standalone MongoDB may pass readiness but fails transaction-backed payment retries, so use the replica-set Compose stack for local writes. With Compose, `docker compose logs api mongo mongo-init` shows startup and replica-set errors.
+
 ## Quality checks
 
 The Invoice OpenAPI snapshot in `contracts/invoice/openapi.json` came from its successful CI artifact at commit `03a0ce67d55091c8593a078f3b8977e4cd836dfd`. After syncing, run `bash scripts/ci.sh orders-client` to verify that Kiota 1.34.1 regenerates exactly the committed client. The script downloads the pinned Linux binary when Kiota is absent and checks its SHA-256; set `KIOTA_BIN` to use a local executable. The Infrastructure integration suite pulls the [matching Invoice image](https://hub.docker.com/r/mb0101/ecommerce-store-invoice-api) by digest and checks a seeded order against MongoDB. Docker is required for that test. Unit and acceptance tests keep a controlled Orders transport for adverse responses.
 
 With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for Application, Infrastructure, Acceptance and container smoke. The audit needs access to the OSV vulnerability service. After `bash scripts/ci.sh sync`, run a focused source/build stage with `bash scripts/ci.sh format`, `lint`, `types`, `architecture`, `orders-client`, `links`, `openapi`, `build`, `audit`, or `container`; run a test suite with `bash scripts/ci.sh suite domain` (or `application`, `infrastructure`, `externalproviders`, `acceptance`).
+
+| Suite | Tests exercised | Coverage |
+| --- | --- | --- |
+| `domain` | Payment and Money unit tests | Domain, minimum 70% line coverage. |
+| `application` | Service unit tests and real MongoDB Pay flow | Application, minimum 70% line coverage. |
+| `infrastructure` | Mapper/settings/repository and Orders boundary unit tests; real MongoDB and pinned Invoice image integration | Entire handwritten Infrastructure, minimum 70% line coverage. |
+| `externalproviders` | Orders HTTP boundary unit tests, also included in Infrastructure | Infrastructure clients, report only. |
+| `acceptance` | API and architecture unit tests, health integration and pytest-bdd HTTP scenarios with real MongoDB | API, report only. |
+
+Each suite writes `junit.xml`, `coverage.xml`, `htmlcov/` and `summary.md` to `artifacts/verification/<suite>/`. The runner removes stale reports first, fails on zero tests or missing/invalid reports, and writes the Markdown summary into the CI job summary. The Invoice image integration test additionally needs Docker Hub access; `orders-client` needs the pinned Kiota binary or a download from GitHub. A focused unit suite can run without Docker, while the full `verify.sh` also runs container smoke and the network-backed dependency audit.
 
 In PowerShell, the equivalent individual commands are:
 

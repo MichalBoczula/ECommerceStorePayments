@@ -26,3 +26,7 @@ The adapter makes one GET and creates no payment on a failed or inconsistent res
 - Default all unknown currencies to two decimals: can silently charge the wrong amount.
 - Add Kiota and its runtime for this single stable GET now: creates generated code and dependency overhead without removing currency, consistency, or failure-policy decisions. Revisit if the Orders contract grows.
 - Read `totalAmount` as a binary float: risks a rounding mismatch during conversion to integer minor units.
+
+## Later evolution
+
+[ADR-0016](0016-invoice-kiota-orders-client.md) introduced a generated Kiota client behind this same `OrderReader` port after Invoice published a pinned contract and image. Its handwritten boundary still enforces this ADR's monetary conversion, consistency and error rules; the alternative of deferring Kiota describes the PAY/8 implementation, not the current transport.

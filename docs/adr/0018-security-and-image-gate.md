@@ -24,3 +24,7 @@ The gate checks the runtime and development lockfile plus the actual image. Unfi
 ## Alternatives considered
 
 Auditing only runtime dependencies would miss vulnerable test tools. Ignoring the pytest advisory would retain a fixable known issue. Scanning a separately built image could differ from the image exercised by Compose. Publishing before scanning would bypass the security decision for the published artifact.
+
+## Later evolution
+
+[ADR-0019](0019-ci-graph-and-dockerhub-publication.md) placed the smoke and Trivy job after the full source, suite and security gate and added publication of that scanned image on successful `main` pushes. The statement above about no publication describes PAY/18 before PAY/19 was implemented.

@@ -23,3 +23,7 @@ This baseline runs the existing unit tests and their coverage report without a m
 
 - Install the latest uv and Python patch in every run: permits tool and interpreter changes without a repository change.
 - Depend on GitHub Actions shell commands alone: lets local and CI verification drift.
+
+## Later evolution
+
+This ADR describes the initial baseline. [ADR-0015](0015-suite-reporting-and-coverage.md) introduced the five suite coverage policies, [ADR-0018](0018-security-and-image-gate.md) added security checks and [ADR-0019](0019-ci-graph-and-dockerhub-publication.md) now gates Docker Hub publication. The current stages are listed in the README and `scripts/verify.sh`.
