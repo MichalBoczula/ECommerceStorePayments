@@ -24,3 +24,4 @@ Use repository-local sequential numbers. Each record has a title, `Status` and `
 | [0016](0016-invoice-kiota-orders-client.md) | Accepted | Generate a Kiota Orders client from pinned Invoice OpenAPI with exact decimal parsing. |
 | [0017](0017-runtime-container-and-local-compose.md) | Accepted | Build a lockfile-based non-root image and smoke test the API with a local MongoDB replica set. |
 | [0018](0018-security-and-image-gate.md) | Accepted | Gate the lockfile, PR dependency diff, Git history and smoke-tested image before publication. |
+| [0019](0019-ci-graph-and-dockerhub-publication.md) | Accepted | Show five named suite jobs and publish the scanned image after the quality gate on main pushes. |
