@@ -88,7 +88,7 @@ async def test_maps_unexpected_upstream_status_to_unavailable(status_code: int) 
     async with client:
         with pytest.raises(OrderUnavailableError) as error:
             await reader.get_by_id(order_id)
-    assert str(status_code) not in str(error.value)
+    assert str(error.value) == f"Cannot read order {order_id}: Orders service is unavailable."
 
 
 @pytest.mark.parametrize("failure", [ReadTimeout, ConnectError])
