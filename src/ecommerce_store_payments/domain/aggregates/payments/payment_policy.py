@@ -24,11 +24,13 @@ class PaymentPolicy:
 
     @staticmethod
     def require_identifier(value: object, code: PaymentErrorCode) -> None:
+        """Require nonzero UUIDs for payment and order identifiers."""
         if not isinstance(value, UUID) or value.int == 0:
             raise PaymentValidationError(code, "Payment and order identifiers must be nonzero UUIDs.")
 
     @staticmethod
     def require_provider_identifier(value: object, code: PaymentErrorCode) -> None:
+        """Require printable nonempty ASCII provider identifiers without whitespace."""
         if not isinstance(value, str) or not value or not value.isascii() or not value.isprintable():
             raise PaymentValidationError(code, "Provider identifier must contain printable ASCII without whitespace.")
         if any(character.isspace() for character in value):

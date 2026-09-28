@@ -24,6 +24,7 @@ class PaymentService:
         self._order_reader = order_reader
 
     async def pay(self, order_id: UUID) -> PayResult:
+        """Return an existing payment or create/retry one after checking Orders."""
         existing_payment = await self._payment_repository.get_by_order_id(order_id)
         if existing_payment is not None:
             if existing_payment.status in (PaymentStatus.FAILED, PaymentStatus.CANCELED):
@@ -45,6 +46,7 @@ class PaymentService:
             return PayResult(existing_payment, created=False)
 
     async def _retry(self, payment: Payment) -> PayResult:
+        """Start a fresh attempt on the same aggregate when Orders still matches."""
         order = await self._order_reader.get_by_id(payment.order_id)
         self._require_created_order(payment.order_id, order.status)
         if order.money != payment.money:
@@ -63,10 +65,12 @@ class PaymentService:
 
     @staticmethod
     def _require_created_order(order_id: UUID, status: str) -> None:
+        """Require an order in Created state before creating or retrying payment."""
         if status.casefold() != "created":
             raise OrderNotPayableError(order_id, status)
 
     async def get_by_order_id(self, order_id: UUID) -> Payment:
+        """Read the current payment by order ID or report that it is missing."""
         payment = await self._payment_repository.get_by_order_id(order_id)
         if payment is None:
             raise PaymentNotFoundError(order_id)
