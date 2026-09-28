@@ -33,6 +33,8 @@ jobs:
         run: bash scripts/ci.sh lint
       - name: Type check
         run: bash scripts/ci.sh types
+      - name: Check operation links
+        run: bash scripts/ci.sh links
       - name: Unit tests
         run: bash scripts/ci.sh test
       - name: MongoDB integration tests

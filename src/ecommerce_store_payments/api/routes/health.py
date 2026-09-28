@@ -16,6 +16,7 @@ class HealthResponse(BaseModel):
 
 @router.get("/health", operation_id="get_health", response_model=HealthResponse, responses=problem_responses(405, 500))
 async def get_health() -> HealthResponse:
+    """Return the compatibility liveness response without touching MongoDB."""
     return HealthResponse(status="healthy")
 
 
@@ -23,6 +24,7 @@ async def get_health() -> HealthResponse:
     "/health/live", operation_id="get_liveness", response_model=HealthResponse, responses=problem_responses(405, 500)
 )
 async def get_liveness() -> HealthResponse:
+    """Report process liveness without a dependency probe."""
     return HealthResponse(status="healthy")
 
 
@@ -33,6 +35,7 @@ async def get_liveness() -> HealthResponse:
     responses=problem_responses(405, 500, 503),
 )
 async def get_readiness(request: Request) -> HealthResponse:
+    """Probe MongoDB and report whether the service can handle requests."""
     database: MongoDatabase = request.app.state.database
     try:
         await database.probe()

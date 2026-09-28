@@ -1,5 +1,9 @@
 Feature: Liveness and readiness through the public API
 
+  Scenario: PAY11-22 Compatibility health alias
+    When I get "/health"
+    Then the response matches case "PAY11-22"
+
   Scenario: PAY11-19 Healthy liveness
     When I get "/health/live"
     Then the response matches case "PAY11-19"

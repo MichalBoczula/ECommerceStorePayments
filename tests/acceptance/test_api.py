@@ -26,15 +26,15 @@ OPERATION_GET = "GET /payments/order/{order_id}"
 def _matrix() -> dict[str, dict[str, str]]:
     with MATRIX_PATH.open(newline="", encoding="utf-8") as source:
         rows = list(csv.DictReader(source, delimiter="\t"))
-    assert all(row.keys() == {"id", "operation", "cause", "status", "code"} for row in rows)
+    assert all(row.keys() == {"id", "operation", "cause", "status", "code", "requirement"} for row in rows)
     assert len(rows) == len({row["id"] for row in rows})
     return {row["id"]: row for row in rows}
 
 
 def test_every_matrix_case_has_one_source_scenario_and_expected_result_step() -> None:
     sources = "\n".join(path.read_text(encoding="utf-8") for path in FEATURES_PATH.glob("*.feature"))
-    scenario_ids = re.findall(r"^\s*Scenario:\s+(PAY11-\d+)\b", sources, re.MULTILINE)
-    step_ids = re.findall(r'^\s*Then the response matches case "(PAY11-\d+)"', sources, re.MULTILINE)
+    scenario_ids = re.findall(r"^\s*Scenario:\s+(PAY\d+-\d+)\b", sources, re.MULTILINE)
+    step_ids = re.findall(r'^\s*Then the response matches case "(PAY\d+-\d+)"', sources, re.MULTILINE)
     assert len(scenario_ids) == len(set(scenario_ids))
     assert sorted(scenario_ids) == sorted(step_ids) == sorted(_matrix())
 
