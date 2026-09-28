@@ -102,6 +102,8 @@ UNSUPPORTED_MEDIA_TYPE = ErrorSpec(415, "unsupported_media_type", "The request c
 
 def problem_responses(*statuses: int) -> dict[int | str, dict[str, Any]]:
     schema = ProblemDetails.model_json_schema(by_alias=True)
+    # Embedded OpenAPI schemas cannot reference a local #/$defs at document root.
+    schema["properties"]["errors"]["items"] = schema.pop("$defs")["ValidationEntry"]
     return {
         status: {
             "description": f"{HTTPStatus(status).phrase}; see the stable code in the problem body.",

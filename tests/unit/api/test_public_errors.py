@@ -146,6 +146,8 @@ def test_problem_openapi_media_and_schema_match_http_contract(client: TestClient
             assert {"title", "status", "detail", "instance", "code", "traceId", "errors", "missingProperties"} <= set(
                 schema["required"]
             )
+            assert {"message", "name", "entity"} == set(schema["properties"]["errors"]["items"]["required"])
+            assert "$defs" not in schema
 
 
 def test_success_response_receives_distinct_trace_ids(client: TestClient) -> None:
