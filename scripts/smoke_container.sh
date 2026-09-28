@@ -6,6 +6,11 @@ project="payments-smoke-${GITHUB_RUN_ID:-local}-$$"
 compose=(docker compose -p "$project" -f compose.yaml)
 
 cleanup() {
+  result=$?
+  if (( result != 0 )); then
+    "${compose[@]}" ps -a || true
+    "${compose[@]}" logs --no-color api mongo-init || true
+  fi
   "${compose[@]}" down --volumes --remove-orphans
 }
 trap cleanup EXIT
