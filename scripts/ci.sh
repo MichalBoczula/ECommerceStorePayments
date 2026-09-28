@@ -20,6 +20,9 @@ case "${1:-}" in
   architecture)
     uv run --no-sync python scripts/check_architecture.py
     ;;
+  orders-client)
+    bash scripts/check_orders_client.sh
+    ;;
   links)
     uv run --no-sync python scripts/generate_operation_links.py --check
     ;;
@@ -34,7 +37,7 @@ case "${1:-}" in
     uv run --no-sync python scripts/verify_wheel.py
     ;;
   *)
-    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|architecture|links|openapi|build|suite NAME}" >&2
+    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|architecture|orders-client|links|openapi|build|suite NAME}" >&2
     exit 2
     ;;
 esac

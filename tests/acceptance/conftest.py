@@ -6,7 +6,9 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx2 import AsyncClient, ConnectError, MockTransport, ReadTimeout, Request, Response
+from httpx import AsyncClient, ConnectError, MockTransport, ReadTimeout, Request
+from httpx import Response as OrdersResponse
+from httpx2 import Response
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
@@ -31,19 +33,19 @@ class OrdersBoundary:
     amount: float = 12.99
     calls: int = 0
 
-    def handle(self, request: Request) -> Response:
+    def handle(self, request: Request) -> OrdersResponse:
         assert request.method == "GET"
         assert request.url.path == f"/orders/{self.order_id}"
         self.calls += 1
         if self.mode == "missing":
-            return Response(404)
+            return OrdersResponse(404)
         if self.mode == "invalid":
-            return Response(200, json={"id": str(self.order_id), "status": "Created", "totalAmount": "private"})
+            return OrdersResponse(200, json={"id": str(self.order_id), "status": "Created", "totalAmount": "private"})
         if self.mode == "timeout":
             raise ReadTimeout("private Orders timeout", request=request)
         if self.mode == "outage":
             raise ConnectError("private Orders connection", request=request)
-        return Response(
+        return OrdersResponse(
             200,
             json={
                 "id": str(self.order_id),

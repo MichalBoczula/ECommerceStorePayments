@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from httpx2 import AsyncClient
+from httpx import AsyncClient
 
 from ecommerce_store_payments.api.app import create_app
 from ecommerce_store_payments.infrastructure.config.settings import Settings

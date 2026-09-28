@@ -5,7 +5,8 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from httpx2 import AsyncClient, ConnectError, MockTransport, ReadTimeout, Request, Response
+from httpx import AsyncClient, ConnectError, MockTransport, ReadTimeout, Request, Response
+from kiota_abstractions.authentication.anonymous_authentication_provider import AnonymousAuthenticationProvider
 
 from ecommerce_store_payments.application.payments.exceptions import (
     OrderInvalidResponseError,
@@ -13,7 +14,10 @@ from ecommerce_store_payments.application.payments.exceptions import (
     OrderTimeoutError,
     OrderUnavailableError,
 )
+from ecommerce_store_payments.infrastructure.clients.orders.generated.orders_client import OrdersClient
 from ecommerce_store_payments.infrastructure.clients.orders.http_order_reader import HttpOrderReader
+from ecommerce_store_payments.infrastructure.clients.orders.precise_json import PreciseOrderJsonFactory
+from ecommerce_store_payments.infrastructure.clients.orders.request_adapter import OrdersRequestAdapter
 
 
 def _order(order_id: UUID, amount: float | int, currency: str = "PLN") -> dict[str, Any]:
@@ -46,7 +50,13 @@ def _order(order_id: UUID, amount: float | int, currency: str = "PLN") -> dict[s
 
 async def _get_order(order_id: UUID, handler: Callable[[Request], Response]) -> tuple[HttpOrderReader, AsyncClient]:
     client = AsyncClient(base_url="https://orders.example.test", transport=MockTransport(handler))
-    return HttpOrderReader(client), client
+    adapter = OrdersRequestAdapter(
+        AnonymousAuthenticationProvider(),
+        parse_node_factory=PreciseOrderJsonFactory(),
+        http_client=client,
+        base_url="https://orders.example.test",
+    )
+    return HttpOrderReader(OrdersClient(adapter)), client
 
 
 @pytest.mark.parametrize(

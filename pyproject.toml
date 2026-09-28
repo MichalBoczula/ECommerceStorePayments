@@ -10,7 +10,19 @@ readme = "README.md"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "fastapi>=0.116,<1",
-    "httpx2>=2.13,<3",
+    "httpx==0.28.1",
+    "microsoft-kiota-abstractions==1.14.1",
+    "microsoft-kiota-http==1.14.1",
+    "microsoft-kiota-serialization-form==1.14.1",
+    "microsoft-kiota-serialization-json==1.14.1",
+    "microsoft-kiota-serialization-multipart==1.14.1",
+    "microsoft-kiota-serialization-text==1.14.1",
+    "microsoft-kiota-abstractions>=1.9,<2",
+    "microsoft-kiota-http>=1.9,<2",
+    "microsoft-kiota-serialization-form>=1.9,<2",
+    "microsoft-kiota-serialization-json>=1.9,<2",
+    "microsoft-kiota-serialization-multipart>=1.9,<2",
+    "microsoft-kiota-serialization-text>=1.9,<2",
     "pydantic-settings>=2.10,<3",
     "pymongo>=4.13,<5",
     "uvicorn[standard]>=0.35,<1",
@@ -19,6 +31,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "allure-pytest>=2.14,<3",
+    "httpx2>=2.13,<3",
     "jsonschema==4.25.1",
     "openapi-spec-validator==0.7.2",
     "pyright>=1.1.403,<2",
@@ -42,6 +55,7 @@ testpaths = ["tests"]
 [tool.coverage.run]
 branch = true
 source = ["src/ecommerce_store_payments"]
+omit = ["*/infrastructure/clients/orders/generated/*"]
 
 [tool.coverage.report]
 fail_under = 0
@@ -52,6 +66,7 @@ skip_covered = true
 target-version = "py314"
 line-length = 120
 src = ["src", "tests"]
+extend-exclude = ["src/ecommerce_store_payments/infrastructure/clients/orders/generated"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "ASYNC", "RUF"]
@@ -61,6 +76,7 @@ known-first-party = ["ecommerce_store_payments"]
 
 [tool.pyright]
 include = ["src", "tests"]
+exclude = ["src/ecommerce_store_payments/infrastructure/clients/orders/generated"]
 pythonVersion = "3.14"
 typeCheckingMode = "strict"
 venvPath = "."

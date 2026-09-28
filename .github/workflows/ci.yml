@@ -35,6 +35,8 @@ jobs:
         run: bash scripts/ci.sh types
       - name: Check architecture boundaries
         run: bash scripts/ci.sh architecture
+      - name: Verify generated Orders Kiota client
+        run: bash scripts/ci.sh orders-client
       - name: Check operation links
         run: bash scripts/ci.sh links
       - name: Export and lint generated OpenAPI

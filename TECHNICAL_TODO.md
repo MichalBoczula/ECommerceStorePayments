@@ -39,9 +39,11 @@ This tracks the Payments work compared with the reference practices in ECommerce
 ## Full CI, container, and documentation
 
 - [x] **PAY/15 — Suite reporting and coverage.** Five independently run suites publish JUnit and scoped XML/HTML coverage reports. Domain, Application and the entire Infrastructure each enforce 70% line coverage; ExternalProviders and Acceptance report coverage. Missing reports, failed tests and low coverage fail the gate; full PR CI passed. See ADR-0015.
-- [ ] **PAY/16 — Runtime container.** Lockfile-based non-root image without dev dependencies or secrets, Docker Compose with MongoDB and a smoke test for the API.
-- [ ] **PAY/17 — Security and final gate.** Locked dependency audit, PR dependency review, secret scan, Trivy image scan, defined severity policies, minimal permissions, and a final gate that includes Docker build/scan. CI builds an image; registry publication/deployment require a separate decision.
-- [ ] **PAY/18 — Operational docs review.** Complete README, local startup/verification, API/health, tests, CI, indexes and ADR documentation; reconcile descriptions with working behavior.
+- [x] **PAY/16 — Invoice Orders via Kiota.** Pin the published Invoice image and generated OpenAPI, generate a reproducible Python Kiota client, use it behind OrderReader while preserving exact monetary and error semantics, and verify the live image with MongoDB. PR CI passed, including the published Invoice image integration test.
+- [ ] **PAY/17 — Runtime container.** Lockfile-based non-root image without dev dependencies or secrets, Docker Compose with MongoDB and a smoke test for the API.
+- [ ] **PAY/18 — Security and quality gate.** Locked dependency audit, PR dependency review, secret scan, Trivy image scan, explicit severity policy and a gate including image build/scan.
+- [ ] **PAY/19 — CI graph and Docker Hub publication.** Named suite jobs like Users; after a green main push and image scan publish mb0101/ecommerce-store-payments-api using repository Docker Hub secrets, full SHA and latest tags with matching digest.
+- [ ] **PAY/20 — Operational docs review.** Complete README, local startup/verification, API/health, tests, CI, indexes and ADR documentation; reconcile descriptions with working behavior.
 
 ## Later functional stage
 
@@ -50,4 +52,4 @@ This tracks the Payments work compared with the reference practices in ECommerce
 - [ ] **STRIPE/3 — Orders and invoice completion.** Durable progress and retry for the MVP HTTP callback after successful payment; prevent double update/invoice. Event transport can follow later.
 - [ ] **STRIPE/4 — End-to-end Angular/BFF flow.** Connect UI and backend contracts after the payment and order APIs stabilize.
 
-Recommended sequence: PAY/1, PAY/2, then the Domain/persistence, application, API/acceptance and CI blocks according to dependencies. PAY/7 starts with a decision; PAY/17 follows PAY/16. Update checkboxes only after the criterion is actually met.
+Next sequence: PAY/17, PAY/18, PAY/19, PAY/20. Update checkboxes only after the criterion is actually met.
