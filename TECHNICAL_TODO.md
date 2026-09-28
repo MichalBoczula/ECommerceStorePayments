@@ -44,7 +44,7 @@ This tracks the Payments work compared with the reference practices in ECommerce
 - [x] **PAY/17 — Runtime container.** Lockfile-based non-root image without dev dependencies or secrets, Docker Compose with MongoDB and a smoke test for the API. PR CI passed the image smoke, all five suites and final gate; see ADR-0017.
 - [x] **PAY/18 — Security and quality gate.** Locked dependency audit, PR dependency review, secret scan, Trivy image scan and explicit severity policy all passed the full PR gate; see ADR-0018.
 - [x] **PAY/19 — CI graph and Docker Hub publication.** Five named suite jobs, quality gate and image scan passed on `main`; commit `4818fab380506b9b88eb2e154bdd4eee276960be` published both full-SHA and `latest` tags with matching digest `sha256:a5d3f5709a7332fb9d351d0ab4e1c17be9ae4d8a67eee2523d229acdb4e53b54`. See ADR-0019.
-- [ ] **PAY/20 — Operational docs review.** Complete README, local startup/verification, API/health, tests, CI, indexes and ADR documentation; reconcile descriptions with working behavior.
+- [x] **PAY/20 — Operational docs review.** README startup, API/health, MongoDB indexes/transactions, verification, suites and CI match the code; historical ADRs identify later changes. Local documentation/source checks and full PR CI passed.
 
 ## Later functional stage
 
@@ -53,4 +53,4 @@ This tracks the Payments work compared with the reference practices in ECommerce
 - [ ] **STRIPE/3 — Orders and invoice completion.** Durable progress and retry for the MVP HTTP callback after successful payment; prevent double update/invoice. Event transport can follow later.
 - [ ] **STRIPE/4 — End-to-end Angular/BFF flow.** Connect UI and backend contracts after the payment and order APIs stabilize.
 
-Next sequence: PAY/20, then STRIPE/1–4. Update checkboxes only after the criterion is actually met.
+Next sequence: STRIPE/1–4. Update checkboxes only after the criterion is actually met.
