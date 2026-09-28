@@ -22,11 +22,15 @@ class _FailingOrdersService:
 
 
 @pytest.mark.parametrize(
-    ("failure", "expected_status"),
-    [(OrderTimeoutError, 504), (OrderUnavailableError, 502), (OrderInvalidResponseError, 502)],
+    ("failure", "expected_status", "expected_code"),
+    [
+        (OrderTimeoutError, 504, "order_timeout"),
+        (OrderUnavailableError, 502, "order_unavailable"),
+        (OrderInvalidResponseError, 502, "order_invalid_response"),
+    ],
 )
 def test_pay_maps_orders_failures_to_gateway_errors(
-    client: TestClient, failure: type[Exception], expected_status: int
+    client: TestClient, failure: type[Exception], expected_status: int, expected_code: str
 ) -> None:
     app = cast(FastAPI, client.app)
     app.state.payment_service = cast(PaymentService, _FailingOrdersService(failure))
@@ -35,7 +39,10 @@ def test_pay_maps_orders_failures_to_gateway_errors(
     response = client.post(f"/payments/{order_id}/pay")
 
     assert response.status_code == expected_status
-    assert str(order_id) in response.json()["detail"]
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json()["code"] == expected_code
+    assert response.json()["traceId"] == response.headers["x-trace-id"]
+    assert str(order_id) not in response.text
     assert "private" not in response.text
     operation = app.openapi()["paths"]["/payments/{order_id}/pay"]["post"]
     assert str(expected_status) in operation["responses"]

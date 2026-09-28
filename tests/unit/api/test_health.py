@@ -30,7 +30,10 @@ def test_readiness_reports_unavailable_without_exposing_mongo_error(client: Test
     response = client.get("/health/ready")
 
     assert response.status_code == 503
-    assert response.json() == {"status": "unhealthy"}
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json()["code"] == "service_unavailable"
+    assert response.json()["traceId"] == response.headers["x-trace-id"]
+    assert "MongoDB" not in response.text
     for path in ("/health", "/health/live"):
         live_response = client.get(path)
         assert live_response.status_code == 200
