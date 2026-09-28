@@ -83,7 +83,7 @@ Invalid path parameters return 400 `invalid_request`; malformed JSON returns 400
 
 ## Quality checks
 
-With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for the integration stage. After `bash scripts/ci.sh sync`, run a focused stage using `bash scripts/ci.sh format`, `lint`, `types`, `test`, `integration`, or `build`.
+With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for the integration and acceptance stages. After `bash scripts/ci.sh sync`, run a focused stage using `bash scripts/ci.sh format`, `lint`, `types`, `test`, `integration`, `acceptance`, or `build`.
 
 In PowerShell, the equivalent individual commands are:
 
@@ -95,11 +95,12 @@ uv run --no-sync ruff check .
 uv run --no-sync pyright
 uv run --no-sync pytest tests/unit
 uv run --no-sync pytest tests/integration # requires Docker
+uv run --no-sync pytest tests/acceptance # requires Docker
 uv build --wheel --no-sources --clear
 uv run --no-sync python scripts/verify_wheel.py
 ```
 
-CI runs on pull requests and pushes to `main`. It checks the lockfile, formatting, lint, types, unit tests, real MongoDB integration tests via Testcontainers, and installation of the built wheel. Integration tests share a single-node MongoDB replica set container, give each test a separate database, and remove each database after use. HTTP acceptance, separate coverage thresholds, image work and security gates remain in the [technical backlog](TECHNICAL_TODO.md).
+CI runs on pull requests and pushes to `main`. It checks the lockfile, formatting, lint, types, unit tests, real MongoDB integration and HTTP acceptance scenarios via Testcontainers, and installation of the built wheel. MongoDB suites share a single-node replica set container, give each test or scenario a separate database, and remove each database after use. Acceptance uses a controlled Orders HTTP transport while exercising the real adapter and FastAPI lifecycle. The [acceptance matrix](docs/acceptance-matrix.tsv) links source scenarios to operation, cause, status and code; see [ADR-0011](docs/adr/0011-acceptance-isolation.md). Separate coverage thresholds, image work and security gates remain in the [technical backlog](TECHNICAL_TODO.md).
 
 ## Generated API clients
 
