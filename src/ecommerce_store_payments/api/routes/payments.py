@@ -1,23 +1,10 @@
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Request, Response, status
 
 from ecommerce_store_payments.api.contracts.payment_response import PaymentResponse
 from ecommerce_store_payments.api.dependencies import PaymentServiceDependency
-from ecommerce_store_payments.application.payments.exceptions import (
-    OrderInvalidResponseError,
-    OrderNotFoundError,
-    OrderNotPayableError,
-    OrderTimeoutError,
-    OrderTotalChangedError,
-    OrderUnavailableError,
-    PaymentNotFoundError,
-)
-from ecommerce_store_payments.domain.aggregates.payments.repositories.exceptions import (
-    PaymentConflictError,
-    PaymentDuplicateError,
-    PaymentMissingError,
-)
+from ecommerce_store_payments.api.errors import problem_responses, reject_pay_body
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -29,24 +16,14 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
     operation_id="payOrder",
     responses={
         200: {"model": PaymentResponse, "description": "Existing payment or renewed attempt"},
-        409: {"description": "Order or payment state conflict"},
-        502: {"description": "Invalid response or failure from Orders"},
-        504: {"description": "Orders timed out"},
+        **problem_responses(400, 404, 405, 409, 415, 500, 502, 504),
     },
 )
-async def pay_order(order_id: UUID, payment_service: PaymentServiceDependency, response: Response) -> PaymentResponse:
-    try:
-        result = await payment_service.pay(order_id)
-    except OrderNotFoundError as error:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
-    except (OrderNotPayableError, OrderTotalChangedError) as error:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
-    except OrderTimeoutError as error:
-        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=str(error)) from error
-    except (OrderUnavailableError, OrderInvalidResponseError) as error:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(error)) from error
-    except (PaymentDuplicateError, PaymentConflictError, PaymentMissingError) as error:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
+async def pay_order(
+    order_id: UUID, payment_service: PaymentServiceDependency, response: Response, request: Request
+) -> PaymentResponse:
+    await reject_pay_body(request)
+    result = await payment_service.pay(order_id)
 
     response.status_code = status.HTTP_201_CREATED if result.created else status.HTTP_200_OK
     return PaymentResponse.from_domain(result.payment)
@@ -56,11 +33,8 @@ async def pay_order(order_id: UUID, payment_service: PaymentServiceDependency, r
     "/order/{order_id}",
     response_model=PaymentResponse,
     operation_id="getPaymentByOrderId",
+    responses=problem_responses(400, 404, 405, 500),
 )
 async def get_payment_by_order_id(order_id: UUID, payment_service: PaymentServiceDependency) -> PaymentResponse:
-    try:
-        payment = await payment_service.get_by_order_id(order_id)
-    except PaymentNotFoundError as error:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
-
+    payment = await payment_service.get_by_order_id(order_id)
     return PaymentResponse.from_domain(payment)

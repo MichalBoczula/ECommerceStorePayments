@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from httpx2 import AsyncClient
 
+from ecommerce_store_payments.api.errors import install_error_handlers
 from ecommerce_store_payments.api.routes.health import router as health_router
 from ecommerce_store_payments.api.routes.payments import router as payments_router
 from ecommerce_store_payments.application.payments.payment_service import PaymentService
@@ -46,6 +47,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.settings = resolved_settings
+    install_error_handlers(app)
     app.include_router(health_router)
     app.include_router(payments_router)
     return app

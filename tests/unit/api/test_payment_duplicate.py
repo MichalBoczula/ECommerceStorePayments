@@ -21,4 +21,5 @@ def test_pay_maps_unresolved_duplicate_to_conflict(client: TestClient) -> None:
     response = client.post(f"/payments/{order_id}/pay")
 
     assert response.status_code == 409
-    assert str(order_id) in response.json()["detail"]
+    assert response.json()["code"] == "payment_duplicate"
+    assert str(order_id) not in response.json()["detail"]

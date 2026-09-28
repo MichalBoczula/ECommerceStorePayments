@@ -34,7 +34,8 @@ async def test_startup_creates_named_index_and_readiness_uses_real_mongodb(mongo
             database.probe = unavailable
             failed = client.get("/health/ready")
             assert failed.status_code == 503
-            assert failed.json() == {"status": "unhealthy"}
+            assert failed.json()["code"] == "service_unavailable"
+            assert failed.headers["content-type"] == "application/problem+json"
             assert "private connection detail" not in failed.text
             assert client.get("/health/live").status_code == 200
 
