@@ -66,7 +66,7 @@ def existing_payment(acceptance: AcceptanceContext) -> None:
 @given(parsers.parse('a "{status}" payment created through the API'))
 def terminal_payment(acceptance: AcceptanceContext, status: str) -> None:
     existing_payment(acceptance)
-    acceptance.make_terminal(PaymentStatus(status))
+    acceptance.make_terminal(PaymentStatus(status.casefold()))
 
 
 @given("Orders total has changed")
@@ -183,7 +183,7 @@ def persisted_counts(acceptance: AcceptanceContext, current: int, history: int) 
 def current_state(acceptance: AcceptanceContext, status: str, version: int) -> None:
     document = acceptance.payments.find_one({"order_id": acceptance.orders.order_id})
     assert document is not None
-    assert document["status"] == status
+    assert document["status"] == status.casefold()
     assert document["version"] == version
 
 
@@ -207,7 +207,7 @@ def no_new_orders_call(acceptance: AcceptanceContext) -> None:
 def history_statuses(acceptance: AcceptanceContext, statuses: str) -> None:
     assert acceptance.initial_payment_id is not None
     snapshots = acceptance.history.find({"payment_id": acceptance.initial_payment_id}).sort("version", 1)
-    assert [snapshot["status"] for snapshot in snapshots] == statuses.split(",")
+    assert [snapshot["status"] for snapshot in snapshots] == [status.casefold() for status in statuses.split(",")]
 
 
 @then(parsers.parse('the Allow header is "{allowed}"'))
