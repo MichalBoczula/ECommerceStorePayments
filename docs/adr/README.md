@@ -18,3 +18,4 @@ Use repository-local sequential numbers. Each record has a title, `Status` and `
 | [0010](0010-safe-public-errors.md) | Accepted | Map API failures to safe problem+json responses with stable codes and trace IDs. |
 | [0011](0011-acceptance-isolation.md) | Accepted | Exercise the public API against isolated real MongoDB with a controlled Orders HTTP boundary. |
 | [0012](0012-generated-operation-links.md) | Accepted | Generate operation-to-flow, policy and acceptance links from executable sources. |
+| [0013](0013-generated-openapi-contract.md) | Accepted | Export and validate OpenAPI against acceptance outcomes and observed HTTP bodies. |

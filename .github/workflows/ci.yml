@@ -35,6 +35,13 @@ jobs:
         run: bash scripts/ci.sh types
       - name: Check operation links
         run: bash scripts/ci.sh links
+      - name: Export and lint generated OpenAPI
+        run: bash scripts/ci.sh openapi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: payments-openapi
+          path: artifacts/verification/openapi.json
+          if-no-files-found: error
       - name: Unit tests
         run: bash scripts/ci.sh test
       - name: MongoDB integration tests

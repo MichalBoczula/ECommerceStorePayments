@@ -20,6 +20,9 @@ case "${1:-}" in
   links)
     uv run --no-sync python scripts/generate_operation_links.py --check
     ;;
+  openapi)
+    uv run --no-sync python -m scripts.export_openapi
+    ;;
   test)
     uv run --no-sync pytest tests/unit
     ;;
@@ -34,7 +37,7 @@ case "${1:-}" in
     uv run --no-sync python scripts/verify_wheel.py
     ;;
   *)
-    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|links|test|integration|acceptance|build}" >&2
+    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|links|openapi|test|integration|acceptance|build}" >&2
     exit 2
     ;;
 esac

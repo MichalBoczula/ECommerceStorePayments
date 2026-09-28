@@ -1,8 +1,9 @@
 import csv
 import re
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 from uuid import UUID
 
 import pytest
@@ -10,6 +11,8 @@ from fastapi import FastAPI
 from httpx2 import Response
 from pymongo.errors import ServerSelectionTimeoutError
 from pytest_bdd import given, parsers, scenarios, then, when
+from scripts.generate_operation_links import generate
+from scripts.openapi_contract import check_case
 
 from ecommerce_store_payments.domain.aggregates.payments.enums.payment_status import PaymentStatus
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database import MongoDatabase
@@ -21,6 +24,11 @@ MATRIX_PATH = Path(__file__).resolve().parents[2] / "docs" / "acceptance-matrix.
 FEATURES_PATH = Path(__file__).resolve().parent / "features"
 OPERATION_PAY = "POST /payments/{order_id}/pay"
 OPERATION_GET = "GET /payments/order/{order_id}"
+
+
+@lru_cache(maxsize=1)
+def _links() -> dict[str, Any]:
+    return generate()
 
 
 def _matrix() -> dict[str, dict[str, str]]:
@@ -147,6 +155,10 @@ def matches_matrix(acceptance: AcceptanceContext, case_id: str) -> None:
         int(code) for code in expected["status"].split(",")
     )
     for response in acceptance.responses:
+        app = cast(FastAPI, acceptance.client.app)
+        check_case(
+            app.openapi(), _links(), case_id, response.status_code, response.headers["content-type"], response.json()
+        )
         assert response.headers["x-trace-id"]
         if response.status_code < 400:
             assert expected["code"] == "-"
