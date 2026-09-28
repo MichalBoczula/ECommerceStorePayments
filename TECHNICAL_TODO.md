@@ -31,7 +31,7 @@ This tracks the Payments work compared with the reference practices in ECommerce
 ## API contract, acceptance, and architecture
 
 - [x] **PAY/10 — Safe public errors.** Central problem+json mapping, stable codes, trace ID, status and media type, route/framework errors, validation policy and no leaked internal details; HTTP tests. Verified locally and on the clean PR runner, including MongoDB integration tests; see ADR-0010.
-- [ ] **PAY/11 — Acceptance BDD.** pytest-bdd source features, real FastAPI + MongoDB, controlled Orders boundary, scenario isolation and status-by-cause coverage matrix.
+- [x] **PAY/11 — Acceptance BDD.** 21 pytest-bdd source scenarios exercise real FastAPI and isolated MongoDB replica-set databases with a controlled Orders HTTP boundary. The status-by-cause matrix, scenario IDs, history assertions and cleanup run in the acceptance CI stage; PR CI passed.
 - [ ] **PAY/12 — Flow and policy sources.** Link endpoint operation IDs to executed service flows, domain rules, and acceptance scenario IDs; verify missing and duplicate links.
 - [ ] **PAY/13 — Generated OpenAPI contract.** Database-free export, pinned lint, actual HTTP status/media/schema checks and CI artifact.
 - [ ] **PAY/14 — Architecture checks.** Enforce import direction and persistence boundaries with a negative fixture/test that proves a forbidden import fails.

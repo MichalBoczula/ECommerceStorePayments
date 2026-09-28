@@ -16,7 +16,7 @@ Read this file and [the definition of done](docs/definition-of-done.md) before e
 
 - For an endpoint change, consider validation, status codes, public error representation, generated OpenAPI, affected use cases, and success/failure HTTP scenarios together.
 - Test pure domain rules in `tests/unit/domain`; use-case decisions in `tests/unit/application`; mapping in `tests/unit/infrastructure`. Test real MongoDB behavior, indexes, and concurrency with Testcontainers in `tests/integration`. When acceptance scenarios are introduced, exercise the public API and real persistence in `tests/acceptance`.
-- Existing repository tests with fake collections remain unit tests; the MongoDB Testcontainers suite checks actual database behavior. The acceptance package is a placeholder.
+- Existing repository tests with fake collections remain unit tests; the MongoDB Testcontainers suite checks actual database behavior. pytest-bdd scenarios in `tests/acceptance/features` run the public API against an isolated database per scenario. Update `docs/acceptance-matrix.tsv` when adding an HTTP scenario.
 - Do not skip failing tests or weaken gates for a green PR. Ordinary warnings may remain visible; quality and security gates have explicit policies when implemented.
 
 ## Local verification
@@ -27,7 +27,7 @@ Use the versions pinned in `.python-version` and `[tool.uv].required-version` in
 bash scripts/verify.sh
 ```
 
-To focus on one stage, run `bash scripts/ci.sh sync` first and then `bash scripts/ci.sh {format|lint|types|test|integration|build}`. The latter stages use the synced environment without changing the lockfile. The workflow in `.github/workflows/ci.yml` calls these same stages. The integration stage requires Docker.
+To focus on one stage, run `bash scripts/ci.sh sync` first and then `bash scripts/ci.sh {format|lint|types|test|integration|acceptance|build}`. The latter stages use the synced environment without changing the lockfile. The workflow in `.github/workflows/ci.yml` calls these same stages. The integration and acceptance stages require Docker.
 
 Running the API: `uv run --locked uvicorn ecommerce_store_payments.main:app --reload`; Swagger UI: `/swagger`. Integration tests start MongoDB with Testcontainers and require Docker. Coverage and security gates are later backlog items. Report only commands actually run.
 

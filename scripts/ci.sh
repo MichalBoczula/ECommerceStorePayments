@@ -23,12 +23,15 @@ case "${1:-}" in
   integration)
     uv run --no-sync pytest tests/integration
     ;;
+  acceptance)
+    uv run --no-sync pytest tests/acceptance
+    ;;
   build)
     uv build --wheel --no-sources --clear
     uv run --no-sync python scripts/verify_wheel.py
     ;;
   *)
-    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|test|integration|build}" >&2
+    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|test|integration|acceptance|build}" >&2
     exit 2
     ;;
 esac

@@ -1,0 +1,22 @@
+id	operation	cause	status	code
+PAY11-01	POST /payments/{order_id}/pay	new payable order	201	-
+PAY11-02	GET /payments/order/{order_id}	existing payment	200	-
+PAY11-03	POST /payments/{order_id}/pay	repeated nonterminal payment	200	-
+PAY11-04	GET /payments/order/{order_id}	missing payment	404	payment_not_found
+PAY11-05	POST /payments/{order_id}/pay	missing order	404	order_not_found
+PAY11-06	POST /payments/{order_id}/pay	order not Created	409	order_not_payable
+PAY11-07	POST /payments/{order_id}/pay	invalid Orders payload	502	order_invalid_response
+PAY11-08	POST /payments/{order_id}/pay	Orders timeout	504	order_timeout
+PAY11-09	POST /payments/{order_id}/pay	Orders transport outage	502	order_unavailable
+PAY11-10	POST /payments/{order_id}/pay	failed payment retry	200	-
+PAY11-11	POST /payments/{order_id}/pay	canceled payment retry	200	-
+PAY11-12	POST /payments/{order_id}/pay	changed total on retry	409	order_total_changed
+PAY11-13	POST /payments/{order_id}/pay x2	parallel first Pay	200,201	-
+PAY11-14	POST /payments/invalid-uuid/pay	invalid path UUID	400	invalid_request
+PAY11-15	POST /payments/{order_id}/pay	malformed JSON body	400	invalid_json
+PAY11-16	POST /payments/{order_id}/pay	unsupported text/plain body	415	unsupported_media_type
+PAY11-17	GET /unknown-route	unmatched route	404	route_not_found
+PAY11-18	POST /health/live	wrong method	405	method_not_allowed
+PAY11-19	GET /health/live	liveness	200	-
+PAY11-20	GET /health/ready	MongoDB ready	200	-
+PAY11-21	GET /health/ready	MongoDB unavailable	503	service_unavailable
