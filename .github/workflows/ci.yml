@@ -88,12 +88,8 @@ jobs:
       - name: Build and verify wheel
         run: bash scripts/ci.sh build
 
-  suites:
+  domain-unit-tests:
     needs: quality
-    strategy:
-      fail-fast: false
-      matrix:
-        suite: [domain, application, infrastructure, externalproviders, acceptance]
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -106,17 +102,146 @@ jobs:
         run: uv python install
       - name: Check lock and install
         run: bash scripts/ci.sh sync
-      - name: Run ${{ matrix.suite }} suite with reports
-        run: bash scripts/ci.sh suite "${{ matrix.suite }}"
+      - name: Run Domain suite with reports
+        run: bash scripts/ci.sh suite domain
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
-          name: payments-${{ matrix.suite }}-reports
-          path: artifacts/verification/${{ matrix.suite }}/
+          name: payments-domain-reports
+          path: artifacts/verification/domain/
           if-no-files-found: error
 
-  container:
+  application-unit-tests:
     needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.18"
+          enable-cache: true
+      - name: Install pinned Python
+        run: uv python install
+      - name: Check lock and install
+        run: bash scripts/ci.sh sync
+      - name: Run Application suite with reports
+        run: bash scripts/ci.sh suite application
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: payments-application-reports
+          path: artifacts/verification/application/
+          if-no-files-found: error
+
+  infrastructure-integration-tests:
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.18"
+          enable-cache: true
+      - name: Install pinned Python
+        run: uv python install
+      - name: Check lock and install
+        run: bash scripts/ci.sh sync
+      - name: Run Infrastructure suite with reports
+        run: bash scripts/ci.sh suite infrastructure
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: payments-infrastructure-reports
+          path: artifacts/verification/infrastructure/
+          if-no-files-found: error
+
+  external-providers-tests:
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.18"
+          enable-cache: true
+      - name: Install pinned Python
+        run: uv python install
+      - name: Check lock and install
+        run: bash scripts/ci.sh sync
+      - name: Run ExternalProviders suite with reports
+        run: bash scripts/ci.sh suite externalproviders
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: payments-externalproviders-reports
+          path: artifacts/verification/externalproviders/
+          if-no-files-found: error
+
+  acceptance-tests:
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.18"
+          enable-cache: true
+      - name: Install pinned Python
+        run: uv python install
+      - name: Check lock and install
+        run: bash scripts/ci.sh sync
+      - name: Run Acceptance suite with reports
+        run: bash scripts/ci.sh suite acceptance
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: payments-acceptance-reports
+          path: artifacts/verification/acceptance/
+          if-no-files-found: error
+
+  quality-gate:
+    needs: [quality, domain-unit-tests, application-unit-tests, infrastructure-integration-tests, external-providers-tests, acceptance-tests, dependency-audit, dependency-review, secret-scan]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require source, suites and security checks
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          DOMAIN_RESULT: ${{ needs.domain-unit-tests.result }}
+          APPLICATION_RESULT: ${{ needs.application-unit-tests.result }}
+          INFRASTRUCTURE_RESULT: ${{ needs.infrastructure-integration-tests.result }}
+          EXTERNAL_PROVIDERS_RESULT: ${{ needs.external-providers-tests.result }}
+          ACCEPTANCE_RESULT: ${{ needs.acceptance-tests.result }}
+          AUDIT_RESULT: ${{ needs.dependency-audit.result }}
+          REVIEW_RESULT: ${{ needs.dependency-review.result }}
+          SECRET_RESULT: ${{ needs.secret-scan.result }}
+        run: |
+          for check in QUALITY DOMAIN APPLICATION INFRASTRUCTURE EXTERNAL_PROVIDERS ACCEPTANCE AUDIT SECRET; do
+            result_var="${check}_RESULT"
+            result="${!result_var}"
+            if [[ "$result" != success ]]; then
+              echo "$check must succeed; actual result: $result" >&2
+              exit 1
+            fi
+          done
+          case "$EVENT_NAME" in
+            pull_request) expected_review=success ;;
+            push) expected_review=skipped ;;
+            *) echo "Unexpected event: $EVENT_NAME" >&2; exit 1 ;;
+          esac
+          if [[ "$REVIEW_RESULT" != "$expected_review" ]]; then
+            echo "Dependency Review must be $expected_review on $EVENT_NAME; actual result: $REVIEW_RESULT" >&2
+            exit 1
+          fi
+
+  container:
+    needs: quality-gate
+    if: ${{ always() && !cancelled() && needs.quality-gate.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -137,23 +262,46 @@ jobs:
       - name: Record scanned image identity
         run: |
           docker image inspect --format 'Scanned image ID: {{.Id}}' ecommerce-store-payments:ci >> "$GITHUB_STEP_SUMMARY"
+      - name: Log in to Docker Hub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Tag and publish the scanned image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -euo pipefail
+          repository=mb0101/ecommerce-store-payments-api
+          sha_tag="$repository:$GITHUB_SHA"
+          latest_tag="$repository:latest"
+          scanned_id="$(docker image inspect --format '{{.Id}}' ecommerce-store-payments:ci)"
+          test -n "$scanned_id"
+
+          docker tag ecommerce-store-payments:ci "$sha_tag"
+          docker tag ecommerce-store-payments:ci "$latest_tag"
+          test "$scanned_id" = "$(docker image inspect --format '{{.Id}}' "$sha_tag")"
+          test "$scanned_id" = "$(docker image inspect --format '{{.Id}}' "$latest_tag")"
+
+          docker push "$sha_tag" | tee "$RUNNER_TEMP/push-sha.log"
+          docker push "$latest_tag" | tee "$RUNNER_TEMP/push-latest.log"
+          sha_digest="$(awk '/digest: sha256:/ { print $3 }' "$RUNNER_TEMP/push-sha.log" | tail -n 1)"
+          latest_digest="$(awk '/digest: sha256:/ { print $3 }' "$RUNNER_TEMP/push-latest.log" | tail -n 1)"
+          test -n "$sha_digest"
+          test "$sha_digest" = "$latest_digest"
+          echo "Published $sha_tag and $latest_tag from scanned image $scanned_id with digest $sha_digest" >> "$GITHUB_STEP_SUMMARY"
 
   final-gate:
-    needs: [quality, suites, container, dependency-audit, dependency-review, secret-scan]
+    needs: [quality-gate, container]
     if: always()
     runs-on: ubuntu-24.04
     steps:
-      - name: Require source, suites and security checks
+      - name: Require quality gate and scanned image
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          QUALITY_RESULT: ${{ needs.quality.result }}
-          SUITES_RESULT: ${{ needs.suites.result }}
+          QUALITY_GATE_RESULT: ${{ needs.quality-gate.result }}
           CONTAINER_RESULT: ${{ needs.container.result }}
-          AUDIT_RESULT: ${{ needs.dependency-audit.result }}
-          REVIEW_RESULT: ${{ needs.dependency-review.result }}
-          SECRET_RESULT: ${{ needs.secret-scan.result }}
         run: |
-          for check in QUALITY SUITES CONTAINER AUDIT SECRET; do
+          for check in QUALITY_GATE CONTAINER; do
             result_var="${check}_RESULT"
             result="${!result_var}"
             if [[ "$result" != success ]]; then
@@ -161,12 +309,3 @@ jobs:
               exit 1
             fi
           done
-          case "$EVENT_NAME" in
-            pull_request) expected_review=success ;;
-            push) expected_review=skipped ;;
-            *) echo "Unexpected event: $EVENT_NAME" >&2; exit 1 ;;
-          esac
-          if [[ "$REVIEW_RESULT" != "$expected_review" ]]; then
-            echo "Dependency Review must be $expected_review on $EVENT_NAME; actual result: $REVIEW_RESULT" >&2
-            exit 1
-          fi
