@@ -18,6 +18,10 @@ ENV PATH="/app/.venv/bin:${PATH}" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
+# The base image bundles pip with vendored msgpack and setuptools versions.
+# Runtime installation is complete in the build stage, so pip is unnecessary.
+RUN python -m pip uninstall --yes pip
+
 COPY --from=build --chown=10001:10001 /app/.venv /app/.venv
 USER 10001:10001
 EXPOSE 8080

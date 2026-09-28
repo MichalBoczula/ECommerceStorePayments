@@ -14,6 +14,45 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Review new dependencies
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+
+  secret-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Scan Git history for secrets
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: false
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+
+  dependency-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.18"
+          enable-cache: true
+      - name: Install pinned Python
+        run: uv python install
+      - name: Audit locked runtime and development dependencies
+        run: bash scripts/ci.sh audit
+
   quality:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -84,18 +123,50 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build and smoke test runtime image
         run: bash scripts/ci.sh container
+      - name: Scan the smoke-tested image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ecommerce-store-payments:ci
+          version: v0.74.0
+          scanners: vuln
+          vuln-type: os,library
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+      - name: Record scanned image identity
+        run: |
+          docker image inspect --format 'Scanned image ID: {{.Id}}' ecommerce-store-payments:ci >> "$GITHUB_STEP_SUMMARY"
 
   final-gate:
-    needs: [quality, suites, container]
+    needs: [quality, suites, container, dependency-audit, dependency-review, secret-scan]
     if: always()
     runs-on: ubuntu-24.04
     steps:
-      - name: Require source, build and every suite
+      - name: Require source, suites and security checks
         env:
+          EVENT_NAME: ${{ github.event_name }}
           QUALITY_RESULT: ${{ needs.quality.result }}
           SUITES_RESULT: ${{ needs.suites.result }}
           CONTAINER_RESULT: ${{ needs.container.result }}
+          AUDIT_RESULT: ${{ needs.dependency-audit.result }}
+          REVIEW_RESULT: ${{ needs.dependency-review.result }}
+          SECRET_RESULT: ${{ needs.secret-scan.result }}
         run: |
-          test "$QUALITY_RESULT" = success
-          test "$SUITES_RESULT" = success
-          test "$CONTAINER_RESULT" = success
+          for check in QUALITY SUITES CONTAINER AUDIT SECRET; do
+            result_var="${check}_RESULT"
+            result="${!result_var}"
+            if [[ "$result" != success ]]; then
+              echo "$check must succeed; actual result: $result" >&2
+              exit 1
+            fi
+          done
+          case "$EVENT_NAME" in
+            pull_request) expected_review=success ;;
+            push) expected_review=skipped ;;
+            *) echo "Unexpected event: $EVENT_NAME" >&2; exit 1 ;;
+          esac
+          if [[ "$REVIEW_RESULT" != "$expected_review" ]]; then
+            echo "Dependency Review must be $expected_review on $EVENT_NAME; actual result: $REVIEW_RESULT" >&2
+            exit 1
+          fi

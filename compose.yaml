@@ -33,6 +33,7 @@ services:
         exit 1
 
   api:
+    image: ecommerce-store-payments:ci
     build: .
     depends_on:
       mongo-init:
