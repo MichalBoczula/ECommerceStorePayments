@@ -38,7 +38,7 @@ This tracks the Payments work compared with the reference practices in ECommerce
 
 ## Full CI, container, and documentation
 
-- [ ] **PAY/15 — Suite reporting and coverage.** Separate Domain, Application, Infrastructure, ExternalProviders and Acceptance runs; JUnit + coverage reports; separate 70% Domain/Application targets and a proposed 70% Infrastructure target subject to current reference-repo review. Missing reports and failed tests fail correctly.
+- [x] **PAY/15 — Suite reporting and coverage.** Five independently run suites publish JUnit and scoped XML/HTML coverage reports. Domain, Application and the entire Infrastructure each enforce 70% line coverage; ExternalProviders and Acceptance report coverage. Missing reports, failed tests and low coverage fail the gate; full PR CI passed. See ADR-0015.
 - [ ] **PAY/16 — Runtime container.** Lockfile-based non-root image without dev dependencies or secrets, Docker Compose with MongoDB and a smoke test for the API.
 - [ ] **PAY/17 — Security and final gate.** Locked dependency audit, PR dependency review, secret scan, Trivy image scan, defined severity policies, minimal permissions, and a final gate that includes Docker build/scan. CI builds an image; registry publication/deployment require a separate decision.
 - [ ] **PAY/18 — Operational docs review.** Complete README, local startup/verification, API/health, tests, CI, indexes and ADR documentation; reconcile descriptions with working behavior.
