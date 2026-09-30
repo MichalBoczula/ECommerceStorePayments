@@ -15,6 +15,12 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import Response
 
 from ecommerce_store_payments.application.payments.exceptions import (
+    CheckoutDisabledError,
+    CheckoutMoneyError,
+    CheckoutProviderError,
+    CheckoutRecoveryRequiredError,
+    CheckoutTimeoutError,
+    CheckoutUnavailableError,
     OrderInvalidResponseError,
     OrderNotFoundError,
     OrderNotPayableError,
@@ -75,6 +81,12 @@ class ApiRequestError(Exception):
 
 
 ERRORS: tuple[tuple[type[Exception], ErrorSpec], ...] = (
+    (CheckoutDisabledError, ErrorSpec(503, "checkout_disabled", "Checkout is not configured.")),
+    (CheckoutMoneyError, ErrorSpec(409, "checkout_money_unsupported", "Checkout amount or currency is not supported.")),
+    (CheckoutUnavailableError, ErrorSpec(409, "checkout_unavailable", "Payment cannot start checkout in this state.")),
+    (CheckoutRecoveryRequiredError, ErrorSpec(409, "checkout_recovery_required", "Checkout requires reconciliation.")),
+    (CheckoutTimeoutError, ErrorSpec(504, "checkout_timeout", "Checkout provider timed out.")),
+    (CheckoutProviderError, ErrorSpec(502, "checkout_provider_error", "Checkout provider request could not complete.")),
     (OrderNotFoundError, ErrorSpec(404, "order_not_found", "Order was not found.")),
     (PaymentNotFoundError, ErrorSpec(404, "payment_not_found", "Payment was not found.")),
     (OrderNotPayableError, ErrorSpec(409, "order_not_payable", "Order cannot be paid in its current state.")),

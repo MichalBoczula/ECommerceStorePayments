@@ -21,3 +21,12 @@ PAY11-19	GET /health/live	liveness	200	-	PAY/6
 PAY11-20	GET /health/ready	MongoDB ready	200	-	PAY/6
 PAY11-21	GET /health/ready	MongoDB unavailable	503	service_unavailable	PAY/6
 PAY11-22	GET /health	compatibility liveness alias	200	-	PAY/6
+PAY21-01	POST /payments/{order_id}/checkout	new checkout	200	-	STRIPE/1
+PAY21-02	POST /payments/{order_id}/checkout	repeated checkout	200	-	STRIPE/1
+PAY21-03	POST /payments/{order_id}/checkout	retry after ambiguous timeout	200	-	STRIPE/1
+PAY21-04	POST /payments/{order_id}/checkout	disabled checkout	503	checkout_disabled	STRIPE/1
+PAY21-05	POST /payments/{order_id}/checkout	order not Created	409	order_not_payable	STRIPE/1
+PAY21-06	POST /payments/{order_id}/checkout	provider rejection	502	checkout_provider_error	STRIPE/1
+PAY21-07	POST /payments/{order_id}/checkout	provider timeout	504	checkout_timeout	STRIPE/1
+PAY21-08	POST /payments/{order_id}/checkout	missing order	404	order_not_found	STRIPE/1
+PAY21-09	POST /payments/{order_id}/checkout	changed order money	409	order_total_changed	STRIPE/1

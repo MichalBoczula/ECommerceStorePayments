@@ -234,6 +234,7 @@ dependencies = [
     { name = "microsoft-kiota-serialization-text" },
     { name = "pydantic-settings" },
     { name = "pymongo" },
+    { name = "stripe" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -270,6 +271,7 @@ requires-dist = [
     { name = "microsoft-kiota-serialization-text", specifier = ">=1.9,<2" },
     { name = "pydantic-settings", specifier = ">=2.10,<3" },
     { name = "pymongo", specifier = ">=4.13,<5" },
+    { name = "stripe", specifier = "==15.6.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.35,<1" },
 ]
 
@@ -1123,6 +1125,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/7a/f8/8f2b708394a6371e9b0e1cabdaf1be314f6b28c3697786a0a7e5f31ee9bf/std_uritemplate-2.0.12.tar.gz", hash = "sha256:c245e6d9c6804e435c45fa94ee4a3c8a57e08aeeb45af261101cb0d513964534", size = 6557, upload-time = "2026-07-16T11:04:14.654Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/53/9b/77a4936805a7853189ca040b698f7c8d6a1d4ca88c09a880a95b8d544d6a/std_uritemplate-2.0.12-py3-none-any.whl", hash = "sha256:42b702d8d7eb8c13b586c527b8f2edaff456b69fee88e817d2f5dc5f088b8765", size = 7095, upload-time = "2026-07-16T11:04:15.43Z" },
+]
+
+[[package]]
+name = "stripe"
+version = "15.6.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1e/a6/02ea2b4e1b57913ae2e68801bf2168120bec97206782a781599339abfd64/stripe-15.6.1.tar.gz", hash = "sha256:9f3986aa960419041aba9c76191746bdf2c342c95892acfbf6edb500ab006d31", size = 1569005, upload-time = "2026-09-01T18:44:41.751Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/4b/cd2d7ad83a3f49300cb3cc69ae102de68de792035bf31b0383e1c6563ec3/stripe-15.6.1-py3-none-any.whl", hash = "sha256:b33e1ea76462d7289e5fe755a1132b82099151bfb31e961021655471e6d216bf", size = 2218765, upload-time = "2026-09-01T18:44:39.706Z" },
 ]
 
 [[package]]

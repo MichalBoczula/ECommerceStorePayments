@@ -17,6 +17,7 @@ ALLOWED = {
     "api": {"api", "application", "domain"},
 }
 CORE_FRAMEWORKS = {
+    "stripe",
     "fastapi",
     "starlette",
     "pydantic",

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 from uuid import UUID
 
 
@@ -15,3 +15,5 @@ class PaymentDocument(TypedDict):
     created_at: datetime
     updated_at: datetime | None
     version: int
+    checkout_attempt_id: NotRequired[UUID | None]
+    checkout_started_at: NotRequired[datetime | None]

@@ -19,7 +19,7 @@ If two retries see the same terminal version, one update wins. The loser reloads
 
 ## Consequences
 
-Payment ID stays stable across attempts; provider metadata is specific to the attempt that created it, while archived snapshots retain prior values. Pay is idempotent for active/completed records, and a repeated retry does not archive duplicate versions. The endpoint currently prepares the new attempt only: session creation/charging, provider idempotency and webhook handling remain STRIPE/1–2.
+Payment ID stays stable across attempts; provider metadata is specific to the attempt that created it, while archived snapshots retain prior values. Pay is idempotent for active/completed records, and a repeated retry does not archive duplicate versions. The endpoint currently prepares the new attempt only: ADR-0020 adds a separate checkout command with durable provider idempotency (STRIPE/1); webhook confirmation remains STRIPE/2.
 
 ## Alternatives considered
 

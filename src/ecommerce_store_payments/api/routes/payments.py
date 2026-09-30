@@ -2,11 +2,26 @@ from uuid import UUID
 
 from fastapi import APIRouter, Request, Response, status
 
+from ecommerce_store_payments.api.contracts.checkout_response import CheckoutResponse
 from ecommerce_store_payments.api.contracts.payment_response import PaymentResponse
 from ecommerce_store_payments.api.dependencies import PaymentServiceDependency
 from ecommerce_store_payments.api.errors import problem_responses, reject_pay_body
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
+
+
+@router.post(
+    "/{order_id}/checkout",
+    response_model=CheckoutResponse,
+    operation_id="createOrderCheckout",
+    responses=problem_responses(400, 404, 405, 409, 415, 500, 502, 503, 504),
+)
+async def create_order_checkout(
+    order_id: UUID, payment_service: PaymentServiceDependency, request: Request
+) -> CheckoutResponse:
+    await reject_pay_body(request)
+    result = await payment_service.checkout(order_id)
+    return CheckoutResponse.from_result(result)
 
 
 @router.post(

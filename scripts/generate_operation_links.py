@@ -23,6 +23,7 @@ from ecommerce_store_payments.domain.aggregates.payments.payment import Payment
 from ecommerce_store_payments.domain.aggregates.payments.payment_policy import PaymentPolicy
 from ecommerce_store_payments.domain.aggregates.payments.value_objects.money import Money
 from ecommerce_store_payments.infrastructure.clients.orders.http_order_reader import HttpOrderReader
+from ecommerce_store_payments.infrastructure.clients.stripe.checkout_provider import StripeCheckoutProvider
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mappers.payment_mapper import PaymentMapper
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database import MongoDatabase
 from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.payment_repository import (
@@ -41,6 +42,7 @@ CLASSES = {
         PaymentPolicy,
         Money,
         HttpOrderReader,
+        StripeCheckoutProvider,
         PaymentMapper,
         MongoDatabase,
         MongoPaymentRepository,
@@ -109,7 +111,7 @@ def composition_fields() -> dict[str, dict[str, type[Any]]]:
     require(len(service_calls) == 1, "Missing or ambiguous PaymentService composition")
     visit(PaymentService, service_calls[0])
     require(
-        fields.get("PaymentService", {}).keys() == {"_payment_repository", "_order_reader"}
+        fields.get("PaymentService", {}).keys() == {"_payment_repository", "_order_reader", "_checkout_provider"}
         and fields.get("MongoPaymentRepository", {}).keys() == {"_database"},
         "Unresolved payment service composition",
     )
@@ -139,6 +141,8 @@ def target_for(owner: type[Any], call: ast.Call) -> tuple[type[Any], str] | None
             resolved = owner
         elif owner is PaymentService and receiver.id in PAYMENT_VARIABLES:
             resolved = Payment
+        elif owner is PaymentService and receiver.id == "provider":
+            resolved = FIELDS["PaymentService"]["_checkout_provider"]
         elif receiver.id == "database" and owner.__name__ == "ApiRoute":
             resolved = MongoDatabase
         elif receiver.id == "payment_service" and owner.__name__ == "ApiRoute":
@@ -279,7 +283,9 @@ def scenario_links(
     ids = [row["id"] for row in rows]
     require(len(ids) == len(set(ids)), "Duplicate matrix scenario ID")
     require(set(ids) == source_scenarios(feature_dir), "Matrix and source scenarios differ")
-    requirements = set(re.findall(r"\*\*(PAY/\d+)\s+—", (ROOT / "TECHNICAL_TODO.md").read_text(encoding="utf-8")))
+    requirements = set(
+        re.findall(r"\*\*((?:PAY|STRIPE)/\d+)\s+—", (ROOT / "TECHNICAL_TODO.md").read_text(encoding="utf-8"))
+    )
     links: dict[str, list[dict[str, Any]]] = defaultdict(list)
     unmatched: list[dict[str, Any]] = []
     for row in rows:

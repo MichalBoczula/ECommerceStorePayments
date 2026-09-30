@@ -14,6 +14,7 @@ from ecommerce_store_payments.infrastructure.clients.orders.generated.orders_cli
 from ecommerce_store_payments.infrastructure.clients.orders.http_order_reader import HttpOrderReader
 from ecommerce_store_payments.infrastructure.clients.orders.precise_json import PreciseOrderJsonFactory
 from ecommerce_store_payments.infrastructure.clients.orders.request_adapter import OrdersRequestAdapter
+from ecommerce_store_payments.infrastructure.clients.stripe.checkout_provider import StripeCheckoutProvider
 from ecommerce_store_payments.infrastructure.config.settings import Settings, get_settings
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database import MongoDatabase
 from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.payment_repository import (
@@ -27,7 +28,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         database = MongoDatabase(resolved_settings)
+        checkout_provider: StripeCheckoutProvider | None = None
         try:
+            checkout_provider = StripeCheckoutProvider(resolved_settings)
             async with AsyncClient(
                 base_url=resolved_settings.orders_api_base_url,
                 timeout=resolved_settings.orders_api_timeout_seconds,
@@ -48,10 +51,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             )
                         )
                     ),
+                    checkout_provider=checkout_provider,
                 )
                 yield
         finally:
-            await database.close()
+            try:
+                if checkout_provider is not None:
+                    await checkout_provider.close()
+            finally:
+                await database.close()
 
     app = FastAPI(
         title=resolved_settings.app_name,

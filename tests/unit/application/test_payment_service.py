@@ -21,20 +21,20 @@ from ecommerce_store_payments.domain.aggregates.payments.repositories.payment_re
 from ecommerce_store_payments.domain.aggregates.payments.value_objects.money import Money
 
 
-class _PaymentRepository:
+class MemoryPaymentRepository:
     def __init__(self) -> None:
         self.payments: dict[UUID, Payment] = {}
 
     async def create(self, payment: Payment) -> Payment:
-        self.payments[payment.order_id] = payment
-        return payment
+        self.payments[payment.order_id] = self._copy(payment)
+        return self._copy(payment)
 
     async def update(self, payment: Payment) -> Payment:
         current = self.payments.get(payment.order_id)
         if current is None or current.version != payment.version:
             raise PaymentConflictError(payment.id, payment.version)
         updated = self._copy(payment, version=payment.version + 1)
-        self.payments[payment.order_id] = updated
+        self.payments[payment.order_id] = self._copy(updated)
         return updated
 
     async def get_by_id(self, payment_id: UUID) -> Payment | None:
@@ -58,16 +58,18 @@ class _PaymentRepository:
             created_at=payment.created_at,
             updated_at=payment.updated_at,
             version=payment.version if version is None else version,
+            checkout_attempt_id=payment.checkout_attempt_id,
+            checkout_started_at=payment.checkout_started_at,
         )
 
 
-class _RacingPaymentRepository(_PaymentRepository):
+class _RacingPaymentRepository(MemoryPaymentRepository):
     async def create(self, payment: Payment) -> Payment:
         await super().create(Payment.create(payment.order_id, payment.money))
         raise PaymentDuplicateError(payment.id, payment.order_id)
 
 
-class _RacingTerminalRepository(_PaymentRepository):
+class _RacingTerminalRepository(MemoryPaymentRepository):
     async def create(self, payment: Payment) -> Payment:
         winner = Payment.create(payment.order_id, payment.money)
         winner.cancel()
@@ -75,23 +77,23 @@ class _RacingTerminalRepository(_PaymentRepository):
         raise PaymentDuplicateError(payment.id, payment.order_id)
 
 
-class _UnrelatedDuplicateRepository(_PaymentRepository):
+class _UnrelatedDuplicateRepository(MemoryPaymentRepository):
     async def create(self, payment: Payment) -> Payment:
         raise PaymentDuplicateError(payment.id, payment.order_id)
 
 
-class _RacingRetryRepository(_PaymentRepository):
+class _RacingRetryRepository(MemoryPaymentRepository):
     async def update(self, payment: Payment) -> Payment:
         winner = await super().update(payment)
         raise PaymentConflictError(winner.id, payment.version)
 
 
-class _UnresolvedRetryRepository(_PaymentRepository):
+class _UnresolvedRetryRepository(MemoryPaymentRepository):
     async def update(self, payment: Payment) -> Payment:
         raise PaymentConflictError(payment.id, payment.version)
 
 
-class _OrderReader:
+class OrderReaderStub:
     def __init__(self, order: OrderPaymentDetails) -> None:
         self.order = order
         self.calls = 0
@@ -103,8 +105,8 @@ class _OrderReader:
 
 
 def _create_service(
-    repository: _PaymentRepository,
-    order_reader: _OrderReader,
+    repository: MemoryPaymentRepository,
+    order_reader: OrderReaderStub,
 ) -> PaymentService:
     return PaymentService(
         payment_repository=cast(PaymentRepository, repository),
@@ -115,8 +117,8 @@ def _create_service(
 @pytest.mark.asyncio
 async def test_pay_creates_payment_from_order_details() -> None:
     order_id = uuid4()
-    repository = _PaymentRepository()
-    order_reader = _OrderReader(
+    repository = MemoryPaymentRepository()
+    order_reader = OrderReaderStub(
         OrderPaymentDetails(
             order_id=order_id,
             money=Money(amount_minor=12999, currency="PLN"),
@@ -138,14 +140,14 @@ async def test_pay_creates_payment_from_order_details() -> None:
 @pytest.mark.parametrize("status", [PaymentStatus.CREATED, PaymentStatus.PENDING, PaymentStatus.SUCCEEDED])
 async def test_pay_returns_existing_payment_without_loading_order(status: PaymentStatus) -> None:
     order_id = uuid4()
-    repository = _PaymentRepository()
+    repository = MemoryPaymentRepository()
     existing_payment = Payment.create(order_id, Money(amount_minor=12999, currency="PLN"))
     if status in (PaymentStatus.PENDING, PaymentStatus.SUCCEEDED):
         existing_payment.mark_as_pending("cs_123")
     if status is PaymentStatus.SUCCEEDED:
         existing_payment.mark_as_succeeded("pi_123")
     await repository.create(existing_payment)
-    order_reader = _OrderReader(
+    order_reader = OrderReaderStub(
         OrderPaymentDetails(
             order_id=order_id,
             money=Money(amount_minor=50000, currency="PLN"),
@@ -165,8 +167,8 @@ async def test_pay_returns_existing_payment_without_loading_order(status: Paymen
 @pytest.mark.asyncio
 async def test_pay_rejects_order_that_is_not_created() -> None:
     order_id = uuid4()
-    repository = _PaymentRepository()
-    order_reader = _OrderReader(
+    repository = MemoryPaymentRepository()
+    order_reader = OrderReaderStub(
         OrderPaymentDetails(
             order_id=order_id,
             money=Money(amount_minor=12999, currency="PLN"),
@@ -182,8 +184,8 @@ async def test_pay_rejects_order_that_is_not_created() -> None:
 @pytest.mark.asyncio
 async def test_get_by_order_id_raises_when_payment_is_missing() -> None:
     order_id = uuid4()
-    repository = _PaymentRepository()
-    order_reader = _OrderReader(
+    repository = MemoryPaymentRepository()
+    order_reader = OrderReaderStub(
         OrderPaymentDetails(
             order_id=order_id,
             money=Money(amount_minor=12999, currency="PLN"),
@@ -200,7 +202,7 @@ async def test_get_by_order_id_raises_when_payment_is_missing() -> None:
 async def test_pay_returns_winner_when_another_request_creates_payment_first() -> None:
     order_id = uuid4()
     repository = _RacingPaymentRepository()
-    order_reader = _OrderReader(OrderPaymentDetails(order_id, Money(amount_minor=100, currency="PLN"), "Created"))
+    order_reader = OrderReaderStub(OrderPaymentDetails(order_id, Money(amount_minor=100, currency="PLN"), "Created"))
     service = _create_service(repository, order_reader)
 
     result = await service.pay(order_id)
@@ -214,7 +216,7 @@ async def test_pay_returns_winner_when_another_request_creates_payment_first() -
 async def test_pay_retries_concurrent_create_winner_if_already_canceled() -> None:
     order_id = uuid4()
     repository = _RacingTerminalRepository()
-    reader = _OrderReader(OrderPaymentDetails(order_id, Money(amount_minor=100, currency="PLN"), "Created"))
+    reader = OrderReaderStub(OrderPaymentDetails(order_id, Money(amount_minor=100, currency="PLN"), "Created"))
     service = _create_service(repository, reader)
 
     result = await service.pay(order_id)
@@ -229,7 +231,7 @@ async def test_pay_retries_concurrent_create_winner_if_already_canceled() -> Non
 async def test_pay_propagates_duplicate_when_no_payment_exists_for_order() -> None:
     order_id = uuid4()
     repository = _UnrelatedDuplicateRepository()
-    order_reader = _OrderReader(OrderPaymentDetails(order_id, Money(amount_minor=100, currency="PLN"), "Created"))
+    order_reader = OrderReaderStub(OrderPaymentDetails(order_id, Money(amount_minor=100, currency="PLN"), "Created"))
     service = _create_service(repository, order_reader)
 
     with pytest.raises(PaymentDuplicateError):
@@ -239,7 +241,7 @@ async def test_pay_propagates_duplicate_when_no_payment_exists_for_order() -> No
 @pytest.mark.parametrize("terminal", [PaymentStatus.FAILED, PaymentStatus.CANCELED])
 async def test_pay_retries_terminal_payment_in_place(terminal: PaymentStatus) -> None:
     order_id = uuid4()
-    repository = _PaymentRepository()
+    repository = MemoryPaymentRepository()
     payment = Payment.create(order_id, Money(amount_minor=12999, currency="PLN"))
     if terminal is PaymentStatus.FAILED:
         payment.mark_as_pending("cs_old")
@@ -247,7 +249,7 @@ async def test_pay_retries_terminal_payment_in_place(terminal: PaymentStatus) ->
     else:
         payment.cancel()
     await repository.create(payment)
-    reader = _OrderReader(OrderPaymentDetails(order_id, payment.money, "Created"))
+    reader = OrderReaderStub(OrderPaymentDetails(order_id, payment.money, "Created"))
     service = _create_service(repository, reader)
 
     result = await service.pay(order_id)
@@ -269,11 +271,11 @@ async def test_pay_retries_terminal_payment_in_place(terminal: PaymentStatus) ->
 @pytest.mark.parametrize("order_status", ["Paid", "Canceled"])
 async def test_pay_cannot_retry_when_order_is_not_created(order_status: str) -> None:
     order_id = uuid4()
-    repository = _PaymentRepository()
+    repository = MemoryPaymentRepository()
     payment = Payment.create(order_id, Money(amount_minor=12999, currency="PLN"))
     payment.cancel()
     await repository.create(payment)
-    service = _create_service(repository, _OrderReader(OrderPaymentDetails(order_id, payment.money, order_status)))
+    service = _create_service(repository, OrderReaderStub(OrderPaymentDetails(order_id, payment.money, order_status)))
 
     with pytest.raises(OrderNotPayableError):
         await service.pay(order_id)
@@ -283,13 +285,13 @@ async def test_pay_cannot_retry_when_order_is_not_created(order_status: str) -> 
 
 async def test_pay_cannot_retry_if_order_total_changed() -> None:
     order_id = uuid4()
-    repository = _PaymentRepository()
+    repository = MemoryPaymentRepository()
     payment = Payment.create(order_id, Money(amount_minor=12999, currency="PLN"))
     payment.cancel()
     await repository.create(payment)
     service = _create_service(
         repository,
-        _OrderReader(OrderPaymentDetails(order_id, Money(amount_minor=500, currency="EUR"), "Created")),
+        OrderReaderStub(OrderPaymentDetails(order_id, Money(amount_minor=500, currency="EUR"), "Created")),
     )
 
     with pytest.raises(OrderTotalChangedError):
@@ -304,7 +306,7 @@ async def test_pay_returns_concurrent_retry_winner() -> None:
     payment = Payment.create(order_id, Money(amount_minor=100, currency="PLN"))
     payment.cancel()
     await repository.create(payment)
-    service = _create_service(repository, _OrderReader(OrderPaymentDetails(order_id, payment.money, "Created")))
+    service = _create_service(repository, OrderReaderStub(OrderPaymentDetails(order_id, payment.money, "Created")))
 
     result = await service.pay(order_id)
 
@@ -320,7 +322,7 @@ async def test_pay_propagates_unresolved_retry_conflict() -> None:
     payment = Payment.create(order_id, Money(amount_minor=100, currency="PLN"))
     payment.cancel()
     await repository.create(payment)
-    service = _create_service(repository, _OrderReader(OrderPaymentDetails(order_id, payment.money, "Created")))
+    service = _create_service(repository, OrderReaderStub(OrderPaymentDetails(order_id, payment.money, "Created")))
 
     with pytest.raises(PaymentConflictError):
         await service.pay(order_id)

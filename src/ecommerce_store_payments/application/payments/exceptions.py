@@ -39,3 +39,27 @@ class OrderNotPayableError(ValueError):
 class OrderTotalChangedError(ValueError):
     def __init__(self, order_id: UUID) -> None:
         super().__init__(f"Order {order_id} total changed since its payment was created.")
+
+
+class CheckoutDisabledError(Exception):
+    pass
+
+
+class CheckoutMoneyError(ValueError):
+    pass
+
+
+class CheckoutUnavailableError(Exception):
+    pass
+
+
+class CheckoutRecoveryRequiredError(Exception):
+    pass
+
+
+class CheckoutProviderError(Exception):
+    pass
+
+
+class CheckoutTimeoutError(CheckoutProviderError):
+    pass

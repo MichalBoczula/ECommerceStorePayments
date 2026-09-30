@@ -1,7 +1,13 @@
+from datetime import UTC, datetime, timedelta
 from typing import final
 from uuid import UUID
 
+from ecommerce_store_payments.application.payments.checkout_provider import CheckoutProvider, CheckoutRequest
+from ecommerce_store_payments.application.payments.checkout_result import CheckoutResult
 from ecommerce_store_payments.application.payments.exceptions import (
+    CheckoutDisabledError,
+    CheckoutRecoveryRequiredError,
+    CheckoutUnavailableError,
     OrderNotPayableError,
     OrderTotalChangedError,
     PaymentNotFoundError,
@@ -19,9 +25,68 @@ from ecommerce_store_payments.domain.aggregates.payments.repositories.payment_re
 
 @final
 class PaymentService:
-    def __init__(self, payment_repository: PaymentRepository, order_reader: OrderReader) -> None:
+    def __init__(
+        self,
+        payment_repository: PaymentRepository,
+        order_reader: OrderReader,
+        checkout_provider: CheckoutProvider | None = None,
+    ) -> None:
         self._payment_repository = payment_repository
         self._order_reader = order_reader
+        self._checkout_provider = checkout_provider
+
+    async def checkout(self, order_id: UUID) -> CheckoutResult:
+        """Reserve, create or recover one checkout without confirming payment."""
+        provider = self._checkout_provider
+        if provider is None:
+            raise CheckoutDisabledError()
+        provider.require_available()
+        order = await self._order_reader.get_by_id(order_id)
+        self._require_created_order(order_id, order.status)
+        provider.validate_money(order.money)
+        result = await self.pay(order_id)
+        payment = result.payment
+        if payment.money != order.money:
+            raise OrderTotalChangedError(order_id)
+        if payment.status not in (PaymentStatus.CREATED, PaymentStatus.PENDING):
+            raise CheckoutUnavailableError()
+        if payment.status is PaymentStatus.CREATED and payment.checkout_attempt_id is None:
+            payment.begin_checkout()
+            try:
+                payment = await self._payment_repository.update(payment)
+            except PaymentConflictError:
+                current = await self._payment_repository.get_by_order_id(order_id)
+                if current is None or current.checkout_attempt_id is None:
+                    raise
+                payment = current
+        if payment.checkout_attempt_id is None or payment.checkout_started_at is None:
+            # Legacy pending records have no durable provider attempt identity.
+            raise CheckoutRecoveryRequiredError()
+        request = CheckoutRequest(payment.id, payment.order_id, payment.checkout_attempt_id, payment.money)
+        if payment.status is PaymentStatus.PENDING:
+            if payment.provider_session_id is None:
+                raise CheckoutRecoveryRequiredError()
+            return CheckoutResult(payment, await provider.get(payment.provider_session_id, request))
+        if payment.status is not PaymentStatus.CREATED:
+            raise CheckoutUnavailableError()
+        # Stripe may prune keys after 24 hours. Never recreate an ambiguous old attempt.
+        if datetime.now(UTC) - payment.checkout_started_at >= timedelta(hours=23):
+            raise CheckoutRecoveryRequiredError()
+        session = await provider.create(request)
+        payment.mark_as_pending(session.session_id)
+        try:
+            payment = await self._payment_repository.update(payment)
+        except PaymentConflictError:
+            current = await self._payment_repository.get_by_order_id(order_id)
+            if (
+                current is None
+                or current.checkout_attempt_id != request.attempt_id
+                or current.provider_session_id != session.session_id
+                or current.status is not PaymentStatus.PENDING
+            ):
+                raise
+            payment = current
+        return CheckoutResult(payment, session)
 
     async def pay(self, order_id: UUID) -> PayResult:
         """Return an existing payment or create/retry one after checking Orders."""
