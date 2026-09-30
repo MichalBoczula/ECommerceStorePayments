@@ -18,26 +18,35 @@ from fastapi.routing import APIRoute
 from ecommerce_store_payments.api.app import create_app
 from ecommerce_store_payments.api.routes.health import router as health_router
 from ecommerce_store_payments.api.routes.payments import router as payments_router
+from ecommerce_store_payments.api.routes.webhooks import router as webhooks_router
 from ecommerce_store_payments.application.payments.payment_service import PaymentService
+from ecommerce_store_payments.application.payments.webhook_service import WebhookService
 from ecommerce_store_payments.domain.aggregates.payments.payment import Payment
 from ecommerce_store_payments.domain.aggregates.payments.payment_policy import PaymentPolicy
 from ecommerce_store_payments.domain.aggregates.payments.value_objects.money import Money
 from ecommerce_store_payments.infrastructure.clients.orders.http_order_reader import HttpOrderReader
 from ecommerce_store_payments.infrastructure.clients.stripe.checkout_provider import StripeCheckoutProvider
+from ecommerce_store_payments.infrastructure.clients.stripe.webhook_verifier import StripeWebhookVerifier
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mappers.payment_mapper import PaymentMapper
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database import MongoDatabase
 from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.payment_repository import (
     MongoPaymentRepository,
 )
+from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.webhook_repository import (
+    MongoWebhookRepository,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 MATRIX = ROOT / "docs/acceptance-matrix.tsv"
 FEATURES = ROOT / "tests/acceptance/features"
-ROUTERS = (health_router, payments_router)
+ROUTERS = (health_router, payments_router, webhooks_router)
 CLASSES = {
     cls.__name__: cls
     for cls in (
         PaymentService,
+        WebhookService,
+        StripeWebhookVerifier,
+        MongoWebhookRepository,
         Payment,
         PaymentPolicy,
         Money,
@@ -115,6 +124,17 @@ def composition_fields() -> dict[str, dict[str, type[Any]]]:
         and fields.get("MongoPaymentRepository", {}).keys() == {"_database"},
         "Unresolved payment service composition",
     )
+    webhook_calls = [
+        node
+        for node in ast.walk(root)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "WebhookService"
+    ]
+    require(len(webhook_calls) == 1, "Missing or ambiguous WebhookService composition")
+    visit(WebhookService, webhook_calls[0])
+    require(
+        fields.get("WebhookService", {}).keys() == {"_verifier", "_webhooks", "_payments"},
+        "Unresolved webhook service composition",
+    )
     return fields
 
 
@@ -139,7 +159,7 @@ def target_for(owner: type[Any], call: ast.Call) -> tuple[type[Any], str] | None
             resolved = CLASSES[receiver.id]
         elif receiver.id in {"self", "cls"}:
             resolved = owner
-        elif owner is PaymentService and receiver.id in PAYMENT_VARIABLES:
+        elif owner in (PaymentService, WebhookService) and receiver.id in PAYMENT_VARIABLES:
             resolved = Payment
         elif owner is PaymentService and receiver.id == "provider":
             resolved = FIELDS["PaymentService"]["_checkout_provider"]
@@ -147,6 +167,8 @@ def target_for(owner: type[Any], call: ast.Call) -> tuple[type[Any], str] | None
             resolved = MongoDatabase
         elif receiver.id == "payment_service" and owner.__name__ == "ApiRoute":
             resolved = PaymentService
+        elif receiver.id == "webhook_service" and owner.__name__ == "ApiRoute":
+            resolved = WebhookService
     elif isinstance(receiver, ast.Attribute) and isinstance(receiver.value, ast.Name) and receiver.value.id == "self":
         resolved = FIELDS.get(owner.__name__, {}).get(receiver.attr)
     if resolved is None:
@@ -251,7 +273,7 @@ def execution(root: tuple[type[Any], str]) -> tuple[list[dict[str, str]], list[d
                         "when": combined,
                     }
                 )
-                if target_owner is PaymentService:
+                if target_owner in (PaymentService, WebhookService):
                     walk_flow(target_owner, target_name, combined, active | {identity})
 
     walk_policies(*root)
@@ -333,7 +355,9 @@ def generate(matrix: Path = MATRIX, feature_dir: Path = FEATURES, app: Any = Non
         endpoint_tree = method_tree(route.endpoint)
         endpoint_calls = Calls(type("ApiRoute", (), {}))
         endpoint_calls.visit(endpoint_tree)
-        services = [(owner, name) for owner, name, _ in endpoint_calls.calls if owner is PaymentService]
+        services = [
+            (owner, name) for owner, name, _ in endpoint_calls.calls if owner in (PaymentService, WebhookService)
+        ]
         require(len(services) <= 1, f"Ambiguous service flow: {route.operation_id}")
         if route.path.startswith("/payments"):
             require(len(services) == 1, f"Missing executed service flow: {route.operation_id}")

@@ -3,6 +3,8 @@
 Status: Accepted
 Date: 2026-10-01
 
+STRIPE/2 extends new reservations to card/BLIK and adds verified confirmation; [ADR-0021](0021-verified-stripe-webhooks.md) preserves the original request parameters for older attempts.
+
 ## Context
 
 The existing Pay command prepares or renews a Payment, and WEB/12 depends on that contract. Stripe creation is an external write that cannot participate in a MongoDB transaction. Concurrent calls, a lost provider response or a failed database save must not create additional sessions for one attempt. Stripe idempotency keys have a finite retention period.

@@ -24,6 +24,7 @@ class PaymentMapper:
             version=payment.version,
             checkout_attempt_id=payment.checkout_attempt_id,
             checkout_started_at=payment.checkout_started_at,
+            checkout_request_version=payment.checkout_request_version,
         )
 
     @staticmethod
@@ -44,4 +45,5 @@ class PaymentMapper:
             version=document.get("version", 0),
             checkout_attempt_id=document.get("checkout_attempt_id"),
             checkout_started_at=document.get("checkout_started_at"),
+            checkout_request_version=document.get("checkout_request_version", 1),
         )

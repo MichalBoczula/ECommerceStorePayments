@@ -30,6 +30,14 @@ class MongoPaymentRepository:
         return payment
 
     async def update(self, payment: Payment) -> Payment:
+        async def replace_and_archive(session: AsyncClientSession) -> Payment:
+            return await self.update_in_session(payment, session)
+
+        async with self._database.client.start_session() as session:
+            return await session.with_transaction(replace_and_archive)
+
+    async def update_in_session(self, payment: Payment, session: AsyncClientSession) -> Payment:
+        """Compare and archive inside a caller-owned transaction, without nesting sessions."""
         document = PaymentMapper.to_document(payment)
         document["version"] = payment.version + 1
         version_filter: dict[str, object] = (
@@ -39,23 +47,17 @@ class MongoPaymentRepository:
         )
         query = {"_id": payment.id, "order_id": payment.order_id, **version_filter}
 
-        async def replace_and_archive(session: AsyncClientSession) -> Payment:
-            previous = await self._database.payments.find_one(query, session=session)
-            if previous is None:
-                if await self._database.payments.find_one({"_id": payment.id}, session=session) is None:
-                    raise PaymentMissingError(payment.id)
-                raise PaymentConflictError(payment.id, payment.version)
+        previous = await self._database.payments.find_one(query, session=session)
+        if previous is None:
+            if await self._database.payments.find_one({"_id": payment.id}, session=session) is None:
+                raise PaymentMissingError(payment.id)
+            raise PaymentConflictError(payment.id, payment.version)
 
-            result = await self._database.payments.replace_one(query, document, session=session)
-            if result.matched_count == 0:
-                raise PaymentConflictError(payment.id, payment.version)
-            await self._database.payment_history.insert_one(
-                PaymentHistoryMapper.from_payment(previous), session=session
-            )
-            return PaymentMapper.to_domain(document)
-
-        async with self._database.client.start_session() as session:
-            return await session.with_transaction(replace_and_archive)
+        result = await self._database.payments.replace_one(query, document, session=session)
+        if result.matched_count == 0:
+            raise PaymentConflictError(payment.id, payment.version)
+        await self._database.payment_history.insert_one(PaymentHistoryMapper.from_payment(previous), session=session)
+        return PaymentMapper.to_domain(document)
 
     async def get_by_id(self, payment_id: UUID) -> Payment | None:
         document = await self._database.payments.find_one({"_id": payment_id})

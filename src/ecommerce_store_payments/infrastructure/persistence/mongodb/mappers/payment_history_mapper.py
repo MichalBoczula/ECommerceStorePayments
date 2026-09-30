@@ -28,6 +28,7 @@ class PaymentHistoryMapper:
             recorded_at=datetime.now(UTC),
             checkout_attempt_id=document.get("checkout_attempt_id"),
             checkout_started_at=document.get("checkout_started_at"),
+            checkout_request_version=document.get("checkout_request_version", 1),
         )
 
     @staticmethod
@@ -46,4 +47,5 @@ class PaymentHistoryMapper:
             version=document["version"],
             checkout_attempt_id=document.get("checkout_attempt_id"),
             checkout_started_at=document.get("checkout_started_at"),
+            checkout_request_version=document.get("checkout_request_version", 1),
         )

@@ -26,3 +26,4 @@ Use repository-local sequential numbers. Each record has a title, `Status` and `
 | [0018](0018-security-and-image-gate.md) | Accepted | Gate the lockfile, PR dependency diff, Git history and smoke-tested image before publication. |
 | [0019](0019-ci-graph-and-dockerhub-publication.md) | Accepted | Show five named suite jobs and publish the scanned image after the quality gate on main pushes. |
 | [0020](0020-stripe-hosted-checkout.md) | Accepted | Reserve durable attempts and create/recover hosted Stripe test sessions behind a separate checkout command. |
+| [0021](0021-verified-stripe-webhooks.md) | Accepted | Verify test checkout notifications, persist atomic receipts/payment history and durable fulfillment work, and preserve card/BLIK retry parameters. |

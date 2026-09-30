@@ -34,13 +34,17 @@ Each payment has a nonnegative storage version. A new payment starts at version 
 
 The `payments` collection holds current state. Each update transactionally stores the previous snapshot in `payment_history`, with its payment ID, version and recording time. `get_history(payment_id)` reads prior snapshots in version order; a newly created payment has no history. MongoDB must be configured as a replica set or sharded cluster to support transactions, including for local development. See [ADR-0007](docs/adr/0007-payment-history.md).
 
-The Orders adapter uses a Kiota Python client generated from the pinned Invoice `GET /orders/{orderId}` OpenAPI contract. The generated client stays inside Infrastructure behind `OrderReader`; a handwritten mapper validates the returned ID, total, status and line consistency. The Invoice schema declares money as `number/double`, so our Kiota JSON factory reads wire tokens as exact `Decimal` values and the mapper rejects anything else. It converts exact decimal totals using explicit currency minor units: PLN/EUR/USD/GBP/CHF (2), JPY/KRW (0), BHD/JOD/KWD/OMR/TND (3). Unknown currencies and unrepresentable amounts are rejected. A missing order yields 404; a bad upstream response or outage yields 502; an Orders timeout yields 504. See [ADR-0008](docs/adr/0008-orders-http-adapter.md) and [ADR-0016](docs/adr/0016-invoice-kiota-orders-client.md). The initial Stripe checkout supports PLN card payments; the broader Orders conversion table is unchanged.
+The Orders adapter uses a Kiota Python client generated from the pinned Invoice `GET /orders/{orderId}` OpenAPI contract. The generated client stays inside Infrastructure behind `OrderReader`; a handwritten mapper validates the returned ID, total, status and line consistency. The Invoice schema declares money as `number/double`, so our Kiota JSON factory reads wire tokens as exact `Decimal` values and the mapper rejects anything else. It converts exact decimal totals using explicit currency minor units: PLN/EUR/USD/GBP/CHF (2), JPY/KRW (0), BHD/JOD/KWD/OMR/TND (3). Unknown currencies and unrepresentable amounts are rejected. A missing order yields 404; a bad upstream response or outage yields 502; an Orders timeout yields 504. See [ADR-0008](docs/adr/0008-orders-http-adapter.md) and [ADR-0016](docs/adr/0016-invoice-kiota-orders-client.md). The Stripe checkout supports PLN card and BLIK payments; the broader Orders conversion table is unchanged.
 
 `POST /payments/{order_id}/pay` returns 201 only when it creates a Payment. It returns 200 for an existing `Created`, `Pending` or `Succeeded` Payment. A `Failed` or `Canceled` Payment can be retried on the same ID after Orders confirms the original amount/currency and `Created` status; this resets provider data, archives the previous state and returns 200. Changed totals or incompatible order status return 409. Parallel creates/retries resolve to one persisted state and do not duplicate payment history. `GET /payments/order/{order_id}` reads current state (200) or returns 404. See [ADR-0009](docs/adr/0009-pay-get-semantics.md). Provider session creation is a separate checkout command; see [ADR-0020](docs/adr/0020-stripe-hosted-checkout.md).
 
-The current public API has six operations: `POST /payments/{order_id}/pay`, `POST /payments/{order_id}/checkout`, `GET /payments/order/{order_id}`, `GET /health`, `GET /health/live` and `GET /health/ready`. The Pay response contains `id`, `order_id`, `amount_minor`, `currency`, `status`, nullable provider IDs and failure code, `created_at` and nullable `updated_at`. The internal storage version and payment history are not exposed in this response. A newly created Payment starts in `Created`; a repeated Pay can return its existing status. Pay/Get do not initiate a provider charge or notify Orders.
+The current public API has seven operations: `POST /payments/webhooks/stripe`, `POST /payments/{order_id}/pay`, `POST /payments/{order_id}/checkout`, `GET /payments/order/{order_id}`, `GET /health`, `GET /health/live` and `GET /health/ready`. The Pay response contains `id`, `order_id`, `amount_minor`, `currency`, `status`, nullable provider IDs and failure code, `created_at` and nullable `updated_at`. The internal storage version and payment history are not exposed in this response. A newly created Payment starts in `Created`; a repeated Pay can return its existing status. Pay/Get do not initiate a provider charge or notify Orders.
 
-The bodyless Checkout command returns 200 with `payment`, nullable `checkout_url`, `checkout_status` and `expires_at`. It checks Orders, reserves a durable attempt, creates/replays a Stripe test session and persists Pending. Repeats retrieve the same session; they do not confirm payment. Hosted card checkout initially supports PLN, minimum PLN 2 and a conservative 99,999,999-minor-unit maximum. Verified confirmation and downstream completion remain STRIPE/2-3. See the [checkout runbook](docs/stripe-checkout.md) for configuration, errors, recovery and real-account smoke steps.
+The bodyless Checkout command returns 200 with `payment`, nullable `checkout_url`, `checkout_status` and `expires_at`. It checks Orders, reserves a durable attempt, creates/replays a Stripe test session and persists Pending. Repeats retrieve the same session; they do not confirm payment. Hosted card/BLIK checkout supports PLN, minimum PLN 2 and a conservative 99,999,999-minor-unit maximum. Verified confirmation is provided by STRIPE/2; downstream completion remains STRIPE/3. See the [checkout runbook](docs/stripe-checkout.md) for configuration, errors, recovery and real-account smoke steps.
+
+`POST /payments/webhooks/stripe` verifies original snapshot bytes with the endpoint signing secret, durably records receipt, and atomically confirms matching payments with their history and fulfillment work marker. Duplicate/concurrent notifications are idempotent, old attempts cannot complete new ones, and success wins over expiry within the same attempt. Unpaid completion stays pending; failure/expiry does not cancel Orders. No external calls occur during receipt. Pending work survives interruption and has a bounded replay command. See [ADR-0021](docs/adr/0021-verified-stripe-webhooks.md) and the [webhook runbook](docs/stripe-webhooks.md).
+
+New reservations persist request version 2 for card/BLIK. Missing version means the previous card-only request; recovery preserves original Stripe parameters. Payment/history mapping remains compatible and the request version is internal.
 
 ## Local setup
 
@@ -68,17 +72,19 @@ Startup validates the settings, probes MongoDB with a bounded timeout and ensure
 | `PAYMENTS_MONGODB_DATABASE_NAME` | `ecommerce_store_payments` | Database name. |
 | `PAYMENTS_MONGODB_PAYMENTS_COLLECTION_NAME` | `payments` | Payments collection name. |
 | `PAYMENTS_MONGODB_PAYMENT_HISTORY_COLLECTION_NAME` | `payment_history` | Prior payment snapshots collection. |
+| `PAYMENTS_MONGODB_WEBHOOK_COLLECTION_NAME` | `stripe_webhooks` | Verified receipts and pending fulfillment work. |
 | `PAYMENTS_MONGODB_PROBE_TIMEOUT_SECONDS` | `5.0` | Wall-clock deadline for the MongoDB ping. |
 | `PAYMENTS_MONGODB_SERVER_SELECTION_TIMEOUT_MS` | `5000` | Driver's server-selection deadline. |
 | `PAYMENTS_ORDERS_API_BASE_URL` | `http://localhost:5000` | Orders service base URL. |
 | `PAYMENTS_ORDERS_API_TIMEOUT_SECONDS` | `5.0` | Orders request timeout, at most 30 seconds. |
 | `PAYMENTS_STRIPE_ENABLED` | `false` | Enable the separate test checkout command. |
 | `PAYMENTS_STRIPE_SECRET_KEY` | unset | Test secret, required when checkout is enabled; live keys are rejected. |
+| `PAYMENTS_STRIPE_WEBHOOK_SECRET` | unset | Endpoint-specific signing secret; independently enables receipt. |
 | `PAYMENTS_STRIPE_SUCCESS_URL` | `http://localhost:4200/orders?checkout=success` | Fixed checkout success destination. |
 | `PAYMENTS_STRIPE_CANCEL_URL` | `http://localhost:4200/orders?checkout=cancel` | Fixed checkout cancel destination. |
 | `PAYMENTS_STRIPE_TIMEOUT_SECONDS` | `5.0` | Per-provider-request timeout, at most 15 seconds; one SDK retry. |
 
-The database and collection names accept letters, digits, `_` and `-`. The MongoDB connection string must use `mongodb://` or `mongodb+srv://`; the Orders URL must use HTTP(S). Orders is contacted when a new or failed/canceled Pay needs an order lookup and on every Checkout command; startup and health do not call Orders or Stripe.
+Payment, history and webhook collection names must be distinct. The database and collection names accept letters, digits, `_` and `-`. The MongoDB connection string must use `mongodb://` or `mongodb+srv://`; the Orders URL must use HTTP(S). Orders is contacted when a new or failed/canceled Pay needs an order lookup and on every Checkout command; startup and health do not call Orders or Stripe.
 
 | Collection | Index | Purpose |
 | --- | --- | --- |
@@ -86,6 +92,9 @@ The database and collection names accept letters, digits, `_` and `-`. The Mongo
 | `payments` | `ux_payments_order_id`, unique on `order_id` | One current Payment per order; concurrent creates cannot duplicate it. |
 | `payment_history` | `_id` (MongoDB default) | Snapshot key `<payment UUID>:<previous version>`. |
 | `payment_history` | `ix_payment_history_payment_id` on `payment_id` | Read previous versions for a Payment. |
+| `stripe_webhooks` | `_id_` | Unique provider event identity. |
+| `stripe_webhooks` | `ix_webhooks_pending` | Pending state and receipt time for replay. |
+| `stripe_webhooks` | `ix_webhooks_fulfillment` | Fulfillment status and receipt time for STRIPE/3. |
 
 An update matches the stored version and archives the previous snapshot in the same MongoDB transaction. This requires a replica set or sharded cluster; a standalone `mongod` can pass startup and readiness but cannot complete an update transaction. There is no public history endpoint; `get_history` is a repository operation. See [ADR-0005](docs/adr/0005-payment-optimistic-concurrency.md) and [ADR-0007](docs/adr/0007-payment-history.md).
 
@@ -196,4 +205,5 @@ The Orders Kiota client lives under `src/ecommerce_store_payments/infrastructure
 - [Definition of done](docs/definition-of-done.md)
 - [Technical backlog](TECHNICAL_TODO.md)
 - [Stripe checkout runbook](docs/stripe-checkout.md)
+- [Stripe webhook runbook](docs/stripe-webhooks.md)
 - [Architecture decisions](docs/adr/README.md)

@@ -10,10 +10,13 @@ def test_mapper_preserves_reserved_attempt_and_supports_legacy_documents() -> No
     legacy = PaymentMapper.to_document(payment)
     legacy.pop("checkout_attempt_id", None)
     legacy.pop("checkout_started_at", None)
+    legacy.pop("checkout_request_version", None)
     assert PaymentMapper.to_domain(legacy).checkout_attempt_id is None
-    payment.begin_checkout()
+    assert PaymentMapper.to_domain(legacy).checkout_request_version == 1
+    payment.begin_checkout(request_version=2)
     document = PaymentMapper.to_document(payment)
     document["version"] = 1
     restored = PaymentMapper.to_domain(document)
     assert restored.checkout_attempt_id == payment.checkout_attempt_id
     assert restored.checkout_started_at == payment.checkout_started_at
+    assert restored.checkout_request_version == 2

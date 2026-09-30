@@ -1,6 +1,6 @@
 # Stripe test checkout runbook
 
-STRIPE/1 creates hosted Checkout sessions. It does not confirm payment, notify Orders or generate invoices. See [ADR-0020](adr/0020-stripe-hosted-checkout.md).
+STRIPE/1 creates hosted Checkout sessions. STRIPE/2 adds card/BLIK support and signed webhook confirmation; Orders/invoice fulfillment remains STRIPE/3. See [ADR-0020](adr/0020-stripe-hosted-checkout.md).
 
 ## Configuration
 
@@ -24,7 +24,7 @@ This check requires your Stripe test account, configured credentials and a runni
 2. Start Payments with the configuration above. Call bodyless `POST /payments/<order UUID>/checkout` through Swagger or your HTTP client; the Payments API route is available now, BFF/frontend checkout wiring comes in STRIPE/4.
 3. Expect HTTP 200, nested Payment status `pending`, a test session ID and an HTTPS `checkout_url`. Verify the amount matches the order snapshot.
 4. Repeat the call and verify the same Payment/session ID and checkout URL; inspect Stripe's test dashboard for one session.
-5. Open the returned URL manually and confirm the expected amount/currency is shown. Stop at checkout creation when validating STRIPE/1. Provider payment completion will not update the domain until STRIPE/2.
+5. Open the returned URL manually and confirm the expected amount/currency is shown. Stop at checkout creation when validating STRIPE/1. For signed card/BLIK completion checks, continue with the [webhook runbook](stripe-webhooks.md).
 6. Record only nonsecret evidence (commit, order/session IDs, response status, displayed amount). Never paste an API key, secret-bearing configuration or payment details into a PR.
 
 ## Failure and recovery
@@ -40,7 +40,7 @@ This check requires your Stripe test account, configured credentials and a runni
 | `checkout_recovery_required` (409) | Created reservation is too old or a legacy Pending record lacks identity. Reconcile with Stripe before any replacement; do not delete/reset it to bypass the guard. |
 | `checkout_unavailable` (409) | The current Payment state does not allow checkout. |
 
-The reservation and Pending save are separate atomic MongoDB/history transactions around the provider call. Read the current record and history to distinguish a Created reservation from a saved Pending session. Preserve attempt identity across restart. A completed or expired provider session has `checkout_url=null`; STRIPE/1 does not infer a domain terminal state or generate a new session.
+The reservation and Pending save are separate atomic MongoDB/history transactions around the provider call. Read the current record and history to distinguish a Created reservation from a saved Pending session. Preserve attempt identity across restart. A completed or expired provider session has `checkout_url=null`; provider retrieval does not infer a domain terminal state or generate a new session. STRIPE/2 confirms terminal state through verified webhooks. Legacy request version 1 remains card-only during recovery; new version 2 reservations request card and BLIK.
 
 Readiness remains a MongoDB check. Checkout availability and outbound Stripe access are tested by the feature and are not included in health probes. Existing authentication/ownership limitations of the demo remain; do not use real customer data.
 

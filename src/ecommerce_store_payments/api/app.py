@@ -9,16 +9,22 @@ from kiota_abstractions.authentication.anonymous_authentication_provider import 
 from ecommerce_store_payments.api.errors import install_error_handlers
 from ecommerce_store_payments.api.routes.health import router as health_router
 from ecommerce_store_payments.api.routes.payments import router as payments_router
+from ecommerce_store_payments.api.routes.webhooks import router as webhooks_router
 from ecommerce_store_payments.application.payments.payment_service import PaymentService
+from ecommerce_store_payments.application.payments.webhook_service import WebhookService
 from ecommerce_store_payments.infrastructure.clients.orders.generated.orders_client import OrdersClient
 from ecommerce_store_payments.infrastructure.clients.orders.http_order_reader import HttpOrderReader
 from ecommerce_store_payments.infrastructure.clients.orders.precise_json import PreciseOrderJsonFactory
 from ecommerce_store_payments.infrastructure.clients.orders.request_adapter import OrdersRequestAdapter
 from ecommerce_store_payments.infrastructure.clients.stripe.checkout_provider import StripeCheckoutProvider
+from ecommerce_store_payments.infrastructure.clients.stripe.webhook_verifier import StripeWebhookVerifier
 from ecommerce_store_payments.infrastructure.config.settings import Settings, get_settings
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database import MongoDatabase
 from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.payment_repository import (
     MongoPaymentRepository,
+)
+from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.webhook_repository import (
+    MongoWebhookRepository,
 )
 
 
@@ -53,6 +59,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     ),
                     checkout_provider=checkout_provider,
                 )
+                app.state.webhook_service = WebhookService(
+                    verifier=StripeWebhookVerifier(resolved_settings),
+                    webhooks=MongoWebhookRepository(database),
+                    payments=MongoPaymentRepository(database),
+                )
                 yield
         finally:
             try:
@@ -72,6 +83,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     install_error_handlers(app)
     app.include_router(health_router)
     app.include_router(payments_router)
+    app.include_router(webhooks_router)
 
     generated_openapi = app.openapi
 
