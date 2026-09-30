@@ -48,6 +48,8 @@ class PaymentPolicy:
         created_at: object,
         updated_at: object,
         version: object,
+        checkout_attempt_id: UUID | None = None,
+        checkout_started_at: datetime | None = None,
     ) -> None:
         """Reject invalid persisted states instead of bypassing aggregate invariants."""
         PaymentPolicy.require_identifier(payment_id, PaymentErrorCode.INVALID_PAYMENT_ID)
@@ -69,6 +71,18 @@ class PaymentPolicy:
             raise PaymentValidationError(
                 PaymentErrorCode.INVALID_PAYMENT_TIMESTAMP, "Update time must follow creation time."
             )
+
+        if checkout_attempt_id is not None:
+            PaymentPolicy.require_identifier(checkout_attempt_id, PaymentErrorCode.INVALID_CHECKOUT_ATTEMPT)
+            if (
+                not isinstance(checkout_started_at, datetime)
+                or checkout_started_at.utcoffset() is None
+                or not isinstance(updated_at, datetime)
+                or not created_at <= checkout_started_at <= updated_at
+            ):
+                raise PaymentValidationError(PaymentErrorCode.INVALID_CHECKOUT_ATTEMPT, "Checkout time is invalid.")
+        elif checkout_started_at is not None:
+            raise PaymentValidationError(PaymentErrorCode.INVALID_CHECKOUT_ATTEMPT, "Checkout attempt is missing.")
 
         if provider_session_id is not None:
             PaymentPolicy.require_provider_identifier(provider_session_id, PaymentErrorCode.INVALID_PROVIDER_SESSION_ID)
@@ -113,3 +127,9 @@ class PaymentPolicy:
         """Only defined state changes, including a fresh attempt after failure/cancellation."""
         if target not in cls._ALLOWED_TRANSITIONS.get(current, frozenset()):
             raise PaymentTransitionError(current.value, target.value)
+
+    @staticmethod
+    def require_checkout_start(status: PaymentStatus) -> None:
+        """Only a Created payment can reserve a checkout attempt."""
+        if status is not PaymentStatus.CREATED:
+            raise PaymentValidationError(PaymentErrorCode.INVALID_CHECKOUT_ATTEMPT, "Checkout cannot start here.")

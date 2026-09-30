@@ -32,7 +32,7 @@ This tracks the Payments work compared with the reference practices in ECommerce
 ## API contract, acceptance, and architecture
 
 - [x] **PAY/10 — Safe public errors.** Central problem+json mapping, stable codes, trace ID, status and media type, route/framework errors, validation policy and no leaked internal details; HTTP tests. Verified locally and on the clean PR runner, including MongoDB integration tests; see ADR-0010.
-- [x] **PAY/11 — Acceptance BDD.** 22 current pytest-bdd source scenarios exercise real FastAPI and isolated MongoDB replica-set databases with a controlled Orders HTTP boundary. The status-by-cause matrix, scenario IDs, history assertions and cleanup run in the acceptance CI stage; PR CI passed.
+- [x] **PAY/11 — Acceptance BDD.** 22 baseline pytest-bdd source scenarios (STRIPE/1 adds checkout scenarios) exercise real FastAPI and isolated MongoDB replica-set databases with a controlled Orders HTTP boundary. The status-by-cause matrix, scenario IDs, history assertions and cleanup run in the acceptance CI stage; PR CI passed.
 - [x] **PAY/12 — Flow and policy sources.** A generated projection links all five published operation IDs to source flows, reachable domain rules and acceptance scenarios; checks reject missing, duplicate and stale links. The clean PR runner passed the link stage, unit tests, real MongoDB integration and HTTP acceptance; see ADR-0012.
 - [x] **PAY/13 — Generated OpenAPI contract.** Database-free export, locked OpenAPI 3.1 lint, status/media/schema validation against acceptance responses and an uploaded CI artifact. The clean PR runner passed unit, real MongoDB integration, HTTP acceptance and wheel checks; see ADR-0013.
 - [x] **PAY/14 — Architecture checks.** Source import direction and MongoDB persistence boundaries are enforced in the shared CI gate. Negative fixtures, including a subprocess invocation, prove forbidden imports fail; full PR CI passed unit, real MongoDB integration, HTTP acceptance and wheel stages. See ADR-0014.
@@ -48,7 +48,7 @@ This tracks the Payments work compared with the reference practices in ECommerce
 
 ## Later functional stage
 
-- [ ] **STRIPE/1 — Provider session/intent.** Angular-compatible flow, idempotency, persisted provider identifiers, retries and boundary tests.
+- [ ] **STRIPE/1 — Provider session/intent.** Separate hosted test checkout endpoint, durable attempt reservation, pinned SDK/API, provider IDs, retries and boundary/container tests are implemented in this change; close after full PR CI and a real-account test-mode checkout smoke check. See ADR-0020 and docs/stripe-checkout.md.
 - [ ] **STRIPE/2 — Verified webhook.** Signature validation, durable deduplication, ordering/retries and payment transitions.
 - [ ] **STRIPE/3 — Orders and invoice completion.** Durable progress and retry for the MVP HTTP callback after successful payment; prevent double update/invoice. Event transport can follow later.
 - [ ] **STRIPE/4 — End-to-end Angular/BFF flow.** Connect UI and backend contracts after the payment and order APIs stabilize.

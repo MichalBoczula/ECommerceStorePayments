@@ -18,7 +18,7 @@ from ecommerce_store_payments.domain.aggregates.payments.enums.payment_status im
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database import MongoDatabase
 from tests.acceptance.conftest import AcceptanceContext
 
-scenarios("features/payments.feature", "features/health.feature")
+scenarios("features/payments.feature", "features/health.feature", "features/checkout.feature")
 
 MATRIX_PATH = Path(__file__).resolve().parents[2] / "docs" / "acceptance-matrix.tsv"
 FEATURES_PATH = Path(__file__).resolve().parent / "features"
@@ -55,6 +55,29 @@ def payable_order(acceptance: AcceptanceContext) -> None:
 @given(parsers.parse('Orders returns "{mode}"'))
 def orders_failure(acceptance: AcceptanceContext, mode: str) -> None:
     acceptance.orders.mode = mode
+
+
+@given(parsers.parse('Stripe responds with "{mode}"'))
+def stripe_mode(acceptance: AcceptanceContext, mode: str) -> None:
+    acceptance.stripe.mode = mode
+
+
+@given("checkout is disabled")
+def checkout_disabled(acceptance: AcceptanceContext) -> None:
+    acceptance.settings.stripe_enabled = False
+
+
+@given("a checkout created through the API")
+def existing_checkout(acceptance: AcceptanceContext) -> None:
+    acceptance.send("POST", f"/payments/{acceptance.orders.order_id}/checkout")
+    assert acceptance.responses[0].status_code == 200
+
+
+@given("an ambiguous checkout timeout")
+def checkout_timeout(acceptance: AcceptanceContext) -> None:
+    acceptance.stripe.mode = "timeout_once"
+    acceptance.send("POST", f"/payments/{acceptance.orders.order_id}/checkout")
+    assert acceptance.responses[0].status_code == 504
 
 
 @given(parsers.parse('Orders reports status "{status}"'))
@@ -96,6 +119,21 @@ def readiness_unavailable(acceptance: AcceptanceContext, monkeypatch: pytest.Mon
 @when("I pay the order")
 def pay(acceptance: AcceptanceContext) -> None:
     acceptance.send("POST", f"/payments/{acceptance.orders.order_id}/pay")
+
+
+@when("I create checkout for the order")
+def checkout(acceptance: AcceptanceContext) -> None:
+    acceptance.send("POST", f"/payments/{acceptance.orders.order_id}/checkout")
+
+
+@then("Stripe has one checkout session")
+def one_stripe_session(acceptance: AcceptanceContext) -> None:
+    assert len(acceptance.stripe.sessions) == 1
+
+
+@then("Stripe was not called")
+def no_stripe_call(acceptance: AcceptanceContext) -> None:
+    assert not acceptance.stripe.calls
 
 
 @when("I get the payment by order ID")

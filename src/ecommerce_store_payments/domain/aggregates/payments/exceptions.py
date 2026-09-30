@@ -14,6 +14,7 @@ class PaymentErrorCode(StrEnum):
     INVALID_PAYMENT_TIMESTAMP = "invalid_payment_timestamp"
     INVALID_PAYMENT_VERSION = "invalid_payment_version"
     INVALID_PAYMENT_TRANSITION = "invalid_payment_transition"
+    INVALID_CHECKOUT_ATTEMPT = "invalid_checkout_attempt"
 
 
 class PaymentDomainError(ValueError):

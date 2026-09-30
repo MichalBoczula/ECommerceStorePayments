@@ -26,6 +26,7 @@ dependencies = [
     "pydantic-settings>=2.10,<3",
     "pymongo>=4.13,<5",
     "uvicorn[standard]>=0.35,<1",
+    "stripe==15.6.1",
 ]
 
 [dependency-groups]

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 from uuid import UUID
 
 
@@ -17,3 +17,5 @@ class PaymentHistoryDocument(TypedDict):
     updated_at: datetime | None
     version: int
     recorded_at: datetime
+    checkout_attempt_id: NotRequired[UUID | None]
+    checkout_started_at: NotRequired[datetime | None]

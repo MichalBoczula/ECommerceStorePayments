@@ -6,6 +6,7 @@ Python service responsible for the payment area of the ECommerce Store portfolio
 
 - Python 3.14 (the development and CI patch version is pinned in `.python-version`)
 - FastAPI
+- Stripe Python SDK (test-mode hosted Checkout)
 - Pydantic and pydantic-settings
 - PyMongo Async API
 - pytest, HTTPX2, and Testcontainers
@@ -33,11 +34,13 @@ Each payment has a nonnegative storage version. A new payment starts at version 
 
 The `payments` collection holds current state. Each update transactionally stores the previous snapshot in `payment_history`, with its payment ID, version and recording time. `get_history(payment_id)` reads prior snapshots in version order; a newly created payment has no history. MongoDB must be configured as a replica set or sharded cluster to support transactions, including for local development. See [ADR-0007](docs/adr/0007-payment-history.md).
 
-The Orders adapter uses a Kiota Python client generated from the pinned Invoice `GET /orders/{orderId}` OpenAPI contract. The generated client stays inside Infrastructure behind `OrderReader`; a handwritten mapper validates the returned ID, total, status and line consistency. The Invoice schema declares money as `number/double`, so our Kiota JSON factory reads wire tokens as exact `Decimal` values and the mapper rejects anything else. It converts exact decimal totals using explicit currency minor units: PLN/EUR/USD/GBP/CHF (2), JPY/KRW (0), BHD/JOD/KWD/OMR/TND (3). Unknown currencies and unrepresentable amounts are rejected. A missing order yields 404; a bad upstream response or outage yields 502; an Orders timeout yields 504. See [ADR-0008](docs/adr/0008-orders-http-adapter.md) and [ADR-0016](docs/adr/0016-invoice-kiota-orders-client.md). Stripe support for individual currencies is decided separately.
+The Orders adapter uses a Kiota Python client generated from the pinned Invoice `GET /orders/{orderId}` OpenAPI contract. The generated client stays inside Infrastructure behind `OrderReader`; a handwritten mapper validates the returned ID, total, status and line consistency. The Invoice schema declares money as `number/double`, so our Kiota JSON factory reads wire tokens as exact `Decimal` values and the mapper rejects anything else. It converts exact decimal totals using explicit currency minor units: PLN/EUR/USD/GBP/CHF (2), JPY/KRW (0), BHD/JOD/KWD/OMR/TND (3). Unknown currencies and unrepresentable amounts are rejected. A missing order yields 404; a bad upstream response or outage yields 502; an Orders timeout yields 504. See [ADR-0008](docs/adr/0008-orders-http-adapter.md) and [ADR-0016](docs/adr/0016-invoice-kiota-orders-client.md). The initial Stripe checkout supports PLN card payments; the broader Orders conversion table is unchanged.
 
-`POST /payments/{order_id}/pay` returns 201 only when it creates a Payment. It returns 200 for an existing `Created`, `Pending` or `Succeeded` Payment. A `Failed` or `Canceled` Payment can be retried on the same ID after Orders confirms the original amount/currency and `Created` status; this resets provider data, archives the previous state and returns 200. Changed totals or incompatible order status return 409. Parallel creates/retries resolve to one persisted state and do not duplicate payment history. `GET /payments/order/{order_id}` reads current state (200) or returns 404. See [ADR-0009](docs/adr/0009-pay-get-semantics.md). Starting a provider session is future STRIPE work.
+`POST /payments/{order_id}/pay` returns 201 only when it creates a Payment. It returns 200 for an existing `Created`, `Pending` or `Succeeded` Payment. A `Failed` or `Canceled` Payment can be retried on the same ID after Orders confirms the original amount/currency and `Created` status; this resets provider data, archives the previous state and returns 200. Changed totals or incompatible order status return 409. Parallel creates/retries resolve to one persisted state and do not duplicate payment history. `GET /payments/order/{order_id}` reads current state (200) or returns 404. See [ADR-0009](docs/adr/0009-pay-get-semantics.md). Provider session creation is a separate checkout command; see [ADR-0020](docs/adr/0020-stripe-hosted-checkout.md).
 
-The current public API has five operations: `POST /payments/{order_id}/pay`, `GET /payments/order/{order_id}`, `GET /health`, `GET /health/live` and `GET /health/ready`. The Pay response contains `id`, `order_id`, `amount_minor`, `currency`, `status`, nullable provider IDs and failure code, `created_at` and nullable `updated_at`. The internal storage version and payment history are not exposed in this response. A newly created Payment starts in `Created`; a repeated Pay can return its existing status. Neither path initiates a provider charge or notifies Orders.
+The current public API has six operations: `POST /payments/{order_id}/pay`, `POST /payments/{order_id}/checkout`, `GET /payments/order/{order_id}`, `GET /health`, `GET /health/live` and `GET /health/ready`. The Pay response contains `id`, `order_id`, `amount_minor`, `currency`, `status`, nullable provider IDs and failure code, `created_at` and nullable `updated_at`. The internal storage version and payment history are not exposed in this response. A newly created Payment starts in `Created`; a repeated Pay can return its existing status. Pay/Get do not initiate a provider charge or notify Orders.
+
+The bodyless Checkout command returns 200 with `payment`, nullable `checkout_url`, `checkout_status` and `expires_at`. It checks Orders, reserves a durable attempt, creates/replays a Stripe test session and persists Pending. Repeats retrieve the same session; they do not confirm payment. Hosted card checkout initially supports PLN, minimum PLN 2 and a conservative 99,999,999-minor-unit maximum. Verified confirmation and downstream completion remain STRIPE/2-3. See the [checkout runbook](docs/stripe-checkout.md) for configuration, errors, recovery and real-account smoke steps.
 
 ## Local setup
 
@@ -55,7 +58,7 @@ Start the API with a MongoDB replica set available at the configured address:
 uv run --locked uvicorn ecommerce_store_payments.main:app --reload
 ```
 
-Startup validates the settings, probes MongoDB with a bounded timeout and ensures the indexes below. A failed probe or index build prevents the API from starting; both the MongoDB and Orders clients are closed on failure. Settings can come from environment variables or a local `.env` file (excluded from the runtime image); variables use the `PAYMENTS_` prefix:
+Startup validates the settings, probes MongoDB with a bounded timeout and ensures the indexes below. A failed probe or index build prevents the API from starting; MongoDB, Orders and any owned Stripe client are closed on failure. Settings can come from environment variables or a local `.env` file (excluded from the runtime image); variables use the `PAYMENTS_` prefix:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -69,8 +72,13 @@ Startup validates the settings, probes MongoDB with a bounded timeout and ensure
 | `PAYMENTS_MONGODB_SERVER_SELECTION_TIMEOUT_MS` | `5000` | Driver's server-selection deadline. |
 | `PAYMENTS_ORDERS_API_BASE_URL` | `http://localhost:5000` | Orders service base URL. |
 | `PAYMENTS_ORDERS_API_TIMEOUT_SECONDS` | `5.0` | Orders request timeout, at most 30 seconds. |
+| `PAYMENTS_STRIPE_ENABLED` | `false` | Enable the separate test checkout command. |
+| `PAYMENTS_STRIPE_SECRET_KEY` | unset | Test secret, required when checkout is enabled; live keys are rejected. |
+| `PAYMENTS_STRIPE_SUCCESS_URL` | `http://localhost:4200/orders?checkout=success` | Fixed checkout success destination. |
+| `PAYMENTS_STRIPE_CANCEL_URL` | `http://localhost:4200/orders?checkout=cancel` | Fixed checkout cancel destination. |
+| `PAYMENTS_STRIPE_TIMEOUT_SECONDS` | `5.0` | Per-provider-request timeout, at most 15 seconds; one SDK retry. |
 
-The database and collection names accept letters, digits, `_` and `-`. The MongoDB connection string must use `mongodb://` or `mongodb+srv://`; the Orders URL must use HTTP(S). An Orders server is contacted only when a new or failed/canceled Payment needs an order lookup; startup and health do not call Orders.
+The database and collection names accept letters, digits, `_` and `-`. The MongoDB connection string must use `mongodb://` or `mongodb+srv://`; the Orders URL must use HTTP(S). Orders is contacted when a new or failed/canceled Pay needs an order lookup and on every Checkout command; startup and health do not call Orders or Stripe.
 
 | Collection | Index | Purpose |
 | --- | --- | --- |
@@ -98,7 +106,7 @@ API errors use `application/problem+json` with `type`, `title`, `status`, fixed 
 {"type":"about:blank","title":"Not Found","status":404,"detail":"Payment was not found.","instance":"/payments/order/00000000-0000-0000-0000-000000000000","code":"payment_not_found","traceId":"0123456789abcdef0123456789abcdef","errors":[],"missingProperties":[]}
 ```
 
-Invalid path parameters return 400 `invalid_request`; malformed JSON returns 400 `invalid_json`; unsupported request media returns 415 `unsupported_media_type`. Pay accepts no request body. Unknown routes return 404 `route_not_found`; wrong methods return 405 `method_not_allowed`. Internal errors return a generic 500 `internal_error` without exception details. Orders failures map to 502 or 504 with distinct codes. The [ADR-0010](docs/adr/0010-safe-public-errors.md) records the public error policy.
+Invalid path parameters return 400 `invalid_request`; malformed JSON returns 400 `invalid_json`; unsupported request media returns 415 `unsupported_media_type`. Pay and Checkout accept no request body. Unknown routes return 404 `route_not_found`; wrong methods return 405 `method_not_allowed`. Internal errors return a generic 500 `internal_error` without exception details. Orders failures map to 502 or 504 with distinct codes. The [ADR-0010](docs/adr/0010-safe-public-errors.md) records the public error policy.
 
 ## Runtime container
 
@@ -166,7 +174,7 @@ uv run --no-sync python scripts/verify_wheel.py
 
 CI runs on pull requests and pushes to `main`. Its source/build job checks the lockfile, formatting, lint, types, architecture boundaries, regenerated Orders client, operation links, generated OpenAPI and wheel installation. Five named jobs run Domain, Application, Infrastructure, ExternalProviders and Acceptance with JUnit, Cobertura XML, HTML coverage and Markdown summaries under ignored `artifacts/verification/<suite>/` directories, uploaded as separate CI artifacts. Domain, Application and the full Infrastructure package each require at least 70% **line** coverage; ExternalProviders and Acceptance publish coverage without a threshold. The Infrastructure suite includes Orders adapter tests, repeated independently in ExternalProviders for its boundary report. The quality gate requires all five suites, source checks, dependency audit, secret scan and the PR dependency review; only then does the container job build, smoke test against a local MongoDB replica set and scan the same runtime image. A failed check, zero tests, missing/wrong report, failed coverage gate or failed container smoke/scan fails the final CI gate. See [ADR-0015](docs/adr/0015-suite-reporting-and-coverage.md), [ADR-0017](docs/adr/0017-runtime-container-and-local-compose.md), [ADR-0018](docs/adr/0018-security-and-image-gate.md) and [ADR-0019](docs/adr/0019-ci-graph-and-dockerhub-publication.md).
 
-MongoDB suites use Testcontainers, give each test or scenario a separate database, and remove each database after use. Acceptance uses a controlled Orders HTTP transport while exercising the real adapter and FastAPI lifecycle. The [acceptance matrix](docs/acceptance-matrix.tsv) links source scenarios to operation, cause, status, code and requirement; see [ADR-0011](docs/adr/0011-acceptance-isolation.md).
+MongoDB suites use Testcontainers, give each test or scenario a separate database, and remove each database after use. Acceptance uses controlled Orders and Stripe HTTP transports while exercising the real adapters, SDK and FastAPI lifecycle. The [acceptance matrix](docs/acceptance-matrix.tsv) links source scenarios to operation, cause, status, code and requirement; see [ADR-0011](docs/adr/0011-acceptance-isolation.md).
 
 Generate the operation projection with `uv run --no-sync python scripts/generate_operation_links.py --output operation-links.json`. The JSON links each published operation ID to its source service flow (including called branches), reachable domain policies and acceptance scenario IDs. The generator reads routes, method bodies, policy docstrings, the acceptance matrix and feature scenarios; the `links` CI stage fails on missing, duplicate or stale links. The generated JSON is an on-demand artifact for documentation tooling and is not checked in. See [ADR-0012](docs/adr/0012-generated-operation-links.md).
 
@@ -187,4 +195,5 @@ The Orders Kiota client lives under `src/ecommerce_store_payments/infrastructure
 - [Agent and contributor instructions](AGENTS.md)
 - [Definition of done](docs/definition-of-done.md)
 - [Technical backlog](TECHNICAL_TODO.md)
+- [Stripe checkout runbook](docs/stripe-checkout.md)
 - [Architecture decisions](docs/adr/README.md)

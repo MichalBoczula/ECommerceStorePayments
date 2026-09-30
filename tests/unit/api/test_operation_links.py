@@ -12,7 +12,14 @@ from ecommerce_store_payments.domain.aggregates.payments.payment_policy import P
 def test_generated_links_follow_executed_flows_and_domain_policies() -> None:
     result = generate()
     operations = {item["operationId"]: item for item in result["operations"]}
-    assert set(operations) == {"payOrder", "getPaymentByOrderId", "get_health", "get_liveness", "get_readiness"}
+    assert set(operations) == {
+        "payOrder",
+        "getPaymentByOrderId",
+        "createOrderCheckout",
+        "get_health",
+        "get_liveness",
+        "get_readiness",
+    }
     pay = operations["payOrder"]
     assert pay["flow"]["source"].endswith("PaymentService.pay")
     assert any(step.get("call", "").endswith("PaymentService._retry") for step in pay["flow"]["steps"])
