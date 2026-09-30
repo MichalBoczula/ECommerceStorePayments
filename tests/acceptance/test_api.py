@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
+from urllib.parse import parse_qs
 from uuid import UUID
 
 import pytest
@@ -14,11 +15,20 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from scripts.generate_operation_links import generate
 from scripts.openapi_contract import check_case
 
+from ecommerce_store_payments.application.payments.webhook import WebhookReceipt, WebhookRetryError, WebhookState
 from ecommerce_store_payments.domain.aggregates.payments.enums.payment_status import PaymentStatus
+from ecommerce_store_payments.domain.aggregates.payments.payment import Payment
+from ecommerce_store_payments.infrastructure.persistence.mongodb.mappers.payment_mapper import PaymentMapper
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database import MongoDatabase
+from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.webhook_repository import (
+    MongoWebhookRepository,
+)
 from tests.acceptance.conftest import AcceptanceContext
+from tests.webhook_fixtures import encode, payload_for, signature
 
-scenarios("features/payments.feature", "features/health.feature", "features/checkout.feature")
+scenarios(
+    "features/payments.feature", "features/health.feature", "features/checkout.feature", "features/webhooks.feature"
+)
 
 MATRIX_PATH = Path(__file__).resolve().parents[2] / "docs" / "acceptance-matrix.tsv"
 FEATURES_PATH = Path(__file__).resolve().parent / "features"
@@ -275,3 +285,114 @@ def liveness_after_failure(acceptance: AcceptanceContext) -> None:
     response: Response = acceptance.client.get("/health/live")
     assert response.status_code == 200
     assert response.json() == {"status": "healthy"}
+
+
+@given(parsers.parse('a signed checkout event "{kind}"'))
+def signed_checkout(acceptance: AcceptanceContext, kind: str) -> None:
+    document = acceptance.payments.find_one({"order_id": acceptance.orders.order_id})
+    assert document is not None
+    payment = PaymentMapper.to_domain(document)
+    event_type = "checkout.session.expired" if kind == "expired" else "checkout.session.completed"
+    payload = payload_for(payment, event_type, f"evt_{kind}")
+    session = payload["data"]["object"]
+    if kind == "expired":
+        session.update(status="expired", payment_status="unpaid")
+    elif kind == "unpaid":
+        session["payment_status"] = "unpaid"
+    elif kind == "mismatched":
+        session["amount_total"] += 1
+    elif kind == "unknown":
+        payload["type"] = "payment_intent.payment_failed"
+    acceptance.webhook_payload = encode(payload)
+    acceptance.initial_orders_calls = acceptance.orders.calls
+
+
+@given(parsers.parse('webhook delivery is "{mode}"'))
+def webhook_delivery_mode(acceptance: AcceptanceContext, mode: str) -> None:
+    acceptance.webhook_delivery = mode
+    if mode == "disabled":
+        acceptance.settings.stripe_webhook_secret = None
+
+
+@given("webhook processing fails once after receipt")
+def interrupt_webhook(monkeypatch: pytest.MonkeyPatch) -> None:
+    original = MongoWebhookRepository.complete
+    remaining = 1
+
+    async def interrupted(
+        self: MongoWebhookRepository,
+        receipt: WebhookReceipt,
+        payment: Payment | None,
+        state: WebhookState,
+        reason: str,
+        *,
+        changed: bool,
+    ) -> WebhookReceipt:
+        nonlocal remaining
+        if remaining:
+            remaining -= 1
+            raise WebhookRetryError()
+        return await original(self, receipt, payment, state, reason, changed=changed)
+
+    monkeypatch.setattr(MongoWebhookRepository, "complete", interrupted)
+
+
+@when("I deliver the checkout webhook")
+@given("the checkout webhook was delivered")
+def deliver_webhook(acceptance: AcceptanceContext) -> None:
+    body = acceptance.webhook_payload
+    headers = {"stripe-signature": signature(body)}
+    content_type = "application/json"
+    if acceptance.webhook_delivery == "missing":
+        headers.clear()
+    elif acceptance.webhook_delivery == "tampered":
+        body += b" "
+    elif acceptance.webhook_delivery == "media":
+        content_type = "text/plain"
+    elif acceptance.webhook_delivery == "large":
+        body = b"x" * (1024 * 1024 + 1)
+    acceptance.send("POST", "/payments/webhooks/stripe", content=body, content_type=content_type, headers=headers)
+
+
+@when("I deliver two checkout webhooks concurrently")
+def concurrent_webhooks(acceptance: AcceptanceContext) -> None:
+    body = acceptance.webhook_payload
+    headers = {"stripe-signature": signature(body), "content-type": "application/json"}
+
+    def send() -> Response:
+        return acceptance.client.post("/payments/webhooks/stripe", content=body, headers=headers)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first, second = executor.submit(send), executor.submit(send)
+        acceptance.responses = [first.result(), second.result()]
+    acceptance.last_operation = "POST /payments/webhooks/stripe x2"
+
+
+@then(parsers.parse('the webhook receipt is "{state}"'))
+def receipt_state(acceptance: AcceptanceContext, state: str) -> None:
+    receipt = acceptance.webhooks.find_one({})
+    assert receipt is not None and receipt["state"] == state
+
+
+@then("no webhook receipt exists")
+def no_webhook_receipt(acceptance: AcceptanceContext) -> None:
+    assert acceptance.webhooks.count_documents({}) == 0
+
+
+@then("webhook work is persisted for fulfillment")
+def fulfillment_receipt(acceptance: AcceptanceContext) -> None:
+    receipts = acceptance.webhooks
+    assert receipts.count_documents({"state": "applied", "fulfillment_status": "pending"}) == 1
+
+
+@then("webhook processing did not contact external services")
+def no_downstream_webhook_calls(acceptance: AcceptanceContext) -> None:
+    assert acceptance.orders.calls == acceptance.initial_orders_calls
+    assert len(acceptance.stripe.calls) == 1
+
+
+@then("checkout requests both card and BLIK")
+def checkout_methods(acceptance: AcceptanceContext) -> None:
+    body = parse_qs(str(acceptance.stripe.calls[0][3]))
+    assert body["payment_method_types[0]"] == ["card"]
+    assert body["payment_method_types[1]"] == ["blik"]

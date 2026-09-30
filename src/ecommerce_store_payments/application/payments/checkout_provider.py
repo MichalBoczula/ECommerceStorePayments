@@ -12,6 +12,7 @@ class CheckoutRequest:
     order_id: UUID
     attempt_id: UUID
     money: Money
+    request_version: int = 1
 
 
 @dataclass(frozen=True, slots=True)

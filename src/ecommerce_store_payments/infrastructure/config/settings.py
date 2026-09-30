@@ -19,15 +19,28 @@ class Settings(BaseSettings):
     mongodb_database_name: str = Field(default="ecommerce_store_payments", pattern=r"^[A-Za-z0-9_-]+$")
     mongodb_payments_collection_name: str = Field(default="payments", pattern=r"^[A-Za-z0-9_-]+$")
     mongodb_payment_history_collection_name: str = Field(default="payment_history", pattern=r"^[A-Za-z0-9_-]+$")
+    mongodb_webhook_collection_name: str = Field(default="stripe_webhooks", pattern=r"^[A-Za-z0-9_-]+$")
     mongodb_probe_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
     mongodb_server_selection_timeout_ms: int = Field(default=5000, gt=0, le=30000)
     orders_api_base_url: str = "http://localhost:5000"
     orders_api_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
     stripe_enabled: bool = False
     stripe_secret_key: SecretStr | None = None
+    stripe_webhook_secret: SecretStr | None = None
     stripe_success_url: str = "http://localhost:4200/orders?checkout=success"
     stripe_cancel_url: str = "http://localhost:4200/orders?checkout=cancel"
     stripe_timeout_seconds: float = Field(default=5.0, gt=0, le=15)
+
+    @field_validator("stripe_webhook_secret")
+    @classmethod
+    def validate_webhook_secret(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None:
+            secret = value.get_secret_value()
+            if not secret:
+                return None
+            if not secret.startswith("whsec_") or len(secret) <= len("whsec_") or any(ch.isspace() for ch in secret):
+                raise ValueError("Stripe requires an endpoint webhook signing secret.")
+        return value
 
     @field_validator("stripe_secret_key")
     @classmethod
@@ -68,6 +81,17 @@ class Settings(BaseSettings):
     def validate_stripe_configuration(self) -> Self:
         if self.stripe_enabled and self.stripe_secret_key is None:
             raise ValueError("Enabled Stripe checkout requires a test secret key.")
+        return self
+
+    @model_validator(mode="after")
+    def validate_distinct_collections(self) -> Self:
+        names = (
+            self.mongodb_payments_collection_name,
+            self.mongodb_payment_history_collection_name,
+            self.mongodb_webhook_collection_name,
+        )
+        if len(set(names)) != len(names):
+            raise ValueError("Payments, history and webhook collections must be distinct.")
         return self
 
     @field_validator("mongodb_connection_string")

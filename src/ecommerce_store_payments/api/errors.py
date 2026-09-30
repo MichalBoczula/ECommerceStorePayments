@@ -29,6 +29,12 @@ from ecommerce_store_payments.application.payments.exceptions import (
     OrderUnavailableError,
     PaymentNotFoundError,
 )
+from ecommerce_store_payments.application.payments.webhook import (
+    WebhookCollisionError,
+    WebhookDisabledError,
+    WebhookInvalidError,
+    WebhookRetryError,
+)
 from ecommerce_store_payments.domain.aggregates.payments.exceptions import (
     MoneyValidationError,
     PaymentTransitionError,
@@ -81,6 +87,10 @@ class ApiRequestError(Exception):
 
 
 ERRORS: tuple[tuple[type[Exception], ErrorSpec], ...] = (
+    (WebhookDisabledError, ErrorSpec(503, "webhook_disabled", "Webhook verification is not configured.")),
+    (WebhookInvalidError, ErrorSpec(400, "webhook_invalid", "Webhook signature or payload is invalid.")),
+    (WebhookCollisionError, ErrorSpec(400, "webhook_collision", "Webhook identity conflicts with its receipt.")),
+    (WebhookRetryError, ErrorSpec(503, "webhook_retry", "Webhook processing must be retried.")),
     (CheckoutDisabledError, ErrorSpec(503, "checkout_disabled", "Checkout is not configured.")),
     (CheckoutMoneyError, ErrorSpec(409, "checkout_money_unsupported", "Checkout amount or currency is not supported.")),
     (CheckoutUnavailableError, ErrorSpec(409, "checkout_unavailable", "Payment cannot start checkout in this state.")),

@@ -51,7 +51,7 @@ class PaymentService:
         if payment.status not in (PaymentStatus.CREATED, PaymentStatus.PENDING):
             raise CheckoutUnavailableError()
         if payment.status is PaymentStatus.CREATED and payment.checkout_attempt_id is None:
-            payment.begin_checkout()
+            payment.begin_checkout(request_version=2)
             try:
                 payment = await self._payment_repository.update(payment)
             except PaymentConflictError:
@@ -62,7 +62,9 @@ class PaymentService:
         if payment.checkout_attempt_id is None or payment.checkout_started_at is None:
             # Legacy pending records have no durable provider attempt identity.
             raise CheckoutRecoveryRequiredError()
-        request = CheckoutRequest(payment.id, payment.order_id, payment.checkout_attempt_id, payment.money)
+        request = CheckoutRequest(
+            payment.id, payment.order_id, payment.checkout_attempt_id, payment.money, payment.checkout_request_version
+        )
         if payment.status is PaymentStatus.PENDING:
             if payment.provider_session_id is None:
                 raise CheckoutRecoveryRequiredError()

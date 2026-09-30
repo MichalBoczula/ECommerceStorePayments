@@ -12,6 +12,7 @@ from ecommerce_store_payments.domain.aggregates.payments.value_objects.money imp
 class Payment:
     __slots__ = (
         "_checkout_attempt_id",
+        "_checkout_request_version",
         "_checkout_started_at",
         "_created_at",
         "_failure_code",
@@ -39,6 +40,7 @@ class Payment:
         version: int,
         checkout_attempt_id: UUID | None = None,
         checkout_started_at: datetime | None = None,
+        checkout_request_version: int = 1,
     ) -> None:
         PaymentPolicy.validate_snapshot(
             payment_id,
@@ -53,6 +55,7 @@ class Payment:
             version,
             checkout_attempt_id,
             checkout_started_at,
+            checkout_request_version,
         )
         self._id = payment_id
         self._order_id = order_id
@@ -66,6 +69,7 @@ class Payment:
         self._version = version
         self._checkout_attempt_id = checkout_attempt_id
         self._checkout_started_at = checkout_started_at
+        self._checkout_request_version = checkout_request_version
 
     @classmethod
     def create(cls, order_id: UUID, money: Money) -> Self:
@@ -97,6 +101,7 @@ class Payment:
         version: int = 0,
         checkout_attempt_id: UUID | None = None,
         checkout_started_at: datetime | None = None,
+        checkout_request_version: int = 1,
     ) -> Self:
         return cls(
             payment_id=payment_id,
@@ -111,6 +116,7 @@ class Payment:
             version=version,
             checkout_attempt_id=checkout_attempt_id,
             checkout_started_at=checkout_started_at,
+            checkout_request_version=checkout_request_version,
         )
 
     @property
@@ -161,11 +167,17 @@ class Payment:
     def checkout_started_at(self) -> datetime | None:
         return self._checkout_started_at
 
-    def begin_checkout(self) -> None:
+    @property
+    def checkout_request_version(self) -> int:
+        return self._checkout_request_version
+
+    def begin_checkout(self, request_version: int = 1) -> None:
         """Reserve one provider attempt before making an external request."""
         PaymentPolicy.require_checkout_start(self._status)
         if self._checkout_attempt_id is not None:
             return
+        PaymentPolicy.require_checkout_request_version(request_version)
+        self._checkout_request_version = request_version
         self._checkout_attempt_id = uuid4()
         self._touch()
         self._checkout_started_at = self._updated_at
@@ -205,6 +217,23 @@ class Payment:
         self._status = PaymentStatus.FAILED
         self._touch()
 
+    def confirm_checkout(self, provider_session_id: str, provider_payment_id: str) -> None:
+        """Apply verified success to the same reserved attempt, including a late success after expiry/failure."""
+        PaymentPolicy.require_checkout_confirmation(
+            self._checkout_attempt_id,
+            self._provider_session_id,
+            provider_session_id,
+            self._provider_payment_id,
+            provider_payment_id,
+        )
+        if self._status is PaymentStatus.SUCCEEDED:
+            return
+        self._provider_session_id = provider_session_id
+        self._provider_payment_id = provider_payment_id
+        self._failure_code = None
+        self._status = PaymentStatus.SUCCEEDED
+        self._touch()
+
     def cancel(self) -> None:
         if self._status is PaymentStatus.CANCELED:
             return
@@ -225,6 +254,7 @@ class Payment:
         self._status = PaymentStatus.CREATED
         self._checkout_attempt_id = None
         self._checkout_started_at = None
+        self._checkout_request_version = 1
         self._touch()
 
     def _touch(self) -> None:

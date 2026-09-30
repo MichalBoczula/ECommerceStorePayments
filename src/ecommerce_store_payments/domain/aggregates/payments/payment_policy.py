@@ -50,6 +50,7 @@ class PaymentPolicy:
         version: object,
         checkout_attempt_id: UUID | None = None,
         checkout_started_at: datetime | None = None,
+        checkout_request_version: int = 1,
     ) -> None:
         """Reject invalid persisted states instead of bypassing aggregate invariants."""
         PaymentPolicy.require_identifier(payment_id, PaymentErrorCode.INVALID_PAYMENT_ID)
@@ -71,6 +72,10 @@ class PaymentPolicy:
             raise PaymentValidationError(
                 PaymentErrorCode.INVALID_PAYMENT_TIMESTAMP, "Update time must follow creation time."
             )
+
+        PaymentPolicy.require_checkout_request_version(checkout_request_version)
+        if checkout_attempt_id is None and checkout_request_version != 1:
+            raise PaymentValidationError(PaymentErrorCode.INVALID_CHECKOUT_ATTEMPT, "Checkout request has no attempt.")
 
         if checkout_attempt_id is not None:
             PaymentPolicy.require_identifier(checkout_attempt_id, PaymentErrorCode.INVALID_CHECKOUT_ATTEMPT)
@@ -133,3 +138,25 @@ class PaymentPolicy:
         """Only a Created payment can reserve a checkout attempt."""
         if status is not PaymentStatus.CREATED:
             raise PaymentValidationError(PaymentErrorCode.INVALID_CHECKOUT_ATTEMPT, "Checkout cannot start here.")
+
+    @staticmethod
+    def require_checkout_confirmation(
+        attempt_id: UUID | None,
+        current_session: str | None,
+        session_id: str,
+        current_payment: str | None,
+        payment_id: str,
+    ) -> None:
+        """A verified confirmation must belong to an existing attempt and cannot replace provider identifiers."""
+        PaymentPolicy.require_provider_identifier(session_id, PaymentErrorCode.INVALID_PROVIDER_SESSION_ID)
+        PaymentPolicy.require_provider_identifier(payment_id, PaymentErrorCode.INVALID_PROVIDER_PAYMENT_ID)
+        if attempt_id is None or current_session not in (None, session_id) or current_payment not in (None, payment_id):
+            raise PaymentValidationError(PaymentErrorCode.INVALID_CHECKOUT_ATTEMPT, "Checkout confirmation conflicts.")
+
+    @staticmethod
+    def require_checkout_request_version(value: object) -> None:
+        """A reserved request records a positive version so provider retries can preserve their original parameters."""
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise PaymentValidationError(
+                PaymentErrorCode.INVALID_CHECKOUT_ATTEMPT, "Checkout request version is invalid."
+            )

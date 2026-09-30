@@ -73,6 +73,8 @@ async def test_checkout_reserves_then_persists_pending_and_reuses_session() -> N
     result = await service.checkout(reader.order.order_id)
     assert result.payment.status is PaymentStatus.PENDING
     assert result.payment.version == 2
+    assert result.payment.checkout_request_version == 2
+    assert provider.requests[0].request_version == 2
     assert result.payment.checkout_attempt_id is not None
     assert result.payment.provider_session_id == result.session.session_id
     assert result.payment.provider_payment_id is None
@@ -210,3 +212,12 @@ async def test_terminal_retry_uses_new_attempt_on_same_payment() -> None:
     assert second.payment.id == first.payment.id
     assert second.payment.checkout_attempt_id != first.payment.checkout_attempt_id
     assert len(provider.sessions) == 2
+
+
+async def test_legacy_reserved_attempt_recovers_with_original_request_version() -> None:
+    service, repository, reader, provider = setup_checkout()
+    payment = await repository.create(Payment.create(reader.order.order_id, reader.order.money))
+    payment.begin_checkout(request_version=1)
+    await repository.update(payment)
+    recovered = await service.checkout(payment.order_id)
+    assert recovered.payment.checkout_request_version == provider.requests[0].request_version == 1

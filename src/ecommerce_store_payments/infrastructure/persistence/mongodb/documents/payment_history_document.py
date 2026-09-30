@@ -19,3 +19,4 @@ class PaymentHistoryDocument(TypedDict):
     recorded_at: datetime
     checkout_attempt_id: NotRequired[UUID | None]
     checkout_started_at: NotRequired[datetime | None]
+    checkout_request_version: NotRequired[int]

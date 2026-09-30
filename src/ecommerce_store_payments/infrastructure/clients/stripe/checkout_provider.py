@@ -39,7 +39,7 @@ class StripeCheckoutProvider:
             raise CheckoutDisabledError()
 
     def validate_money(self, money: Money) -> None:
-        """The initial hosted card checkout supports PLN amounts with a PLN 2 minimum and conservative demo maximum."""
+        """The hosted card/BLIK checkout supports PLN amounts with a PLN 2 minimum and conservative demo maximum."""
         if money.currency != "PLN" or not 200 <= money.amount_minor <= 99_999_999:
             raise CheckoutMoneyError()
 
@@ -60,11 +60,13 @@ class StripeCheckoutProvider:
         self.require_available()
         self.validate_money(request.money)
         assert self._client is not None
+        if request.request_version not in (1, 2):
+            raise CheckoutProviderError()
         try:
             session = await self._client.v1.checkout.sessions.create_async(
                 {
                     "mode": "payment",
-                    "payment_method_types": ["card"],
+                    "payment_method_types": ["card"] if request.request_version == 1 else ["card", "blik"],
                     "client_reference_id": str(request.payment_id),
                     "metadata": self._metadata(request),
                     "payment_intent_data": {"metadata": self._metadata(request)},

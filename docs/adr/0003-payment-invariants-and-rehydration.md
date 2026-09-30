@@ -3,6 +3,8 @@
 - Status: Accepted
 - Date: 2026-09-27
 
+[ADR-0021](0021-verified-stripe-webhooks.md) later adds a separate verified checkout confirmation command for the same reserved attempt, while preserving the original general transition commands.
+
 ## Context
 
 Payment changes state in response to provider operations and will eventually process duplicate and out-of-order messages. The original aggregate rejected some transitions with general `ValueError`, but accepted arbitrary state combinations when rebuilding from a MongoDB document. Domain validation must also work without an API or database dependency.

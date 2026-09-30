@@ -16,10 +16,16 @@ def test_generated_links_follow_executed_flows_and_domain_policies() -> None:
         "payOrder",
         "getPaymentByOrderId",
         "createOrderCheckout",
+        "receiveStripeWebhook",
         "get_health",
         "get_liveness",
         "get_readiness",
     }
+    webhook = operations["receiveStripeWebhook"]
+    assert webhook["flow"]["source"].endswith("WebhookService.receive")
+    assert any(
+        policy["source"].endswith("PaymentPolicy.require_checkout_confirmation") for policy in webhook["policies"]
+    )
     pay = operations["payOrder"]
     assert pay["flow"]["source"].endswith("PaymentService.pay")
     assert any(step.get("call", "").endswith("PaymentService._retry") for step in pay["flow"]["steps"])

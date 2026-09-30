@@ -60,6 +60,7 @@ class MemoryPaymentRepository:
             version=payment.version if version is None else version,
             checkout_attempt_id=payment.checkout_attempt_id,
             checkout_started_at=payment.checkout_started_at,
+            checkout_request_version=payment.checkout_request_version,
         )
 
 

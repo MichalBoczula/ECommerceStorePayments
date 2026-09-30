@@ -1,5 +1,6 @@
 import json
 from collections.abc import Mapping
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import parse_qs
@@ -92,6 +93,22 @@ async def test_sdk_encodes_server_money_metadata_return_urls_and_stable_key() ->
     assert "automatic_tax[enabled]" not in body and "allow_promotion_codes" not in body
     await provider.create(request)
     assert transport.calls[1][2]["Idempotency-Key"] == headers["Idempotency-Key"]
+
+
+async def test_new_request_version_enables_card_and_blik_and_legacy_recovery_remains_card_only() -> None:
+    provider, transport, request = make_provider()
+    await provider.create(replace(request, request_version=2))
+    body = parse_qs(str(transport.calls[0][3]))
+    assert body["payment_method_types[0]"] == ["card"]
+    assert body["payment_method_types[1]"] == ["blik"]
+    # Version 1 represents previously reserved attempts, whose parameters must remain stable.
+    provider, transport, request = make_provider()
+    await provider.create(request)
+    legacy = parse_qs(str(transport.calls[0][3]))
+    assert legacy["payment_method_types[0]"] == ["card"]
+    assert "payment_method_types[1]" not in legacy
+    with pytest.raises(CheckoutProviderError):
+        await provider.create(replace(request, request_version=3))
 
 
 @pytest.mark.parametrize("state", ["open", "complete", "expired"])

@@ -28,11 +28,13 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.documents.payme
 from ecommerce_store_payments.infrastructure.persistence.mongodb.documents.payment_history_document import (
     PaymentHistoryDocument,
 )
+from ecommerce_store_payments.infrastructure.persistence.mongodb.documents.webhook_document import WebhookDocument
 from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database import MongoDatabase
 from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.payment_repository import (
     MongoPaymentRepository,
 )
 from tests.unit.external_providers.test_stripe_checkout import StripeTransport
+from tests.webhook_fixtures import WEBHOOK_SECRET
 
 
 @dataclass
@@ -78,6 +80,8 @@ class AcceptanceContext:
     responses: list[Response] = field(default_factory=list[Response])
     initial_payment_id: UUID | None = None
     initial_orders_calls: int = 0
+    webhook_payload: bytes = b""
+    webhook_delivery: str = "valid"
 
     @property
     def payments(self) -> Collection[PaymentDocument]:
@@ -89,8 +93,20 @@ class AcceptanceContext:
             Collection[PaymentHistoryDocument], self.mongo[self.settings.mongodb_database_name]["payment_history"]
         )
 
-    def send(self, method: str, path: str, *, content: bytes | None = None, content_type: str | None = None) -> None:
-        headers = {"content-type": content_type} if content_type else None
+    @property
+    def webhooks(self) -> Collection[WebhookDocument]:
+        return cast(Collection[WebhookDocument], self.mongo[self.settings.mongodb_database_name]["stripe_webhooks"])
+
+    def send(
+        self,
+        method: str,
+        path: str,
+        *,
+        content: bytes | None = None,
+        content_type: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> None:
+        headers = {**(headers or {}), **({"content-type": content_type} if content_type else {})}
         self.last_operation = f"{method} {path.replace(str(self.orders.order_id), '{order_id}')}"
         self.responses = [self.client.request(method, path, content=content, headers=headers)]
 
@@ -161,6 +177,7 @@ def acceptance(mongo_url: str, monkeypatch: pytest.MonkeyPatch) -> Generator[Acc
         orders_api_base_url="https://orders.example.test",
         stripe_enabled=True,
         stripe_secret_key=SecretStr("sk_test_fixture"),
+        stripe_webhook_secret=SecretStr(WEBHOOK_SECRET),
     )
     orders = OrdersBoundary()
     stripe_boundary = AcceptanceStripeTransport()

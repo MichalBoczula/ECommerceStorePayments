@@ -16,6 +16,9 @@ from ecommerce_store_payments.infrastructure.config.settings import Settings
         {"mongodb_database_name": "../other"},
         {"mongodb_payments_collection_name": "system.payments"},
         {"mongodb_payment_history_collection_name": "system.history"},
+        {"mongodb_webhook_collection_name": "system.webhooks"},
+        {"mongodb_webhook_collection_name": "payments"},
+        {"mongodb_payment_history_collection_name": "payments"},
         {"mongodb_probe_timeout_seconds": 0},
         {"mongodb_probe_timeout_seconds": 31},
         {"mongodb_server_selection_timeout_ms": 0},
@@ -29,6 +32,9 @@ from ecommerce_store_payments.infrastructure.config.settings import Settings
         {"stripe_secret_key": "pk_test_fixture"},
         {"stripe_secret_key": "sk_test_"},
         {"stripe_secret_key": "sk_test_fixture space"},
+        {"stripe_webhook_secret": "sk_test_fixture"},
+        {"stripe_webhook_secret": "whsec_"},
+        {"stripe_webhook_secret": "whsec_space here"},
         {"stripe_timeout_seconds": 0},
         {"stripe_timeout_seconds": 16},
         {"stripe_success_url": "https://user:password@example.org/orders"},
@@ -71,3 +77,10 @@ def test_stripe_secret_is_redacted_and_fixed_https_destinations_are_accepted() -
     )
     assert "sk_test_fixture" not in repr(settings)
     assert settings.stripe_enabled
+
+
+def test_webhook_secret_is_independent_redacted_and_blank_means_disabled() -> None:
+    settings = Settings.model_validate({"stripe_webhook_secret": "whsec_fixture"})
+    assert settings.stripe_secret_key is None and not settings.stripe_enabled
+    assert "whsec_fixture" not in repr(settings)
+    assert Settings.model_validate({"stripe_webhook_secret": ""}).stripe_webhook_secret is None

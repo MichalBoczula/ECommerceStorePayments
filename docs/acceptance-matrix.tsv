@@ -30,3 +30,19 @@ PAY21-06	POST /payments/{order_id}/checkout	provider rejection	502	checkout_prov
 PAY21-07	POST /payments/{order_id}/checkout	provider timeout	504	checkout_timeout	STRIPE/1
 PAY21-08	POST /payments/{order_id}/checkout	missing order	404	order_not_found	STRIPE/1
 PAY21-09	POST /payments/{order_id}/checkout	changed order money	409	order_total_changed	STRIPE/1
+PAY22-01	POST /payments/webhooks/stripe	confirmed checkout	200	-	STRIPE/2
+PAY22-02	POST /payments/webhooks/stripe	duplicate webhook	200	-	STRIPE/2
+PAY22-03	POST /payments/webhooks/stripe	missing signature	400	webhook_invalid	STRIPE/2
+PAY22-04	POST /payments/webhooks/stripe	tampered bytes	400	webhook_invalid	STRIPE/2
+PAY22-05	POST /payments/webhooks/stripe	unknown event	200	-	STRIPE/2
+PAY22-06	POST /payments/webhooks/stripe	mismatched money	200	-	STRIPE/2
+PAY22-07	POST /payments/webhooks/stripe	expired checkout	200	-	STRIPE/2
+PAY22-08	POST /payments/webhooks/stripe	expiry after success	200	-	STRIPE/2
+PAY22-09	POST /payments/webhooks/stripe x2	concurrent duplicate	200,200	-	STRIPE/2
+PAY22-10	POST /payments/webhooks/stripe	interrupted processing	503	webhook_retry	STRIPE/2
+PAY22-11	POST /payments/webhooks/stripe	recover pending receipt	200	-	STRIPE/2
+PAY22-12	POST /payments/webhooks/stripe	disabled verification	503	webhook_disabled	STRIPE/2
+PAY22-13	POST /payments/webhooks/stripe	unsupported media	415	unsupported_media_type	STRIPE/2
+PAY22-14	POST /payments/webhooks/stripe	oversized webhook	413	webhook_too_large	STRIPE/2
+PAY22-15	POST /payments/webhooks/stripe	unpaid completion	200	-	STRIPE/2
+PAY22-16	POST /payments/{order_id}/checkout	card and BLIK	200	-	STRIPE/2
