@@ -1,6 +1,8 @@
 # Stripe test checkout runbook
 
-STRIPE/1 creates hosted Checkout sessions. STRIPE/2 adds card/BLIK support and signed webhook confirmation; Orders/invoice fulfillment remains STRIPE/3. See [ADR-0020](adr/0020-stripe-hosted-checkout.md).
+STRIPE/1 creates hosted Checkout sessions. STRIPE/2 adds card/BLIK support and signed webhook confirmation; STRIPE/3 adds durable Orders/invoice fulfillment. See [ADR-0020](adr/0020-stripe-hosted-checkout.md).
+
+For a real account request without completing a payment, run the separate [sandbox request smoke](stripe-sandbox-smoke.md). It uses `STRIPE_SECRET` in GitHub Actions and exercises the actual Payments checkout adapter.
 
 ## Configuration
 
