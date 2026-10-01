@@ -4,7 +4,7 @@ The **Stripe sandbox scenarios** workflow extends the [Visa payment smoke](strip
 
 | Scenario | Actual provider action | Assertions |
 | --- | --- | --- |
-| `blik` | Create a BLIK PaymentMethod and confirm Payments' own Checkout with sandbox code `000000`. | Exact PLN 12.99 succeeded test BLIK charge, real signed event, Succeeded Payment, Paid order, one completed PDF invoice; duplicate delivery changes neither history nor invoice count. |
+| `blik` | Create a BLIK PaymentMethod, confirm Payments' own Checkout, then supply sandbox code `000000` through its matching PaymentIntent confirmation. | Exact PLN 12.99 succeeded test BLIK charge, real signed event, Succeeded Payment, Paid order, one completed PDF invoice; duplicate delivery changes neither history nor invoice count. |
 | `decline-retry` | Use `tok_visa_chargeDeclined`, then retry the same session with `tok_visa`. | Stripe reports `card_declined/generic_decline` with zero received. Payment stays Pending, order Created, no invoice or fulfillment work. Repeated checkout retains Payment/session/attempt; Visa retry succeeds on the same PaymentIntent and creates one invoice. |
 | `expiry` | Expire Payments' real open test Checkout through the Stripe SDK. | Stripe session expired/unpaid; actual `checkout.session.expired` delivery establishes Failed/`checkout_expired`; order stays Created, no invoice/work. Replaying the same signed event changes no history. |
 | `webhook-retry` | Pay Visa while a test-only ASGI wrapper rejects the first matching account event with HTTP 503; resend its original body/signature locally. | Before resend, Payment Pending/order Created/no invoice. Resend acknowledged with 200 establishes success and one invoice; another resend is idempotent. |

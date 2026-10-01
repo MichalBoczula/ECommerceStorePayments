@@ -62,7 +62,6 @@ def scenario_fixtures(session_id: str, method: Literal["visa", "decline", "blik"
             "type": "blik",
             "billing_details": {"email": "sandbox-smoke@example.test", "name": "Sandbox Smoke Client"},
         }
-        fixture["fixtures"][2]["params"]["payment_method_options"] = {"blik": {"code": "000000"}}
     elif method != "visa":
         raise SmokeFailure("Unsupported sandbox fixture method.")
     return fixture
@@ -413,6 +412,18 @@ def probe(sandbox: Sandbox, scenario: Scenario) -> dict[str, object]:
                                 evidence.update(retry_after_authentication=True)
                         else:
                             confirm(session_id, settings.stripe_secret_key, "blik" if scenario == "blik" else "visa")
+                        if scenario == "blik":
+                            blik_intent = find_intent(provider, payment_id, since)
+                            if (
+                                blik_intent.livemode is not False
+                                or blik_intent.amount != AMOUNT_MINOR
+                                or blik_intent.currency != "pln"
+                            ):
+                                raise SmokeFailure("BLIK confirmation encountered an unexpected PaymentIntent.")
+                            if blik_intent.status != "succeeded":
+                                provider.v1.payment_intents.confirm(
+                                    blik_intent.id, {"payment_method_options": {"blik": {"code": "000000"}}}
+                                )
                         if scenario == "webhook-retry":
                             assert isinstance(recorder, ScenarioRecorder)
                             try:
