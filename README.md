@@ -207,6 +207,7 @@ The Orders Kiota client lives under `src/ecommerce_store_payments/infrastructure
 - [Stripe checkout runbook](docs/stripe-checkout.md)
 - [Real Stripe sandbox request smoke](docs/stripe-sandbox-smoke.md)
 - [Real sandbox Visa payment, webhook and invoice smoke](docs/stripe-card-smoke.md)
+- [Real BLIK, decline, expiry, retry and guided 3DS scenarios](docs/stripe-scenario-smoke.md)
 - [Stripe webhook runbook](docs/stripe-webhooks.md)
 - [Architecture decisions](docs/adr/README.md)
 
