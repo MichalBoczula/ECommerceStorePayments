@@ -20,7 +20,7 @@ from ecommerce_store_payments.infrastructure.clients.orders.precise_json import 
 from ecommerce_store_payments.infrastructure.clients.orders.request_adapter import OrdersRequestAdapter
 
 
-def _order(order_id: UUID, amount: float | int, currency: str = "PLN") -> dict[str, Any]:
+def order_payload(order_id: UUID, amount: float | int, currency: str = "PLN") -> dict[str, Any]:
     return {
         "id": str(order_id),
         "clientId": str(uuid4()),
@@ -71,7 +71,7 @@ async def test_maps_actual_orders_response_with_currency_exponent(
     def handler(request: Request) -> Response:
         assert request.method == "GET"
         assert request.url.path == f"/orders/{order_id}"
-        return Response(200, json=_order(order_id, amount, currency))
+        return Response(200, json=order_payload(order_id, amount, currency))
 
     reader, client = await _get_order(order_id, handler)
     async with client:
@@ -132,7 +132,7 @@ async def test_maps_transport_failures(failure: type[ReadTimeout] | type[Connect
 )
 async def test_rejects_invalid_order_response(field: str, value: object) -> None:
     order_id = uuid4()
-    payload = _order(order_id, 12.34)
+    payload = order_payload(order_id, 12.34)
     payload[field] = value
     reader, client = await _get_order(order_id, lambda _request: Response(200, json=payload))
     async with client:
@@ -143,7 +143,7 @@ async def test_rejects_invalid_order_response(field: str, value: object) -> None
 @pytest.mark.parametrize("mismatch", ["line_total", "line_currency"])
 async def test_rejects_inconsistent_order_lines(mismatch: str) -> None:
     order_id = uuid4()
-    payload = _order(order_id, 12.34)
+    payload = order_payload(order_id, 12.34)
     if mismatch == "line_total":
         payload["lines"][0]["lineTotalAmount"] = 10
     else:
@@ -156,7 +156,9 @@ async def test_rejects_inconsistent_order_lines(mismatch: str) -> None:
 
 async def test_rejects_amount_that_cannot_be_represented_in_jpy() -> None:
     order_id = uuid4()
-    reader, client = await _get_order(order_id, lambda _request: Response(200, json=_order(order_id, 1.5, "JPY")))
+    reader, client = await _get_order(
+        order_id, lambda _request: Response(200, json=order_payload(order_id, 1.5, "JPY"))
+    )
     async with client:
         with pytest.raises(OrderInvalidResponseError):
             await reader.get_by_id(order_id)
@@ -173,7 +175,7 @@ async def test_rejects_unparseable_or_incomplete_body(body: str) -> None:
 
 async def test_rejects_string_amount_even_when_other_fields_are_valid() -> None:
     order_id = uuid4()
-    payload = _order(order_id, 12.34)
+    payload = order_payload(order_id, 12.34)
     payload["totalAmount"] = "12.34"
     reader, client = await _get_order(order_id, lambda _request: Response(200, text=json.dumps(payload)))
     async with client:
@@ -184,7 +186,7 @@ async def test_rejects_string_amount_even_when_other_fields_are_valid() -> None:
 async def test_preserves_large_decimal_without_rounding() -> None:
     order_id = uuid4()
     amount = "1234567890123456789012345678.90"
-    payload = _order(order_id, 1)
+    payload = order_payload(order_id, 1)
     payload["totalAmount"] = Decimal(amount)
     payload["lines"][0]["lineTotalAmount"] = Decimal(amount)
     body = json.dumps(payload, default=str).replace(f'"{amount}"', amount)
@@ -196,7 +198,7 @@ async def test_preserves_large_decimal_without_rounding() -> None:
 
 async def test_rejects_unbounded_exponent() -> None:
     order_id = uuid4()
-    payload = _order(order_id, 1)
+    payload = order_payload(order_id, 1)
     body = (
         json.dumps(payload)
         .replace('"totalAmount": 1', '"totalAmount": 1e1000000')

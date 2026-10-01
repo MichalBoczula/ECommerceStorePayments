@@ -56,5 +56,12 @@ class MongoDatabase:
             [("fulfillment_status", 1), ("received_at", 1)], name="ix_webhooks_fulfillment"
         )
 
+        await self.webhooks.create_index(
+            [("fulfillment_status", 1), ("fulfillment_next_attempt", 1)], name="ix_webhooks_fulfillment_due"
+        )
+        await self.webhooks.create_index(
+            [("fulfillment_status", 1), ("fulfillment_lease_until", 1)], name="ix_webhooks_fulfillment_lease"
+        )
+
     async def close(self) -> None:
         await self._client.close()

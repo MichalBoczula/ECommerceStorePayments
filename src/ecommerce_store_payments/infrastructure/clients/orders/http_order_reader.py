@@ -46,6 +46,10 @@ class HttpOrderReader:
         except (ValueError, TypeError, UnicodeError, DecimalException) as error:
             raise OrderInvalidResponseError(order_id) from error
 
+        return self.from_response(order_id, order)
+
+    @staticmethod
+    def from_response(order_id: UUID, order: OrderResponseDto | None) -> OrderPaymentDetails:
         try:
             if not isinstance(order, OrderResponseDto) or not order.lines:
                 raise OrderInvalidResponseError(order_id)

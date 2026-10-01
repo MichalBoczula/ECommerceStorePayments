@@ -58,7 +58,13 @@ async def test_atomic_confirmation_receipt_history_and_durable_fulfillment_marke
     assert receipt["completed_at"] is not None
     assert "payload" not in receipt and "signature" not in receipt
     indexes = await mongo_database.webhooks.index_information()
-    assert set(indexes) == {"_id_", "ix_webhooks_pending", "ix_webhooks_fulfillment"}
+    assert set(indexes) == {
+        "_id_",
+        "ix_webhooks_pending",
+        "ix_webhooks_fulfillment",
+        "ix_webhooks_fulfillment_due",
+        "ix_webhooks_fulfillment_lease",
+    }
 
 
 async def test_receipt_only_interruption_is_recovered_by_new_process_without_provider_credentials(

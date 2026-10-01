@@ -17,6 +17,8 @@ The generated client lives in Infrastructure. `HttpOrderReader` uses its request
 
 An Infrastructure integration test pulls the pinned Invoice image, starts an isolated MongoDB replica set, seeds an actual order and product snapshot, compares the served Orders schema to the pinned snapshot and calls the image through Kiota. It also checks the missing-order response. Unit/acceptance boundary tests continue to exercise malformed and adverse responses with controlled transports.
 
+STRIPE/3 expands this same generated client to status PATCH, invoice creation and invoice lookup by order. The new complete snapshot is generated from Invoice PR #217; [ADR-0022](0022-durable-order-invoice-fulfillment.md) records its source revision and fulfillment ports. The original published-image Orders read check remains, and a source-pinned Invoice container exercises the new operations.
+
 ## Consequences
 
 No Payments HTTP operation, persistence document/index or domain policy changes. Python adds the pinned Kiota runtime and standard HTTPX as runtime dependencies; `httpx2` remains only in tests that use the FastAPI test client. The Kiota generated model annotates money as `float` because the upstream OpenAPI uses `double`; the isolated parse factory supplies runtime `Decimal` values, and the reader checks them before doing any arithmetic. A Kiota or Invoice contract upgrade must revisit that adapter and its precision tests. The image test needs Docker and an accessible Docker Hub; a clean PR runner verifies it when local Docker is unavailable.

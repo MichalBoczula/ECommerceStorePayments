@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/MichalBoczula/ECommerceStoreInvoice",
+  "revision": "3b66b6b856773ca9cae0ac59647fd8b73cffd08f",
+  "pull_request": 217,
+  "source": "Generated OpenAPI from the Invoice API routes and DTOs (OpenApiExportTests).",
+  "sha256": "bd405d523d5a4d4ef9145e41a670fe880885fef1a72b64198501f838660b028a"
+}

@@ -207,3 +207,17 @@ The Orders Kiota client lives under `src/ecommerce_store_payments/infrastructure
 - [Stripe checkout runbook](docs/stripe-checkout.md)
 - [Stripe webhook runbook](docs/stripe-webhooks.md)
 - [Architecture decisions](docs/adr/README.md)
+
+## Verified payment fulfillment
+
+After a verified Stripe success, a separate durable worker marks the matching order Paid and creates or retrieves its completed invoice. Webhook responses remain fast; receipt processing does not call Orders or Invoice. Progress, leases, retry times and safe failure codes are stored in the webhook ledger. Payments public Pay/Get/Checkout contracts are unchanged.
+
+Run a bounded batch with:
+
+```bash
+uv run --locked python -m ecommerce_store_payments.infrastructure.persistence.mongodb.fulfill_payments --limit 100
+```
+
+Use the same Payments database and a reachable Invoice base URL. No Stripe API key is needed for already-verified receipts. See the [fulfillment runbook](docs/payment-fulfillment.md) for inspect/resume, retry limits and the scheduled Container Apps Job deployment contract. Azure provisioning is DEP/6. Existing local `file://` PDFs require DEP/7 for durable cloud downloads.
+
+The Infrastructure suite builds Invoice from the exact source revision in `scripts/prepare_fulfillment_image.sh` before running its real API/PDF fulfillment test. The original published-image contract test remains pinned separately. This adds a GitHub source fetch and Docker build to that suite; no new Python dependency is introduced.
