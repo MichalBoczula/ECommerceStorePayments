@@ -1,6 +1,6 @@
 # Stripe test webhook runbook
 
-STRIPE/2 confirms Payments using verified Checkout notifications and stores durable fulfillment work. Orders remains Created until STRIPE/3 implements fulfillment. See [ADR-0021](adr/0021-verified-stripe-webhooks.md).
+STRIPE/2 confirms Payments using verified Checkout notifications and stores durable fulfillment work. Orders remains Created until the separate STRIPE/3 fulfillment worker runs. See [ADR-0021](adr/0021-verified-stripe-webhooks.md).
 
 ## Secrets and configuration
 
@@ -10,7 +10,7 @@ STRIPE/2 confirms Payments using verified Checkout notifications and stores dura
 | Stripe CLI listener or Dashboard test endpoint secret | `PAYMENTS_STRIPE_WEBHOOK_SECRET` | `whsec_...` for verifying deliveries to this endpoint. |
 | GitHub `STRIPE_PUBLISHABLE_KEY` | Unused in the current hosted URL redirect | Required only if a future frontend integration uses Stripe.js. |
 
-Ordinary CI uses the real SDK with controlled responses and signed fixtures, never account secrets. GitHub secret names are not runtime environment variables automatically. A future real-provider job must explicitly map `PAYMENTS_STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET }}`; an appropriate endpoint signing secret must likewise be injected. Do not add these credentials to ordinary unit/container suites. Azure runtime secret injection belongs to deployment/Key Vault work.
+Ordinary CI uses the real SDK with controlled responses and signed fixtures, never account secrets. GitHub secret names are not runtime environment variables automatically. The separate [sandbox request smoke](stripe-sandbox-smoke.md) explicitly maps `PAYMENTS_STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET }}` for real session creation/retrieval/expiration. It does not test webhook delivery; the account payment smoke needs an appropriate endpoint signing secret. Do not add these credentials to ordinary unit/container suites. Azure runtime secret injection belongs to deployment/Key Vault work.
 
 Compose forwards `PAYMENTS_STRIPE_WEBHOOK_SECRET` from your ignored `.env` or shell. An empty value disables webhook verification with 503. The signing secret alone enables receipt; it does not require an API key or enable checkout creation. Keeping receipt independent permits outstanding checkouts to finish while creation is disabled. New checkouts explicitly request `card` and `blik`, in PLN, with automatic capture. BLIK is already enabled in the user's account; no account settings are changed by this code.
 
@@ -47,7 +47,7 @@ For a running Compose service:
 docker compose exec api python -m ecommerce_store_payments.infrastructure.persistence.mongodb.replay_webhooks --limit 100
 ```
 
-This is an operator recovery command, not a public unsigned endpoint. It reads only previously verified receipts, processes a bounded batch, makes no provider/Orders/Invoice calls, and exits nonzero on failure. It does not execute pending fulfillment. STRIPE/3 will provide durable fulfillment and its scheduled recovery trigger.
+This is an operator recovery command, not a public unsigned endpoint. It reads only previously verified receipts, processes a bounded batch, makes no provider/Orders/Invoice calls, and exits nonzero on failure. It does not execute pending fulfillment. STRIPE/3 provides durable fulfillment through its separate worker; scheduled Azure provisioning remains DEP/6.
 
 Applied success is monotonic within the reserved attempt. Expiry/failure after success is ignored; late success for the same attempt can recover failure. Old attempts are ignored after retry. Unknown events, unpaid completion and already-applied notifications are ignored; mismatched Money/order/session/payment IDs are rejected in the ledger without mutating Payments. Inspect reasons before manual reconciliation; do not delete state to force a second charge.
 
