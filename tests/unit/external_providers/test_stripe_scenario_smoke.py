@@ -63,7 +63,7 @@ def test_fixture_decline_is_explicit_but_not_silently_treated_as_success() -> No
     assert fixture["fixtures"][1]["params"]["card"]["token"] == "tok_visa_chargeDeclined"
     assert fixture["fixtures"][2]["expected_error_type"] == "card_error"
     assert "expected_error_type" not in scenario_fixtures("cs_test_fixture", "visa")["fixtures"][2]
-    assert "expected_error_type" not in scenario_fixtures("cs_test_fixture", "blik")["fixtures"][2]
+    assert scenario_fixtures("cs_test_fixture", "blik")["fixtures"][2]["expected_error_type"] == "invalid_request_error"
 
 
 @pytest.mark.parametrize(

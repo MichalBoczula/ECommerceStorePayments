@@ -58,6 +58,7 @@ def scenario_fixtures(session_id: str, method: Literal["visa", "decline", "blik"
         fixture["fixtures"][1]["params"]["card"]["token"] = "tok_visa_chargeDeclined"
         fixture["fixtures"][2]["expected_error_type"] = "card_error"
     elif method == "blik":
+        fixture["fixtures"][2]["expected_error_type"] = "invalid_request_error"
         fixture["fixtures"][1]["params"] = {
             "type": "blik",
             "billing_details": {"email": "sandbox-smoke@example.test", "name": "Sandbox Smoke Client"},
@@ -491,7 +492,11 @@ def main() -> int:
         print(f"Scenario failed: {error}", file=sys.stderr)
         return 1
     except stripe.StripeError as error:
-        print(f"Scenario provider failed: {type(error).__name__}; request_id={error.request_id}", file=sys.stderr)
+        code = error.code if error.code is not None and re.fullmatch(r"[a-z_]{1,80}", error.code) else "unavailable"
+        print(
+            f"Scenario provider failed: {type(error).__name__}; code={code}; request_id={error.request_id}",
+            file=sys.stderr,
+        )
         return 1
     except Exception as error:
         print(f"Scenario failed: {type(error).__name__}; private details suppressed.", file=sys.stderr)
