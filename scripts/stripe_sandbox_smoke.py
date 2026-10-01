@@ -3,6 +3,9 @@
 import json
 import os
 import sys
+from collections.abc import Generator
+from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from time import monotonic, sleep
@@ -16,6 +19,7 @@ from bson.decimal128 import Decimal128
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from pymongo import MongoClient
+from pymongo.database import Database
 from pymongo.errors import PyMongoError
 from testcontainers.core.container import DockerContainer
 from testcontainers.core.network import Network
@@ -39,7 +43,9 @@ def require_test_key(raw: str | None) -> SecretStr:
     return SecretStr(raw)
 
 
-def verify_session(session: stripe.checkout.Session, session_id: str, payment_id: UUID, order_id: UUID) -> str:
+def verify_session(
+    session: stripe.checkout.Session, session_id: str, payment_id: UUID, order_id: UUID, *, paid: bool = False
+) -> str:
     metadata = session.metadata
     if metadata is None:
         raise SmokeFailure("Stripe sandbox session has no attempt association.")
@@ -50,8 +56,8 @@ def verify_session(session: stripe.checkout.Session, session_id: str, payment_id
             and session.id.startswith("cs_test_")
             and session.livemode is False
             and session.mode == "payment"
-            and session.status == "open"
-            and session.payment_status == "unpaid"
+            and session.status == ("complete" if paid else "open")
+            and session.payment_status == ("paid" if paid else "unpaid")
             and session.amount_total == AMOUNT_MINOR
             and session.currency == "pln"
             and set(session.payment_method_types) == {"card", "blik"}
@@ -96,7 +102,7 @@ def seed_order(database: MongoClient[dict[str, Any]], database_name: str, order_
     def guid(value: UUID) -> Binary:
         return Binary.from_uuid(value, uuid_representation=UuidRepresentation.STANDARD)
 
-    product_version = uuid4()
+    product_version, client_id = uuid4(), uuid4()
     now = datetime.now(UTC)
     database[database_name]["product-versions"].insert_one(
         {
@@ -114,16 +120,32 @@ def seed_order(database: MongoClient[dict[str, Any]], database_name: str, order_
     database[database_name]["orders"].insert_one(
         {
             "_id": guid(order_id),
-            "ClientId": guid(uuid4()),
+            "ClientId": guid(client_id),
             "Lines": [{"ProductVersionId": guid(product_version), "Quantity": 1}],
             "CreatedAt": now,
             "UpdatedAt": None,
             "Status": 2,
         }
     )
+    database[database_name]["client-data-versions"].insert_one(
+        {
+            "_id": guid(uuid4()),
+            "ClientId": guid(client_id),
+            "ClientName": "Sandbox Smoke Client",
+            "PostalCode": "00-001",
+            "City": "Warsaw",
+            "Street": "Synthetic",
+            "BuildingNumber": "1",
+            "ApartmentNumber": "",
+            "PhoneNumber": "123456789",
+            "PhonePrefix": "+48",
+            "AddressEmail": "sandbox-smoke@example.test",
+            "CreatedAt": now,
+        }
+    )
 
 
-def checkout(api: TestClient, order_id: UUID) -> CheckoutResponse:
+def checkout(api: TestClient | httpx.Client, order_id: UUID) -> CheckoutResponse:
     response = api.post(f"/payments/{order_id}/checkout")
     if response.status_code != 200:
         raise SmokeFailure(f"Payments checkout returned HTTP {response.status_code}.")
@@ -194,7 +216,15 @@ def probe(settings: Settings, order_id: UUID) -> dict[str, object]:
     return evidence
 
 
-def run() -> dict[str, object]:
+@dataclass(frozen=True, slots=True)
+class Sandbox:
+    settings: Settings
+    order_id: UUID
+    invoice_database: Database[dict[str, Any]]
+
+
+@contextmanager
+def sandbox_environment() -> Generator[Sandbox]:
     secret = require_test_key(os.environ.get("PAYMENTS_STRIPE_SECRET_KEY"))
     provenance = json.loads((ROOT / "contracts/invoice/source.json").read_text())
     image = provenance["image"]
@@ -245,7 +275,12 @@ def run() -> dict[str, object]:
                         stripe_secret_key=secret,
                         stripe_timeout_seconds=15,
                     )
-                    return probe(settings, order_id)
+                    yield Sandbox(settings, order_id, database[invoice_database])
+
+
+def run() -> dict[str, object]:
+    with sandbox_environment() as sandbox:
+        return probe(sandbox.settings, sandbox.order_id)
 
 
 def main() -> int:

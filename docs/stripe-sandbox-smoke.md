@@ -27,6 +27,6 @@ The job summary reports only synthetic order/payment/attempt IDs, the `cs_test_.
 
 In the matching Stripe sandbox/test environment, search API logs for the session ID or the reported `req_...` identifiers. Expect Checkout Session creation, retrieval and expiration requests. The session ends Expired, not Paid; the Payments database is disposable, so the probe does not need a registered webhook endpoint.
 
-This closes the real-account **session creation/request** check in STRIPE/1. It does not establish card/BLIK payment completion, signed webhook delivery, Paid order or invoice fulfillment. Those remain the separate [account payment/webhook smoke](stripe-webhooks.md) and [fulfillment runbook](payment-fulfillment.md), plus the STRIPE/4 UI integration.
+This closes the real-account **session creation/request** check in STRIPE/1. For actual sandbox Visa payment, signed receipt, Paid order and completed PDF invoice, use the separate [card payment smoke](stripe-card-smoke.md). BLIK and browser/3DS checks remain in the [account payment/webhook runbook](stripe-webhooks.md), plus the STRIPE/4 UI integration.
 
 References: [create Checkout Session](https://docs.stripe.com/api/checkout/sessions/create), [expire Checkout Session](https://docs.stripe.com/api/checkout/sessions/expire), [request IDs](https://docs.stripe.com/api/request_ids).
