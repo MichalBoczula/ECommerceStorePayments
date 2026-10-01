@@ -1,6 +1,7 @@
 """Signed webhook -> durable worker -> real Orders/PDF API, including lost HTTP replies."""
 
 import asyncio
+import json
 from datetime import UTC, datetime, timedelta
 from time import monotonic, sleep
 from typing import Any
@@ -39,6 +40,10 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.pa
 from tests.integration.infrastructure.test_invoice_image_client import InvoiceMongo, wait_for_invoice_api
 from tests.webhook_fixtures import WEBHOOK_SECRET, encode, payload_for, signature
 
+INVOICE_IMAGE = (
+    "mb0101/ecommerce-store-invoice-api@sha256:09b24ae59f362ca73f6f7e0369a0e0b0814d78b17b7d86403c5b4a24612e4df4"
+)
+
 
 def guid(value: UUID) -> Binary:
     return Binary.from_uuid(value, uuid_representation=UuidRepresentation.STANDARD)
@@ -70,7 +75,7 @@ def test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_rep
                     raise RuntimeError("Invoice replica set did not elect a primary")
                 invoice_db = host_mongo[invoice_database]
                 with (
-                    DockerContainer("ecommerce-store-invoice:stripe3")
+                    DockerContainer(INVOICE_IMAGE)
                     .with_network(network)
                     .with_env(
                         "MongoDbSettings__ConnectionString", "mongodb://invoice-mongo:27017/?directConnection=true"
@@ -163,6 +168,7 @@ def test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_rep
                                             base_url=url, timeout=30, trust_env=False
                                         ) as actual:
                                             lost = False
+                                            responses: list[str] = []
 
                                             async def forward(request: httpx.Request) -> httpx.Response:
                                                 nonlocal lost
@@ -170,6 +176,10 @@ def test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_rep
                                                     lost = True
                                                     return httpx.Response(500)
                                                 response = await actual.send(request)
+                                                responses.append(
+                                                    f"{request.method} {request.url.path}: "
+                                                    f"{response.status_code} {response.text}"
+                                                )
                                                 if not lost and (
                                                     (mode == "lost_paid" and request.method == "PATCH")
                                                     or (mode == "lost_invoice" and request.method == "POST")
@@ -214,10 +224,11 @@ def test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_rep
                                                     )
                                                     assert await service.run_batch(100) == 1
                                                 work = await database.webhooks.find_one({"_id": f"evt_{mode}"})
-                                                assert work is not None and work["fulfillment_status"] == "completed", {
-                                                    "work": work,
-                                                    "invoice_logs": invoice.get_logs()[0].decode()[-10000:],
-                                                }
+                                                if work is None or work["fulfillment_status"] != "completed":
+                                                    print("Fulfillment work:", json.dumps(work, default=str))
+                                                    print("Invoice responses:", "\n".join(responses))
+                                                    print("Invoice logs:", invoice.get_logs()[0].decode()[-20000:])
+                                                assert work is not None and work["fulfillment_status"] == "completed"
                                                 assert work.get("fulfillment_client_data_version_id") == data_version
                                                 assert await service.run_batch(100) == 0
                                     finally:

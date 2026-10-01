@@ -4,7 +4,7 @@ A verified checkout success commits Succeeded Payment plus Pending fulfillment i
 
 ## Requirements and command
 
-Use the same MongoDB replica-set database as the Payments API, and `PAYMENTS_ORDERS_API_BASE_URL` pointing to the Invoice service with [PR #217](https://github.com/MichalBoczula/ECommerceStoreInvoice/pull/217). Invoice must have the client's data version; it selects that version and owns PDF generation/lease recovery. Previously verified receipts need neither `sk_test_...` nor `whsec_...` to replay. New HTTP webhook delivery still needs the signing secret.
+Use the same MongoDB replica-set database as the Payments API, and `PAYMENTS_ORDERS_API_BASE_URL` pointing to the Invoice service including merged [PR #217](https://github.com/MichalBoczula/ECommerceStoreInvoice/pull/217). Invoice must have the client's data version; it selects that version and owns PDF generation/lease recovery. Previously verified receipts need neither `sk_test_...` nor `whsec_...` to replay. New HTTP webhook delivery still needs the signing secret.
 
 ```bash
 uv run --locked python -m ecommerce_store_payments.infrastructure.persistence.mongodb.fulfill_payments --limit 100
@@ -45,12 +45,11 @@ Initial settings: UTC cron `*/5 * * * *`, parallelism 1, completion count 1, rep
 
 ## Verification and account smoke
 
-Ordinary CI uses controlled Stripe boundary fixtures and real MongoDB. The Infrastructure suite builds the exact Invoice source revision, runs its real API/PDF container and checks signed webhook → Paid → one completed invoice across normal execution, lost Paid reply, lost invoice reply and a transient injected invoice error. Invoice's own acceptance tests cover its generation failures/leases. No real Stripe credentials enter CI.
+Ordinary CI uses controlled Stripe boundary fixtures and real MongoDB. The Infrastructure suite pulls the scanned, published Invoice image by immutable digest (provenance in `contracts/invoice/source.json`), runs its real API/PDF container and checks signed webhook → Paid → one completed invoice across normal execution, lost Paid reply, lost invoice reply and a transient injected invoice error. Invoice's own acceptance tests cover its generation failures/leases. No real Stripe credentials enter CI.
 
 For local focused container checks:
 
 ```bash
-bash scripts/prepare_fulfillment_image.sh
 uv run --locked pytest tests/integration/infrastructure/test_mongo_fulfillment.py tests/integration/infrastructure/test_real_invoice_fulfillment.py
 ```
 

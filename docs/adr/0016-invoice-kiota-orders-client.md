@@ -17,7 +17,7 @@ The generated client lives in Infrastructure. `HttpOrderReader` uses its request
 
 An Infrastructure integration test pulls the pinned Invoice image, starts an isolated MongoDB replica set, seeds an actual order and product snapshot, compares the served Orders schema to the pinned snapshot and calls the image through Kiota. It also checks the missing-order response. Unit/acceptance boundary tests continue to exercise malformed and adverse responses with controlled transports.
 
-STRIPE/3 expands this same generated client to status PATCH, invoice creation and invoice lookup by order. The new complete snapshot is generated from Invoice PR #217; [ADR-0022](0022-durable-order-invoice-fulfillment.md) records its source revision and fulfillment ports. The original published-image Orders read check remains, and a source-pinned Invoice container exercises the new operations.
+STRIPE/3 expands this same generated client to status PATCH, invoice creation and invoice lookup by order. The new complete snapshot is generated from Invoice PR #217; [ADR-0022](0022-durable-order-invoice-fulfillment.md) records its source revision and fulfillment ports. The original published-image Orders read check remains, and the scanned, published STRIPE/3 Invoice image pinned by digest exercises the new operations.
 
 ## Consequences
 

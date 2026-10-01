@@ -47,8 +47,6 @@ SUITES = {
 
 def run(name: str) -> int:
     suite = SUITES[name]
-    if name == "infrastructure":
-        subprocess.run(["bash", "scripts/prepare_fulfillment_image.sh"], cwd=ROOT, check=True)
     destination = RESULTS / name
     if destination.exists():
         shutil.rmtree(destination)  # stale reports cannot satisfy a failed run
