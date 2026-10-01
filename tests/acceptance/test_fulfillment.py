@@ -1,14 +1,19 @@
 import asyncio
 from datetime import UTC, datetime
 
-from pytest_bdd import given, scenarios, then, when
+from pytest_bdd import given, parsers, scenarios, then, when
 
 from ecommerce_store_payments.infrastructure.persistence.mongodb.fulfill_payments import run
 from tests.acceptance.conftest import AcceptanceContext
-from tests.acceptance.test_api import matches_matrix as matches_matrix
+from tests.acceptance.test_api import matches_matrix
 from tests.webhook_fixtures import encode, signature
 
 scenarios("features/fulfillment.feature")
+
+
+@then(parsers.parse('the response matches case "{case_id}"'))
+def matches_fulfillment_case(acceptance: AcceptanceContext, case_id: str) -> None:
+    matches_matrix(acceptance, case_id)
 
 
 @given('a verified successful checkout with fulfillment mode "ok"')

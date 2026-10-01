@@ -76,6 +76,7 @@ def test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_rep
                         "MongoDbSettings__ConnectionString", "mongodb://invoice-mongo:27017/?directConnection=true"
                     )
                     .with_env("MongoDbSettings__DatabaseName", invoice_database)
+                    .with_env("Serilog__WriteTo__0__Name", "Console")
                     .with_exposed_ports(8080)
                 ) as invoice:
                     url = f"http://{invoice.get_container_host_ip()}:{invoice.get_exposed_port(8080)}"
@@ -213,7 +214,10 @@ def test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_rep
                                                     )
                                                     assert await service.run_batch(100) == 1
                                                 work = await database.webhooks.find_one({"_id": f"evt_{mode}"})
-                                                assert work is not None and work["fulfillment_status"] == "completed"
+                                                assert work is not None and work["fulfillment_status"] == "completed", {
+                                                    "work": work,
+                                                    "invoice_logs": invoice.get_logs()[0].decode()[-10000:],
+                                                }
                                                 assert work.get("fulfillment_client_data_version_id") == data_version
                                                 assert await service.run_batch(100) == 0
                                     finally:
