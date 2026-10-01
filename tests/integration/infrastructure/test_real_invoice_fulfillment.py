@@ -44,8 +44,8 @@ INVOICE_IMAGE = (
     "mb0101/ecommerce-store-invoice-api@sha256:09b24ae59f362ca73f6f7e0369a0e0b0814d78b17b7d86403c5b4a24612e4df4"
 )
 
-# Cold browser initialization belongs inside the worker's 120-second attempt deadline.
-REQUEST_TIMEOUT_SECONDS = 90
+# Preserve the maximum supported downstream timeout through both HTTP clients.
+REQUEST_TIMEOUT_SECONDS = 30
 
 
 def guid(value: UUID) -> Binary:
