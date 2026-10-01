@@ -492,6 +492,16 @@ def main() -> int:
         print(f"Scenario failed: {error}", file=sys.stderr)
         return 1
     except stripe.StripeError as error:
+        private_message = str(error).lower()
+        reasons = {
+            "mentions_checkout": "checkout" in private_message,
+            "mentions_confirmation": "confirm" in private_message,
+            "mentions_publishable_key": "publishable" in private_message,
+            "mentions_blik_code": "blik" in private_message and "code" in private_message,
+            "mentions_client_secret": "client_secret" in private_message,
+            "mentions_not_allowed": any(value in private_message for value in ("cannot", "can't", "not allowed", "not supported")),
+        }
+        print("Safe provider reason flags: " + json.dumps(reasons), file=sys.stderr)
         code = error.code if error.code is not None and re.fullmatch(r"[a-z_]{1,80}", error.code) else "unavailable"
         print(
             f"Scenario provider failed: {type(error).__name__}; code={code}; request_id={error.request_id}",
