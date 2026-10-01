@@ -16,6 +16,8 @@ Compose forwards `PAYMENTS_STRIPE_WEBHOOK_SECRET` from your ignored `.env` or sh
 
 ## CLI and real-account card/BLIK smoke
 
+The separate [automated sandbox card smoke](stripe-card-smoke.md) pays the Payments-created session with Stripe CLI's Visa fixture, receives the actual signed account event, runs fulfillment and verifies duplicate delivery. It uses the listener's ephemeral signing secret privately. The manual steps below cover browser UI, BLIK and deployed endpoint delivery.
+
 1. Run the portfolio stack with a reachable Payments URL and a Created PLN order. Follow [checkout setup](stripe-checkout.md). With Compose's random port, find it using `docker compose port api 8080`; substitute the printed port below.
 2. Run `stripe login`, then forward the four subscribed snapshot events:
 

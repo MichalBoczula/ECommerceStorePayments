@@ -1,0 +1,49 @@
+name: Stripe sandbox card smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/workflows/stripe-card-smoke.yml
+      - scripts/stripe_card_smoke.py
+      - scripts/stripe_sandbox_smoke.py
+      - tests/unit/external_providers/test_stripe_card_smoke.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stripe-card-smoke-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sandbox-card:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.user.login == github.repository_owner)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.18"
+          enable-cache: true
+      - name: Install pinned Python and locked dependencies
+        run: |
+          uv python install
+          bash scripts/ci.sh sync
+      - name: Install verified Stripe CLI 1.53.0
+        run: |
+          curl --fail --location --retry 2 --output "$RUNNER_TEMP/stripe.tar.gz" https://github.com/stripe/stripe-cli/releases/download/v1.53.0/stripe_1.53.0_linux_x86_64.tar.gz
+          echo "a12205df4aecb18153b8b3f76d5029386b1e94944d559900f9082ca489a8521b  $RUNNER_TEMP/stripe.tar.gz" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/stripe-cli"
+          tar -xzf "$RUNNER_TEMP/stripe.tar.gz" -C "$RUNNER_TEMP/stripe-cli" stripe
+          echo "$RUNNER_TEMP/stripe-cli" >> "$GITHUB_PATH"
+      - name: Pay with sandbox Visa and verify signed delivery and fulfillment
+        env:
+          PAYMENTS_STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET }}
+        run: uv run --no-sync python -m scripts.stripe_card_smoke

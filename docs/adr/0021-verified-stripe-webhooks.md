@@ -28,6 +28,8 @@ Success establishes authoritative Payment state and durable fulfillment intent, 
 
 Use the same webhook URL, API version and signing secret for a given endpoint; CLI and Dashboard signing secrets differ. An API key or enabled Dashboard payment method alone does not configure webhook delivery. Hosted Checkout requires no frontend publishable key in this flow. Real card/BLIK test-account smoke evidence remains separate from deterministic CI fixtures.
 
+The separate sandbox card workflow uses a checksum-pinned Stripe CLI and its Checkout completion fixture on the session created by Payments. The actual account event is forwarded with the listener's ephemeral signing secret; the probe verifies receipt, runs the durable worker against the published Invoice image and replays the original signed delivery to check idempotence. Ordinary CI retains controlled boundaries. BLIK, hosted browser/3DS and deployed Dashboard endpoint checks remain separate.
+
 ## Alternatives considered
 
 - Marking IDs processed before work: rejected because a crash would suppress unprocessed events.

@@ -45,6 +45,8 @@ Initial settings: UTC cron `*/5 * * * *`, parallelism 1, completion count 1, rep
 
 ## Verification and account smoke
 
+The separate [sandbox card payment workflow](stripe-card-smoke.md) connects a real Visa test payment and CLI-signed account delivery to this production worker and the published Invoice PDF API. It verifies Paid, one completed invoice and unchanged state on duplicate delivery. Its account credentials stay separate from ordinary CI.
+
 Ordinary CI uses controlled Stripe boundary fixtures and real MongoDB. The Infrastructure suite pulls the scanned, published Invoice image by immutable digest (provenance in `contracts/invoice/source.json`), runs its real API/PDF container and checks signed webhook → Paid → one completed invoice across normal execution, lost Paid reply, lost invoice reply and a transient injected invoice error. Invoice's own acceptance tests cover its generation failures/leases. No real Stripe credentials enter CI.
 
 For local focused container checks:
