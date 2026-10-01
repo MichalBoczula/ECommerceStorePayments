@@ -38,12 +38,24 @@ from scripts.stripe_sandbox_smoke import (
     Sandbox,
     SmokeFailure,
     checkout,
+    require_test_key,
     sandbox_environment,
     verify_session,
 )
 
-Scenario = Literal["blik", "decline-retry", "expiry", "webhook-retry", "3ds-success", "3ds-failure", "3ds-cancel"]
-SCENARIOS = ("blik", "decline-retry", "expiry", "webhook-retry", "3ds-success", "3ds-failure", "3ds-cancel")
+Scenario = Literal[
+    "blik-provider", "blik", "decline-retry", "expiry", "webhook-retry", "3ds-success", "3ds-failure", "3ds-cancel"
+]
+SCENARIOS = (
+    "blik-provider",
+    "blik",
+    "decline-retry",
+    "expiry",
+    "webhook-retry",
+    "3ds-success",
+    "3ds-failure",
+    "3ds-cancel",
+)
 EVENTS = (
     "checkout.session.completed",
     "checkout.session.async_payment_succeeded",
@@ -52,23 +64,17 @@ EVENTS = (
 )
 
 
-def scenario_fixtures(session_id: str, method: Literal["visa", "decline", "blik"]) -> dict[str, Any]:
+def scenario_fixtures(session_id: str, method: Literal["visa", "decline"]) -> dict[str, Any]:
     fixture = cast(dict[str, Any], card_fixtures(session_id))
     if method == "decline":
         fixture["fixtures"][1]["params"]["card"]["token"] = "tok_visa_chargeDeclined"
         fixture["fixtures"][2]["expected_error_type"] = "card_error"
-    elif method == "blik":
-        fixture["fixtures"][2]["expected_error_type"] = "invalid_request_error"
-        fixture["fixtures"][1]["params"] = {
-            "type": "blik",
-            "billing_details": {"email": "sandbox-smoke@example.test", "name": "Sandbox Smoke Client"},
-        }
     elif method != "visa":
         raise SmokeFailure("Unsupported sandbox fixture method.")
     return fixture
 
 
-def confirm(session_id: str, secret: SecretStr, method: Literal["visa", "decline", "blik"]) -> None:
+def confirm(session_id: str, secret: SecretStr, method: Literal["visa", "decline"]) -> None:
     fixture = scenario_fixtures(session_id, method)
     with TemporaryDirectory(prefix="stripe-scenario-") as directory:
         path = Path(directory) / "fixture.json"
@@ -306,9 +312,13 @@ def await_delivery(recorder: DeliveryRecorder, event_types: tuple[str, ...]) -> 
 
 def guided_challenge(session: stripe.checkout.Session, scenario: Scenario) -> None:
     if not sys.stdin.isatty() or not sys.stdout.isatty() or session.livemode is not False or not session.url:
-        raise SmokeFailure("Guided 3DS requires a private interactive terminal and a sandbox Checkout URL.")
+        raise SmokeFailure("Guided Checkout requires a private interactive terminal and a sandbox Checkout URL.")
     print("Open this sandbox Checkout in your browser (the URL is shown only in this interactive terminal):")
     print(session.url)
+    if scenario == "blik":
+        print("Choose BLIK, use sandbox code 000000 and synthetic billing email sandbox-smoke@example.test.")
+        input("Complete the sandbox bank approval/payment, then return here and press Enter. ")
+        return
     print("Use card 4000 0000 0000 3220, any future expiry, any three-digit CVC, and synthetic billing details.")
     action = {"3ds-success": "Complete", "3ds-failure": "Fail", "3ds-cancel": "Cancel/close"}[scenario]
     input(f"{action} the Stripe test 3DS challenge, then return here and press Enter. ")
@@ -411,20 +421,10 @@ def probe(sandbox: Sandbox, scenario: Scenario) -> dict[str, object]:
                                 evidence.update(unpaid_order_status="Created", unpaid_invoice_count=0)
                                 confirm(session_id, settings.stripe_secret_key, "visa")
                                 evidence.update(retry_after_authentication=True)
+                        elif scenario == "blik":
+                            guided_challenge(original, scenario)
                         else:
-                            confirm(session_id, settings.stripe_secret_key, "blik" if scenario == "blik" else "visa")
-                        if scenario == "blik":
-                            blik_intent = find_intent(provider, payment_id, since)
-                            if (
-                                blik_intent.livemode is not False
-                                or blik_intent.amount != AMOUNT_MINOR
-                                or blik_intent.currency != "pln"
-                            ):
-                                raise SmokeFailure("BLIK confirmation encountered an unexpected PaymentIntent.")
-                            if blik_intent.status != "succeeded":
-                                provider.v1.payment_intents.confirm(
-                                    blik_intent.id, {"payment_method_options": {"blik": {"code": "000000"}}}
-                                )
+                            confirm(session_id, settings.stripe_secret_key, "visa")
                         if scenario == "webhook-retry":
                             assert isinstance(recorder, ScenarioRecorder)
                             try:
@@ -478,30 +478,69 @@ def probe(sandbox: Sandbox, scenario: Scenario) -> dict[str, object]:
     return evidence
 
 
+def provider_blik_probe(secret: SecretStr) -> dict[str, object]:
+    """Documented BLIK direct API probe, explicitly separate from hosted Checkout fulfillment."""
+    secret = require_test_key(secret.get_secret_value())
+    provider = stripe.StripeClient(
+        secret.get_secret_value(),
+        stripe_version=STRIPE_API_VERSION,
+        http_client=stripe.RequestsClient(timeout=15),
+        max_network_retries=1,
+    )
+    intent = provider.v1.payment_intents.create(
+        {
+            "amount": AMOUNT_MINOR,
+            "currency": "pln",
+            "payment_method_types": ["blik"],
+            "payment_method_data": {"type": "blik", "billing_details": {"email": "sandbox-smoke@example.test"}},
+            "payment_method_options": {"blik": {"code": "000000"}},
+            "confirm": True,
+            "metadata": {"probe": "payments-blik-provider-only"},
+        }
+    )
+    deadline = monotonic() + 90
+    while monotonic() < deadline:
+        intent = provider.v1.payment_intents.retrieve(intent.id, {"expand": ["latest_charge"]})
+        if intent.status == "succeeded":
+            break
+        if intent.livemode is not False or intent.status not in {"processing", "requires_action"}:
+            raise SmokeFailure("BLIK provider probe did not establish the expected authorization state.")
+        sleep(1)
+    charge_id = verify_blik(intent)
+    return {
+        "scenario": "blik-provider",
+        "verification_scope": "Stripe BLIK API only; no Payments fulfillment claim",
+        "livemode": False,
+        "amount_minor": AMOUNT_MINOR,
+        "currency": "pln",
+        "payment_method": "blik",
+        "payment_intent_id": intent.id,
+        "charge_id": charge_id,
+        "provider_status": "succeeded",
+        "intent_request_id": intent.last_response.request_id if intent.last_response else None,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("scenario", choices=SCENARIOS)
     scenario = cast(Scenario, parser.parse_args().scenario)
-    if scenario.startswith("3ds-") and (not sys.stdin.isatty() or not sys.stdout.isatty()):
-        print("Guided 3DS scenarios require a private interactive terminal; no account requests made.", file=sys.stderr)
+    if (scenario.startswith("3ds-") or scenario == "blik") and (not sys.stdin.isatty() or not sys.stdout.isatty()):
+        print(
+            "Guided Checkout scenarios require a private interactive terminal; no account requests made.",
+            file=sys.stderr,
+        )
         return 1
     try:
-        with sandbox_environment() as sandbox:
-            evidence = probe(sandbox, scenario)
+        if scenario == "blik-provider":
+            evidence = provider_blik_probe(require_test_key(os.environ.get("PAYMENTS_STRIPE_SECRET_KEY", "")))
+        else:
+            with sandbox_environment() as sandbox:
+                evidence = probe(sandbox, scenario)
     except SmokeFailure as error:
         print(f"Scenario failed: {error}", file=sys.stderr)
         return 1
     except stripe.StripeError as error:
-        private_message = str(error).lower()
-        reasons = {
-            "mentions_checkout": "checkout" in private_message,
-            "mentions_confirmation": "confirm" in private_message,
-            "mentions_publishable_key": "publishable" in private_message,
-            "mentions_blik_code": "blik" in private_message and "code" in private_message,
-            "mentions_client_secret": "client_secret" in private_message,
-            "mentions_not_allowed": any(value in private_message for value in ("cannot", "can't", "not allowed", "not supported")),
-        }
-        print("Safe provider reason flags: " + json.dumps(reasons), file=sys.stderr)
         code = error.code if error.code is not None and re.fullmatch(r"[a-z_]{1,80}", error.code) else "unavailable"
         print(
             f"Scenario provider failed: {type(error).__name__}; code={code}; request_id={error.request_id}",

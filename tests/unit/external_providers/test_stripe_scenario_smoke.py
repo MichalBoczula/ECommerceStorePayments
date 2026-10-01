@@ -3,11 +3,13 @@ from uuid import uuid4
 
 import pytest
 import stripe
+from pydantic import SecretStr
 from scripts.stripe_sandbox_smoke import AMOUNT_MINOR, SmokeFailure
 from scripts.stripe_scenario_smoke import (
     ScenarioRecorder,
     guided_challenge,
     matches_payment,
+    provider_blik_probe,
     scenario_fixtures,
     verify_blik,
     verify_decline,
@@ -51,11 +53,11 @@ def successful_payload(method: str) -> dict[str, Any]:
     return payload
 
 
-@pytest.mark.parametrize("method", ["visa", "decline", "blik"])
+@pytest.mark.parametrize("method", ["visa", "decline"])
 @pytest.mark.parametrize("session_id", ["cs_live_fixture", "cs_test_", "cs_test_x/confirm"])
 def test_scenario_fixtures_reject_non_sandbox_sessions(method: str, session_id: str) -> None:
     with pytest.raises(SmokeFailure):
-        scenario_fixtures(session_id, cast(Literal["visa", "decline", "blik"], method))
+        scenario_fixtures(session_id, cast(Literal["visa", "decline"], method))
 
 
 def test_fixture_decline_is_explicit_but_not_silently_treated_as_success() -> None:
@@ -63,7 +65,8 @@ def test_fixture_decline_is_explicit_but_not_silently_treated_as_success() -> No
     assert fixture["fixtures"][1]["params"]["card"]["token"] == "tok_visa_chargeDeclined"
     assert fixture["fixtures"][2]["expected_error_type"] == "card_error"
     assert "expected_error_type" not in scenario_fixtures("cs_test_fixture", "visa")["fixtures"][2]
-    assert scenario_fixtures("cs_test_fixture", "blik")["fixtures"][2]["expected_error_type"] == "invalid_request_error"
+    with pytest.raises(SmokeFailure):
+        scenario_fixtures("cs_test_fixture", cast(Literal["visa", "decline"], "blik"))
 
 
 @pytest.mark.parametrize(
@@ -200,3 +203,15 @@ def test_intent_lookup_ignores_other_account_metadata() -> None:
     assert not matches_payment(stripe.PaymentIntent.construct_from(payload, "sk_test_fixture"), payment_id)
     payload["metadata"] = {"payment_id": str(payment_id)}
     assert matches_payment(stripe.PaymentIntent.construct_from(payload, "sk_test_fixture"), payment_id)
+
+
+@pytest.mark.parametrize("key", ["", "sk_live_fixture", "pk_test_fixture", "sk_test_ short"])
+def test_provider_only_probe_guards_key_before_creating_stripe_client(
+    key: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def forbidden_client(*args: object, **kwargs: object) -> None:
+        raise AssertionError("Unsafe key reached Stripe client construction")
+
+    monkeypatch.setattr(stripe, "StripeClient", forbidden_client)
+    with pytest.raises(SmokeFailure):
+        provider_blik_probe(SecretStr(key))

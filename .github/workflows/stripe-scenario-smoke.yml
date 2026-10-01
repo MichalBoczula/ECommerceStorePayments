@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       max-parallel: 2
       matrix:
-        scenario: [blik]
+        scenario: [blik-provider, decline-retry, expiry, webhook-retry]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -53,7 +53,7 @@ jobs:
           tar -xzf "$RUNNER_TEMP/stripe.tar.gz" -C "$RUNNER_TEMP/stripe-cli" stripe
           echo "$RUNNER_TEMP/stripe-cli" >> "$GITHUB_PATH"
       - name: Verify real sandbox scenario
-        # Each matrix job owns a disposable order, database, server, and CLI subscription.
+        # Hosted scenarios own isolated disposable data; BLIK provider probe uses the documented direct API.
         env:
           PAYMENTS_STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET }}
         run: uv run --no-sync python -m scripts.stripe_scenario_smoke "${{ matrix.scenario }}"
