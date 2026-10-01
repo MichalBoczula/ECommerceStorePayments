@@ -44,6 +44,9 @@ INVOICE_IMAGE = (
     "mb0101/ecommerce-store-invoice-api@sha256:09b24ae59f362ca73f6f7e0369a0e0b0814d78b17b7d86403c5b4a24612e4df4"
 )
 
+# Cold browser initialization belongs inside the worker's 120-second attempt deadline.
+REQUEST_TIMEOUT_SECONDS = 90
+
 
 def guid(value: UUID) -> Binary:
     return Binary.from_uuid(value, uuid_representation=UuidRepresentation.STANDARD)
@@ -133,7 +136,7 @@ def test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_rep
                             mongodb_connection_string=mongo_url,
                             mongodb_database_name=f"fulfillment_payments_{uuid4().hex}",
                             orders_api_base_url=url,
-                            orders_api_timeout_seconds=30,
+                            orders_api_timeout_seconds=REQUEST_TIMEOUT_SECONDS,
                             stripe_webhook_secret=SecretStr(WEBHOOK_SECRET),
                         )
 
@@ -165,7 +168,7 @@ def test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_rep
                                     database = MongoDatabase(settings)
                                     try:
                                         async with httpx.AsyncClient(
-                                            base_url=url, timeout=30, trust_env=False
+                                            base_url=url, timeout=REQUEST_TIMEOUT_SECONDS, trust_env=False
                                         ) as actual:
                                             lost = False
                                             responses: list[str] = []
@@ -191,7 +194,9 @@ def test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_rep
                                                 return response
 
                                             async with httpx.AsyncClient(
-                                                base_url=url, transport=httpx.MockTransport(forward)
+                                                base_url=url,
+                                                timeout=REQUEST_TIMEOUT_SECONDS,
+                                                transport=httpx.MockTransport(forward),
                                             ) as transport:
                                                 client = OrdersClient(
                                                     OrdersRequestAdapter(
