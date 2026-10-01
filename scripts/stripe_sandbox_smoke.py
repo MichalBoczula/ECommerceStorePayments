@@ -66,16 +66,17 @@ def verify_session(session: stripe.checkout.Session, session_id: str, payment_id
     return str(attempt_id)
 
 
-def wait_for_primary(database: MongoClient[dict[str, Any]]) -> None:
+def wait_for_mongo(database: MongoClient[dict[str, Any]], *, primary: bool) -> None:
     deadline = monotonic() + 30
     while monotonic() < deadline:
         try:
-            if database.admin.command("hello").get("isWritablePrimary"):
+            hello = database.admin.command("hello")
+            if not primary or hello.get("isWritablePrimary"):
                 return
         except PyMongoError:
             pass
         sleep(0.25)
-    raise SmokeFailure("Smoke MongoDB did not elect a primary.")
+    raise SmokeFailure("Smoke MongoDB did not become ready or elect a primary.")
 
 
 def wait_for_invoice(base_url: str) -> None:
@@ -210,14 +211,20 @@ def run() -> dict[str, object]:
             .with_network_aliases("smoke-mongo")
             .with_exposed_ports(27017)
         ) as mongo:
-            initiated = mongo.exec(
-                ["mongosh", "--quiet", "--eval", "rs.initiate({_id:'rs0',members:[{_id:0,host:'smoke-mongo:27017'}]})"]
-            )
-            if initiated.exit_code != 0:
-                raise SmokeFailure("Smoke replica-set initialization failed.")
             uri = f"mongodb://{mongo.get_container_host_ip()}:{mongo.get_exposed_port(27017)}/?directConnection=true"
             with MongoClient[dict[str, Any]](uri, serverSelectionTimeoutMS=1000) as database:
-                wait_for_primary(database)
+                wait_for_mongo(database, primary=False)
+                initiated = mongo.exec(
+                    [
+                        "mongosh",
+                        "--quiet",
+                        "--eval",
+                        "rs.initiate({_id:'rs0',members:[{_id:0,host:'smoke-mongo:27017'}]})",
+                    ]
+                )
+                if initiated.exit_code != 0:
+                    raise SmokeFailure("Smoke replica-set initialization failed.")
+                wait_for_mongo(database, primary=True)
                 seed_order(database, invoice_database, order_id)
                 with (
                     DockerContainer(image)
