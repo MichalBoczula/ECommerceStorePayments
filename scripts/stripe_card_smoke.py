@@ -7,7 +7,7 @@ import re
 import socket
 import subprocess
 import sys
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -78,8 +78,9 @@ class Delivery:
 class DeliveryRecorder:
     """Pass ASGI messages unchanged; retain only our acknowledged delivery in memory for replay."""
 
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: ASGIApp, event_types: tuple[str, ...] = ("checkout.session.completed",)) -> None:
         self.app = app
+        self.event_types = event_types
         self.session_id: str | None = None
         self.deliveries: Queue[Delivery] = Queue(maxsize=1)
 
@@ -112,7 +113,7 @@ class DeliveryRecorder:
             return
         try:
             event = json.loads(body)
-            if event["type"] != "checkout.session.completed" or event["data"]["object"]["id"] != self.session_id:
+            if event["type"] not in self.event_types or event["data"]["object"]["id"] != self.session_id:
                 return
             signature = next(value.decode() for key, value in scope["headers"] if key == b"stripe-signature")
             self.deliveries.put_nowait(Delivery(event["id"], bytes(body), signature))
@@ -121,7 +122,9 @@ class DeliveryRecorder:
 
 
 @contextmanager
-def stripe_listener(base_url: str, secret: SecretStr) -> Generator[SecretStr]:
+def stripe_listener(
+    base_url: str, secret: SecretStr, events: tuple[str, ...] = ("checkout.session.completed",)
+) -> Generator[SecretStr]:
     # Credentials stay in the child's environment, never command arguments or printed CLI output.
     process = subprocess.Popen(
         [
@@ -131,7 +134,7 @@ def stripe_listener(base_url: str, secret: SecretStr) -> Generator[SecretStr]:
             "--events-from",
             "@self",
             "--events",
-            "checkout.session.completed",
+            ",".join(events),
             "--forward-to",
             f"{base_url}/payments/webhooks/stripe",
         ],
@@ -179,8 +182,12 @@ def stripe_listener(base_url: str, secret: SecretStr) -> Generator[SecretStr]:
 
 
 @contextmanager
-def payments_server(settings: Settings, listener_socket: socket.socket) -> Generator[DeliveryRecorder]:
-    recorder = DeliveryRecorder(create_app(settings))
+def payments_server(
+    settings: Settings,
+    listener_socket: socket.socket,
+    recorder_factory: Callable[[ASGIApp], DeliveryRecorder] = DeliveryRecorder,
+) -> Generator[DeliveryRecorder]:
+    recorder = recorder_factory(create_app(settings))
     server = uvicorn.Server(uvicorn.Config(recorder, log_config=None, access_log=False, log_level="critical"))
     thread = Thread(target=lambda: server.run(sockets=[listener_socket]), daemon=True)
     thread.start()
