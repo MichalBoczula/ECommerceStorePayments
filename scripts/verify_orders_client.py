@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate the pinned Invoice GET /orders/{orderId} Kiota client."""
+"""Regenerate the pinned Invoice Orders/fulfillment Kiota client."""
 
 import argparse
 import hashlib
@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = ROOT / "contracts/invoice/openapi.json"
 OUTPUT = ROOT / "src/ecommerce_store_payments/infrastructure/clients/orders/generated"
-CONTRACT_SHA256 = "d708b5b186de6264d6530fd0cbff69f673802725007e20972e562fbf7b9ebc73"
+CONTRACT_SHA256 = "bd405d523d5a4d4ef9145e41a670fe880885fef1a72b64198501f838660b028a"
 KIOTA_VERSION = "1.34.1"
 
 
@@ -22,6 +22,13 @@ def check_contract() -> None:
     operation = contract["paths"]["/orders/{orderId}"]["get"]
     if operation["operationId"] != "GetOrderById":
         raise ValueError("Invoice Orders operation changed.")
+    for path, verb, operation_id in (
+        ("/orders/{orderId}/status", "patch", "UpdateOrderStatus"),
+        ("/invoices/{clientId}/{orderId}", "post", "CreateInvoiceForOrder"),
+        ("/invoices/by-order/{orderId}", "get", "GetInvoiceByOrderId"),
+    ):
+        if contract["paths"][path][verb]["operationId"] != operation_id:
+            raise ValueError("Invoice fulfillment operation changed.")
     for schema, property_name in (
         ("OrderResponseDto", "totalAmount"),
         ("OrderLineResponseDto", "lineTotalAmount"),
@@ -68,6 +75,12 @@ def run(kiota: Path, check: bool) -> None:
                 str(generated),
                 "--include-path",
                 "/orders/{orderId}#GET",
+                "--include-path",
+                "/orders/{orderId}/status#PATCH",
+                "--include-path",
+                "/invoices/{clientId}/{orderId}#POST",
+                "--include-path",
+                "/invoices/by-order/{orderId}#GET",
             ],
             cwd=ROOT,
             check=True,

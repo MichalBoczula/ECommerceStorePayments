@@ -29,7 +29,7 @@ INVOICE_IMAGE = (
 )
 
 
-class _InvoiceMongo(MongoDbContainer):
+class InvoiceMongo(MongoDbContainer):
     def _configure(self) -> None:
         self.with_command(["mongod", "--replSet", "rs0", "--bind_ip_all"])
 
@@ -37,7 +37,7 @@ class _InvoiceMongo(MongoDbContainer):
         return f"mongodb://{self.get_container_host_ip()}:{self.get_exposed_port(27017)}/?directConnection=true"
 
 
-def _wait_for_api(base_url: str) -> None:
+def wait_for_invoice_api(base_url: str) -> None:
     deadline = monotonic() + 90
     while monotonic() < deadline:
         try:
@@ -53,7 +53,7 @@ def test_published_invoice_order_contract_and_kiota_client() -> None:
     order_id, client_id, version_id, product_id = (uuid4() for _ in range(4))
     database_name = f"payments_invoice_contract_{uuid4().hex}"
     with Network() as network:
-        with _InvoiceMongo("mongo:8.0").with_network(network).with_network_aliases("invoice-mongo") as mongo:
+        with InvoiceMongo("mongo:8.0").with_network(network).with_network_aliases("invoice-mongo") as mongo:
             result = mongo.exec(
                 [
                     "mongosh",
@@ -115,7 +115,7 @@ def test_published_invoice_order_contract_and_kiota_client() -> None:
                     .with_exposed_ports(8080)
                 ) as invoice:
                     base_url = f"http://{invoice.get_container_host_ip()}:{invoice.get_exposed_port(8080)}"
-                    _wait_for_api(base_url)
+                    wait_for_invoice_api(base_url)
                     published = httpx.get(f"{base_url}/swagger/v1/swagger.json", timeout=10).json()
                     pinned = json.loads(
                         (Path(__file__).resolve().parents[3] / "contracts/invoice/openapi.json").read_text()

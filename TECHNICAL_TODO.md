@@ -49,8 +49,8 @@ This tracks the Payments work compared with the reference practices in ECommerce
 ## Later functional stage
 
 - [ ] **STRIPE/1 — Provider session/intent.** Separate hosted test checkout endpoint, durable attempt reservation, pinned SDK/API, provider IDs, retries and boundary/container tests are merged in PR #25 with green full CI; real-account test-mode checkout smoke remains open. See ADR-0020 and docs/stripe-checkout.md.
-- [ ] **STRIPE/2 — Verified webhook.** Original-byte SDK signature validation, normalized durable receipts, atomic payment/history/fulfillment marker, ordering/retries, bounded replay and card/BLIK checkout migration are implemented. Close after full PR CI and the real-account card/BLIK webhook smoke check. See ADR-0021 and docs/stripe-webhooks.md.
-- [ ] **STRIPE/3 — Orders and invoice completion.** Durable progress and retry for the MVP HTTP callback after successful payment; prevent double update/invoice. Event transport can follow later.
+- [ ] **STRIPE/2 — Verified webhook.** Original-byte SDK signature validation, normalized durable receipts, atomic payment/history/fulfillment marker, ordering/retries, bounded replay and card/BLIK checkout migration are implemented. Merged in PR #26 with green full CI; the real-account card/BLIK webhook smoke check remains open. See ADR-0021 and docs/stripe-webhooks.md.
+- [ ] **STRIPE/3 — Orders and invoice completion.** Durable worker, fenced MongoDB leases, bounded retry/backoff, operator inspect/resume, Kiota order/invoice adapters and completed-invoice lookup in Invoice PR #217 are implemented. Full CI/review/merge remain before closure. See ADR-0022 and docs/payment-fulfillment.md.
 - [ ] **STRIPE/4 — End-to-end Angular/BFF flow.** Connect UI and backend contracts after the payment and order APIs stabilize.
 
 Next sequence: STRIPE/1–4. Update checkboxes only after the criterion is actually met.

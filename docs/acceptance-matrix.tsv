@@ -46,3 +46,7 @@ PAY22-13	POST /payments/webhooks/stripe	unsupported media	415	unsupported_media_
 PAY22-14	POST /payments/webhooks/stripe	oversized webhook	413	webhook_too_large	STRIPE/2
 PAY22-15	POST /payments/webhooks/stripe	unpaid completion	200	-	STRIPE/2
 PAY22-16	POST /payments/{order_id}/checkout	card and BLIK	200	-	STRIPE/2
+PAY23-01	POST /payments/webhooks/stripe	normal fulfillment	200	-	STRIPE/3
+PAY23-02	POST /payments/webhooks/stripe	lost Paid response reconciled	200	-	STRIPE/3
+PAY23-03	POST /payments/webhooks/stripe	lost invoice response reconciled	200	-	STRIPE/3
+PAY23-04	POST /payments/webhooks/stripe	PDF failure and durable retry	200	-	STRIPE/3

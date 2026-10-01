@@ -19,7 +19,7 @@ def test_export_lints_generated_openapi_without_mongodb(tmp_path: Path, monkeypa
 
     monkeypatch.setattr("ecommerce_store_payments.api.app.MongoDatabase", fail_database)
     output = tmp_path / "openapi.json"
-    assert export(output) == (7, 48)
+    assert export(output) == (7, 52)
     assert output.read_text(encoding="utf-8").endswith("\n")
     assert "422" not in document()["paths"]["/payments/{order_id}/pay"]["post"]["responses"]
 

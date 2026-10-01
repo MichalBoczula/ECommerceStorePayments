@@ -1,5 +1,5 @@
 {
-  "descriptionHash": "3794F37FE6938EA9DF4C240A3289078AED06A3E5B39B6C9A7478CE3B124AB84C0DEC06F4449A221D293628040FFCED4175E5F9759C1347F9145F65D4EFE50078",
+  "descriptionHash": "CE52DF6385F74367E566BD909F040220586BF2C859227F41625BCDFBD627803DB4BD74FA47EBEFE641EADA491A2954F750626E27BB28A98EB4A8B895F16C01A7",
   "descriptionLocation": "../../../../../../contracts/invoice/openapi.json",
   "lockFileVersion": "1.0.0",
   "kiotaVersion": "1.34.1",
@@ -29,7 +29,10 @@
     "multipart/form-data;q=0.1"
   ],
   "includePatterns": [
-    "/orders/{orderId}#GET"
+    "/orders/{orderId}#GET",
+    "/orders/{orderId}/status#PATCH",
+    "/invoices/{clientId}/{orderId}#POST",
+    "/invoices/by-order/{orderId}#GET"
   ],
   "excludePatterns": [],
   "disabledValidationRules": [],

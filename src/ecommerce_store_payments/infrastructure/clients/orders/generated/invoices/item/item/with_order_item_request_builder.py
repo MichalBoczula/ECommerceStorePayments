@@ -14,15 +14,15 @@ from typing import Any, Optional, TYPE_CHECKING, Union
 from warnings import warn
 
 if TYPE_CHECKING:
-    from ...models.api_problem_details import ApiProblemDetails
-    from ...models.not_found_problem_details import NotFoundProblemDetails
-    from ...models.order_response_dto import OrderResponseDto
-    from ...models.problem_details import ProblemDetails
-    from .status.status_request_builder import StatusRequestBuilder
+    from ....models.api_problem_details import ApiProblemDetails
+    from ....models.conflict_problem_details import ConflictProblemDetails
+    from ....models.invoice_response_dto import InvoiceResponseDto
+    from ....models.not_found_problem_details import NotFoundProblemDetails
+    from ....models.problem_details import ProblemDetails
 
 class WithOrderItemRequestBuilder(BaseRequestBuilder):
     """
-    Builds and executes requests for operations under /orders/{orderId}
+    Builds and executes requests for operations under /invoices/{clientId}/{orderId}
     """
     def __init__(self,request_adapter: RequestAdapter, path_parameters: Union[str, dict[str, Any]]) -> None:
         """
@@ -31,39 +31,41 @@ class WithOrderItemRequestBuilder(BaseRequestBuilder):
         param request_adapter: The request adapter to use to execute the requests.
         Returns: None
         """
-        super().__init__(request_adapter, "{+baseurl}/orders/{orderId}", path_parameters)
+        super().__init__(request_adapter, "{+baseurl}/invoices/{clientId}/{orderId}", path_parameters)
 
-    async def get(self,request_configuration: Optional[RequestConfiguration[QueryParameters]] = None) -> Optional[OrderResponseDto]:
+    async def post(self,request_configuration: Optional[RequestConfiguration[QueryParameters]] = None) -> Optional[InvoiceResponseDto]:
         """
-        Returns the order when the Id exists; 404 otherwise.
+        Creates a new invoice when the client order exists and does not already have an invoice.
         param request_configuration: Configuration for the request such as headers, query parameters, and middleware options.
-        Returns: Optional[OrderResponseDto]
+        Returns: Optional[InvoiceResponseDto]
         """
-        request_info = self.to_get_request_information(
+        request_info = self.to_post_request_information(
             request_configuration
         )
-        from ...models.api_problem_details import ApiProblemDetails
-        from ...models.not_found_problem_details import NotFoundProblemDetails
-        from ...models.problem_details import ProblemDetails
+        from ....models.api_problem_details import ApiProblemDetails
+        from ....models.conflict_problem_details import ConflictProblemDetails
+        from ....models.not_found_problem_details import NotFoundProblemDetails
+        from ....models.problem_details import ProblemDetails
 
         error_mapping: dict[str, type[ParsableFactory]] = {
             "400": ApiProblemDetails,
             "404": NotFoundProblemDetails,
+            "409": ConflictProblemDetails,
             "500": ProblemDetails,
         }
         if not self.request_adapter:
             raise Exception("Http core is null")
-        from ...models.order_response_dto import OrderResponseDto
+        from ....models.invoice_response_dto import InvoiceResponseDto
 
-        return await self.request_adapter.send_async(request_info, OrderResponseDto, error_mapping)
+        return await self.request_adapter.send_async(request_info, InvoiceResponseDto, error_mapping)
 
-    def to_get_request_information(self,request_configuration: Optional[RequestConfiguration[QueryParameters]] = None) -> RequestInformation:
+    def to_post_request_information(self,request_configuration: Optional[RequestConfiguration[QueryParameters]] = None) -> RequestInformation:
         """
-        Returns the order when the Id exists; 404 otherwise.
+        Creates a new invoice when the client order exists and does not already have an invoice.
         param request_configuration: Configuration for the request such as headers, query parameters, and middleware options.
         Returns: RequestInformation
         """
-        request_info = RequestInformation(Method.GET, self.url_template, self.path_parameters)
+        request_info = RequestInformation(Method.POST, self.url_template, self.path_parameters)
         request_info.configure(request_configuration)
         request_info.headers.try_add("Accept", "application/json")
         return request_info
@@ -78,17 +80,8 @@ class WithOrderItemRequestBuilder(BaseRequestBuilder):
             raise TypeError("raw_url cannot be null.")
         return WithOrderItemRequestBuilder(self.request_adapter, raw_url)
 
-    @property
-    def status(self) -> StatusRequestBuilder:
-        """
-        The status property
-        """
-        from .status.status_request_builder import StatusRequestBuilder
-
-        return StatusRequestBuilder(self.request_adapter, self.path_parameters)
-
     @dataclass
-    class WithOrderItemRequestBuilderGetRequestConfiguration(RequestConfiguration[QueryParameters]):
+    class WithOrderItemRequestBuilderPostRequestConfiguration(RequestConfiguration[QueryParameters]):
         """
         Configuration for the request such as headers, query parameters, and middleware options.
         """

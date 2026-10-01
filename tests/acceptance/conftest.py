@@ -40,14 +40,46 @@ from tests.webhook_fixtures import WEBHOOK_SECRET
 @dataclass
 class OrdersBoundary:
     order_id: UUID = field(default_factory=uuid4)
+    client_id: UUID = field(default_factory=uuid4)
+    invoice_id: UUID | None = None
+    fulfillment_mode: str = "ok"
+    paid_writes: int = 0
+    invoice_creates: int = 0
     mode: str = "created"
     status: str = "Created"
     amount: float = 12.99
     calls: int = 0
 
     def handle(self, request: Request) -> OrdersResponse:
-        assert request.method == "GET"
-        assert request.url.path == f"/orders/{self.order_id}"
+        if request.url.path.startswith("/invoices/"):
+            if request.method == "POST":
+                self.invoice_creates += 1
+                if self.fulfillment_mode == "pdf_failure":
+                    self.fulfillment_mode = "ok"
+                    return OrdersResponse(500)
+                self.invoice_id = self.invoice_id or uuid4()
+                if self.fulfillment_mode == "invoice_ack_lost":
+                    self.fulfillment_mode = "ok"
+                    raise ReadTimeout("private lost response", request=request)
+            if self.invoice_id is None:
+                return OrdersResponse(404)
+            return OrdersResponse(
+                200,
+                json={
+                    "id": str(self.invoice_id),
+                    "orderId": str(self.order_id),
+                    "clietDataVersionId": str(self.client_id),
+                    "storageUrl": "file:///fixture.pdf",
+                    "createdAt": "2026-10-01T00:00:00Z",
+                },
+            )
+        if request.method == "PATCH":
+            self.paid_writes += 1
+            self.status = "Paid"
+            if self.fulfillment_mode == "paid_ack_lost":
+                self.fulfillment_mode = "ok"
+                raise ReadTimeout("private lost response", request=request)
+        assert request.url.path in {f"/orders/{self.order_id}", f"/orders/{self.order_id}/status"}
         self.calls += 1
         if self.mode == "missing":
             return OrdersResponse(404)
@@ -61,6 +93,7 @@ class OrdersBoundary:
             200,
             json={
                 "id": str(self.order_id),
+                "clientId": str(self.client_id),
                 "status": self.status,
                 "totalAmount": self.amount,
                 "totalCurrency": "PLN",
@@ -189,6 +222,9 @@ def acceptance(mongo_url: str, monkeypatch: pytest.MonkeyPatch) -> Generator[Acc
         )
 
     monkeypatch.setattr("ecommerce_store_payments.api.app.AsyncClient", orders_client)
+    monkeypatch.setattr(
+        "ecommerce_store_payments.infrastructure.persistence.mongodb.fulfill_payments.AsyncClient", orders_client
+    )
 
     def checkout_provider(resolved: Settings) -> StripeCheckoutProvider:
         return StripeCheckoutProvider(

@@ -15,6 +15,7 @@ from kiota_serialization_text.text_serialization_writer_factory import TextSeria
 from typing import Any, Optional, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
+    from .invoices.invoices_request_builder import InvoicesRequestBuilder
     from .orders.orders_request_builder import OrdersRequestBuilder
 
 class OrdersClient(BaseRequestBuilder):
@@ -37,6 +38,15 @@ class OrdersClient(BaseRequestBuilder):
         register_default_deserializer(JsonParseNodeFactory)
         register_default_deserializer(TextParseNodeFactory)
         register_default_deserializer(FormParseNodeFactory)
+
+    @property
+    def invoices(self) -> InvoicesRequestBuilder:
+        """
+        The invoices property
+        """
+        from .invoices.invoices_request_builder import InvoicesRequestBuilder
+
+        return InvoicesRequestBuilder(self.request_adapter, self.path_parameters)
 
     @property
     def orders(self) -> OrdersRequestBuilder:
