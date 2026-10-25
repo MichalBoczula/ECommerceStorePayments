@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 from pathlib import Path
 from typing import cast
@@ -21,6 +22,13 @@ def test_export_lints_generated_openapi_without_mongodb(tmp_path: Path, monkeypa
     output = tmp_path / "openapi.json"
     assert export(output) == (7, 52)
     assert output.read_text(encoding="utf-8").endswith("\n")
+    flows = json.loads(output.with_name("flows.json").read_text(encoding="utf-8"))["flows"]
+    assert {flow["operationId"] for flow in flows} == {
+        operation["operationId"] for operation in generate()["operations"]
+    }
+    policies = json.loads(output.with_name("validation-policies.json").read_text(encoding="utf-8"))["policies"]
+    assert any(policy["source"].endswith("PaymentPolicy.require_checkout_confirmation") for policy in policies)
+    assert json.loads(output.with_name("operation-links.json").read_text(encoding="utf-8"))["unmatchedRouteScenarios"]
     assert "422" not in document()["paths"]["/payments/{order_id}/pay"]["post"]["responses"]
 
 

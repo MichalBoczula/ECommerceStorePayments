@@ -195,6 +195,44 @@ After the full quality gate, container smoke and Trivy scan succeed on a `main` 
 
 `bash scripts/ci.sh audit` checks the entire locked dependency set, including development tools, and fails on any reported vulnerability or audit error. On pull requests, Dependency Review rejects newly introduced HIGH/CRITICAL vulnerabilities; GitHub Dependency Graph must be enabled in the repository's [security settings](https://github.com/MichalBoczula/ECommerceStorePayments/settings/security_analysis). On `main` pushes that PR-only job is expected to be skipped. Gitleaks scans Git history and blocks detected secrets. Trivy scans the smoke-tested image for OS and library HIGH/CRITICAL vulnerabilities with available fixes (`ignore-unfixed: true`); a scan failure also blocks. All of these results are required by the final CI gate. The exact policy and the pytest security update are in [ADR-0018](docs/adr/0018-security-and-image-gate.md).
 
+## BDD reports in LiveDocs
+
+CI follows the Products, Users and Orders/Invoices publication pattern. The existing
+Acceptance suite runs once and writes BDD-only Allure results to
+`artifacts/allure-results/acceptance/`, clearing stale output first. The pinned
+`allure-pytest-bdd` adapter records features, scenarios, examples and steps. The
+suite's JUnit, coverage, regular API tests and failure rules remain in the same run.
+
+The database-free export also writes `operation-links.json`, `flows.json` and
+`validation-policies.json` beside OpenAPI, derived from the existing validated
+source projection. CI retains `payments-openapi` and supplies all four JSON files
+as `generated-contract`. The commit-pinned LiveDocs workflow packages them with
+real BDD results/attachments and `tests/acceptance/features`. Bundle validation is
+required by the quality gate.
+
+Only a successful `main` image publication and final gate permit upload to the
+existing private **`stecproductsdevmb261013/livedocs`** container:
+
+- `reports/payments/<source-commit>/<bundle-sha256>.zip`
+- `candidates/v1/payments/<workflow-run-id>-<bundle-sha256>.json`
+
+The writer uses repository secret **`LIVEDOCS_STORAGE_SAS_TOKEN`**, containing the
+complete HTTPS-only container SAS query string with read/create/write permissions.
+Retries download existing objects and compare bytes; different content is refused.
+The `documentation-reference` artifact contains the exact reference for LiveDocs.
+PRs never upload to Azure, and missing credentials or failed uploads fail the job.
+Optional variables are `LIVEDOCS_STORAGE_ACCOUNT` (default `stecproductsdevmb261013`)
+and `LIVEDOCS_VERSION` (default `v1`); there is no enable flag.
+
+LiveDocs selects that archived reference as project `payments`, downloads and
+validates it outside Docker, and generates HTML before building its static image.
+The image serves `/livedoc/v1/payments/` and `/livedoc/v1/payments/allure/` beside
+the other services. A new LiveDocs image digest and Terraform apply publish the
+snapshot; uploads alone do not update running reports. The existing reader secret
+and ECommerceStore.Terraform resources are sufficient. Payments needs no runtime
+Blob connection or Stripe configuration for documentation. See
+[ADR-0023](docs/adr/0023-livedocs-source-publication.md).
+
 ## Generated API clients
 
 The Orders Kiota client lives under `src/ecommerce_store_payments/infrastructure/clients/orders/generated` and is regenerated from the pinned Invoice OpenAPI. Its generated files are excluded from Ruff, Pyright and coverage; the handwritten adapter, decimal parser, request adapter and all other Infrastructure source remain inside the 70% gate. Regeneration uses `bash scripts/ci.sh orders-client` after `sync`; see ADR-0016 for source provenance and version pins.
