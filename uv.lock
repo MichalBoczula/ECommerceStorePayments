@@ -3,16 +3,17 @@ revision = 3
 requires-python = "==3.14.*"
 
 [[package]]
-name = "allure-pytest"
+name = "allure-pytest-bdd"
 version = "2.16.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "allure-python-commons" },
     { name = "pytest" },
+    { name = "pytest-bdd" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/72/26/2c5b357f349a42c81f1f9ddb4ed6e05352f34a18f6f88b8d466a443b049f/allure_pytest-2.16.1.tar.gz", hash = "sha256:4aefe54f9b6020f44a113af94f0772a9a95f47472358d9d27ccf1edb886e05f7", size = 17779, upload-time = "2026-09-18T19:46:50.364Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/dc/fa3b9eedf01536d92ddcaec9596335567097e9936223e7a952f214017e32/allure_pytest_bdd-2.16.1.tar.gz", hash = "sha256:85ea0f4dc10b61cc62fa4909bea474ed0789a445b8bd896883c58cf9ba66ae9f", size = 9622, upload-time = "2026-09-18T19:46:53.283Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ee/07/46cb1eca6f025e5c22bb1fc0b0d6bbfb79f73bbb0ebe2919a02d43b32bd4/allure_pytest-2.16.1-py3-none-any.whl", hash = "sha256:07a9b8ae2840254250887b27e1f51af9732611285f7db301048c388fb60bddf4", size = 12496, upload-time = "2026-09-18T19:46:49.084Z" },
+    { url = "https://files.pythonhosted.org/packages/88/e5/736d0866bfa13988c7f9d680b8f1587fb7789da4854b127bf49850505891/allure_pytest_bdd-2.16.1-py3-none-any.whl", hash = "sha256:fe417e22c87727cf007357bcc2809cc656c7c28ff942443beefa35e5bb51e0b4", size = 11318, upload-time = "2026-09-18T19:46:52.233Z" },
 ]
 
 [[package]]
@@ -240,7 +241,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "allure-pytest" },
+    { name = "allure-pytest-bdd" },
     { name = "httpx2" },
     { name = "jsonschema" },
     { name = "openapi-spec-validator" },
@@ -277,7 +278,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "allure-pytest", specifier = ">=2.14,<3" },
+    { name = "allure-pytest-bdd", specifier = "==2.16.1" },
     { name = "httpx2", specifier = ">=2.13,<3" },
     { name = "jsonschema", specifier = "==4.25.1" },
     { name = "openapi-spec-validator", specifier = "==0.7.2" },

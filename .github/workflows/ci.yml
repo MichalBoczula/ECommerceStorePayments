@@ -85,6 +85,16 @@ jobs:
           name: payments-openapi
           path: artifacts/verification/openapi.json
           if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: generated-contract
+          path: |
+            artifacts/verification/openapi.json
+            artifacts/verification/operation-links.json
+            artifacts/verification/flows.json
+            artifacts/verification/validation-policies.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Build and verify wheel
         run: bash scripts/ci.sh build
 
@@ -202,9 +212,23 @@ jobs:
           name: payments-acceptance-reports
           path: artifacts/verification/acceptance/
           if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: acceptance-allure-results
+          path: artifacts/allure-results/acceptance/
+          if-no-files-found: error
+          retention-days: 7
+
+  documentation-bundle:
+    needs: [quality, acceptance-tests]
+    uses: MichalBoczula/ECommerceStore.LiveDocs/.github/workflows/package-producer.yml@6a1e08fb3a779a25916715221303e3274c8da0b9
+    with:
+      tooling-ref: 6a1e08fb3a779a25916715221303e3274c8da0b9
+      project: payments
+      features: tests/acceptance/features
 
   quality-gate:
-    needs: [quality, domain-unit-tests, application-unit-tests, infrastructure-integration-tests, external-providers-tests, acceptance-tests, dependency-audit, dependency-review, secret-scan]
+    needs: [quality, domain-unit-tests, application-unit-tests, infrastructure-integration-tests, external-providers-tests, acceptance-tests, documentation-bundle, dependency-audit, dependency-review, secret-scan]
     if: always()
     runs-on: ubuntu-24.04
     steps:
@@ -217,11 +241,12 @@ jobs:
           INFRASTRUCTURE_RESULT: ${{ needs.infrastructure-integration-tests.result }}
           EXTERNAL_PROVIDERS_RESULT: ${{ needs.external-providers-tests.result }}
           ACCEPTANCE_RESULT: ${{ needs.acceptance-tests.result }}
+          DOCUMENTATION_RESULT: ${{ needs.documentation-bundle.result }}
           AUDIT_RESULT: ${{ needs.dependency-audit.result }}
           REVIEW_RESULT: ${{ needs.dependency-review.result }}
           SECRET_RESULT: ${{ needs.secret-scan.result }}
         run: |
-          for check in QUALITY DOMAIN APPLICATION INFRASTRUCTURE EXTERNAL_PROVIDERS ACCEPTANCE AUDIT SECRET; do
+          for check in QUALITY DOMAIN APPLICATION INFRASTRUCTURE EXTERNAL_PROVIDERS ACCEPTANCE DOCUMENTATION AUDIT SECRET; do
             result_var="${check}_RESULT"
             result="${!result_var}"
             if [[ "$result" != success ]]; then
@@ -309,3 +334,77 @@ jobs:
               exit 1
             fi
           done
+
+  archive-documentation:
+    if: ${{ always() && !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.final-gate.result == 'success' }}
+    needs: final-gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      ACCOUNT: ${{ vars.LIVEDOCS_STORAGE_ACCOUNT || 'stecproductsdevmb261013' }}
+      DOC_VERSION: ${{ vars.LIVEDOCS_VERSION || 'v1' }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: documentation-bundle
+          path: artifacts
+      - name: Upload verified documentation bundle and receipt
+        shell: bash
+        env:
+          AZURE_STORAGE_SAS_TOKEN: ${{ secrets.LIVEDOCS_STORAGE_SAS_TOKEN }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_COMMIT: ${{ github.sha }}
+          SOURCE_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          test -n "$AZURE_STORAGE_SAS_TOKEN" || { echo 'Missing secret: LIVEDOCS_STORAGE_SAS_TOKEN' >&2; exit 1; }
+          [[ "$ACCOUNT" =~ ^[a-z0-9]{3,24}$ ]] || { echo 'Invalid LiveDocs storage account' >&2; exit 1; }
+          [[ "$DOC_VERSION" =~ ^v[1-9][0-9]*$ ]] || { echo 'Invalid LiveDocs version' >&2; exit 1; }
+
+          bundle=artifacts/documentation-bundle.zip
+          metadata="$RUNNER_TEMP/documentation-metadata.json"
+          unzip -p "$bundle" bundle.json > "$metadata"
+          jq -e --arg repository "$SOURCE_REPOSITORY" --arg commit "$SOURCE_COMMIT" --argjson run "$SOURCE_RUN_ID" \
+            '.schemaVersion == 1 and .project == "payments" and .repository == $repository and .commitSha == $commit and .workflowRunId == $run and (.generatedAt | type == "string")' \
+            "$metadata" > /dev/null
+          digest=$(sha256sum "$bundle" | cut -d ' ' -f 1)
+          size=$(stat -c %s "$bundle")
+          bundle_name="reports/payments/$SOURCE_COMMIT/$digest.zip"
+          receipt_name="candidates/$DOC_VERSION/payments/$SOURCE_RUN_ID-$digest.json"
+          bundle_url="https://$ACCOUNT.blob.core.windows.net/livedocs/$bundle_name"
+          receipt=artifacts/documentation-reference.json
+          jq --arg version "$DOC_VERSION" --arg url "$bundle_url" --arg digest "$digest" --argjson size "$size" \
+            '{schemaVersion: 1, version: $version, reference: {project: .project, commitSha: .commitSha, generatedAt: .generatedAt, workflowRunId: .workflowRunId, artifact: {url: $url, sha256: $digest, sizeBytes: $size}}}' \
+            "$metadata" > "$receipt"
+
+          storage=(--account-name "$ACCOUNT" --container-name livedocs --sas-token "$AZURE_STORAGE_SAS_TOKEN" --only-show-errors)
+          upload_once() {
+            local file="$1" name="$2" content_type="$3" exists existing
+            exists=$(az storage blob exists "${storage[@]}" --name "$name" --query exists --output tsv)
+            case "$exists" in
+              true|True)
+                existing="$RUNNER_TEMP/existing-$(basename "$file")"
+                az storage blob download "${storage[@]}" --name "$name" --file "$existing" --overwrite true --output none
+                cmp --silent "$file" "$existing" || { echo "Immutable Blob has different bytes: $name" >&2; return 1; }
+                ;;
+              false|False)
+                az storage blob upload "${storage[@]}" --name "$name" --file "$file" --content-type "$content_type" \
+                  --overwrite false --if-none-match '*' --validate-content --output none
+                ;;
+              *) echo 'Unexpected Blob existence response' >&2; return 1 ;;
+            esac
+          }
+
+          upload_once "$bundle" "$bundle_name" application/zip
+          upload_once "$receipt" "$receipt_name" application/json
+          printf 'Payments documentation archived.\n\nBundle: %s\n\nReceipt: https://%s.blob.core.windows.net/livedocs/%s\n' \
+            "$bundle_url" "$ACCOUNT" "$receipt_name" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: documentation-reference
+          path: artifacts/documentation-reference.json
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true

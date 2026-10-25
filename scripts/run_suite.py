@@ -63,6 +63,8 @@ def run(name: str) -> int:
         f"--cov-report=html:{destination / 'htmlcov'}",
         "--cov-report=term-missing",
     ]
+    if name == "acceptance":
+        command.extend([f"--alluredir={ROOT / 'artifacts/allure-results/acceptance'}", "--clean-alluredir"])
     environment = {**os.environ, "COVERAGE_FILE": str(destination / ".coverage")}
     outcome = subprocess.run(command, cwd=ROOT, env=environment, check=False)
     try:

@@ -91,7 +91,20 @@ def check_case(
 
 def export(path: Path) -> tuple[int, int]:
     spec = document()
-    result = check_contract(spec, generate())
+    links = generate()
+    result = check_contract(spec, links)
+    policies = {policy["source"]: policy for operation in links["operations"] for policy in operation["policies"]}
+    outputs = {
+        path: spec,
+        path.with_name("operation-links.json"): links,
+        path.with_name("flows.json"): {
+            "flows": [
+                {"operationId": operation["operationId"], **operation["flow"]} for operation in links["operations"]
+            ]
+        },
+        path.with_name("validation-policies.json"): {"policies": [policies[source] for source in sorted(policies)]},
+    }
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(spec, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+    for destination, value in outputs.items():
+        destination.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     return result
