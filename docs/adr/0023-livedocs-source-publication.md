@@ -29,6 +29,11 @@ with the patched lockfile; do not bypass the audit. See the
 [Mako changelog](https://docs.makotemplates.org/en/latest/changelog.html) and
 [OpenTelemetry advisory](https://github.com/open-telemetry/opentelemetry-python/security/advisories/GHSA-xcq7-p3pf-p88h).
 
+The existing image scan additionally requires the Debian runtime's available
+`libpcre2-8-0` and `perl-base` security updates. Upgrade only those installed
+packages during image creation, remove apt lists, and retain the pinned Python
+base, non-root runtime, pip removal and container smoke/image gates.
+
 Extend the database-free OpenAPI export to write the validated operation links,
 per-operation flows and deduplicated reachable policies into the shared four-file
 source contract. These are generated projections; source remains authoritative.
