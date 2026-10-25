@@ -13,11 +13,21 @@ source bundle consumed by the portal.
 ## Decision
 
 Replace the unused development `allure-pytest` adapter with pinned
-`allure-pytest-bdd` 2.16.1, retaining the same Allure commons version and all
-other dependency pins. It emits BDD scenarios, outline examples and steps during
+`allure-pytest-bdd` 2.16.1, retaining the same Allure commons version.
+It emits BDD scenarios, outline examples and steps during
 the existing Acceptance suite, without rerunning tests or reporting its regular
 pytest cases as BDD. Clear stale Allure results on that invocation. Existing
 JUnit, coverage and all five suite/security gates remain.
+
+The existing dependency audit also requires fixes for the baseline lockfile:
+PyMongo 4.18.2, certifi 2026.10.19, Mako 1.4.2 and OpenTelemetry API/SDK 1.45.1
+with its matching semantic-conventions 0.66b1. Limit updates to these findings and
+required companion pins. The MongoDB, HTTP/Stripe and container checks must pass
+with the patched lockfile; do not bypass the audit. See the
+[PyMongo release](https://www.mongodb.com/community/forums/t/pymongo-4-18-2-released/343732),
+[certifi advisory](https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2),
+[Mako changelog](https://docs.makotemplates.org/en/latest/changelog.html) and
+[OpenTelemetry advisory](https://github.com/open-telemetry/opentelemetry-python/security/advisories/GHSA-xcq7-p3pf-p88h).
 
 Extend the database-free OpenAPI export to write the validated operation links,
 per-operation flows and deduplicated reachable policies into the shared four-file
@@ -42,7 +52,8 @@ The optional automated importer and Stripe rollout are outside this change.
 The source commit, CI run and ZIP digest identify the BDD evidence. Allure HTML,
 results and credentials stay outside Git; no new Azure resources, runtime Blob
 connection or deployment scripts are required. The adapter change is development
-tooling only. Real MongoDB/Orders and production-container checks still run in CI.
+tooling only; the targeted audit fixes also patch existing runtime dependencies.
+Real MongoDB/Orders and production-container checks still run in CI.
 Unavailable archives block rebuilds while a deployed image keeps serving its snapshot.
 
 The publisher SAS needs read/create/write on `livedocs`; the LiveDocs build reader
