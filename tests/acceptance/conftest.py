@@ -46,6 +46,7 @@ from tests.acceptance.checkout_recovery_checks import CheckoutRecoveryChecks
 from tests.acceptance.evidence import EvidenceClient, ScenarioEvidence, table_values
 from tests.acceptance.payment_checks import PaymentChecks
 from tests.acceptance.retry_checks import RetryChecks
+from tests.acceptance.webhook_verification_checks import WebhookVerificationChecks
 from tests.unit.external_providers.test_stripe_checkout import StripeTransport
 from tests.webhook_fixtures import WEBHOOK_SECRET
 
@@ -601,3 +602,45 @@ def recovered_checkout_request(recovery_checks: CheckoutRecoveryChecks, datatabl
 @then("repeated provider rejection preserves the reserved attempt")
 def repeated_checkout_failure(recovery_checks: CheckoutRecoveryChecks, datatable: list[list[str]]) -> None:
     recovery_checks.repeat_failure(table_values(datatable))
+
+
+@pytest.fixture
+def verification_checks(payment_checks: PaymentChecks) -> WebhookVerificationChecks:
+    return WebhookVerificationChecks(payment_checks)
+
+
+@given("the webhook verification request is prepared")
+def prepared_verification(
+    verification_checks: WebhookVerificationChecks, datatable: list[list[str]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    verification_checks.prepare(table_values(datatable), monkeypatch)
+
+
+@given("I remember webhook verification state")
+def remember_verification(verification_checks: WebhookVerificationChecks) -> None:
+    verification_checks.remember()
+
+
+@when("I deliver the prepared verification webhook")
+def send_verification(verification_checks: WebhookVerificationChecks) -> None:
+    verification_checks.deliver()
+
+
+@then("the webhook delivery matches this verification evidence")
+def verified_wire(verification_checks: WebhookVerificationChecks, datatable: list[list[str]]) -> None:
+    verification_checks.wire_evidence(table_values(datatable))
+
+
+@then("verification rejection preserves this complete state")
+def unchanged_verification(verification_checks: WebhookVerificationChecks, datatable: list[list[str]]) -> None:
+    verification_checks.rejected(table_values(datatable))
+
+
+@then("the accepted verification stores this exact ignored receipt")
+def unknown_verification_receipt(verification_checks: WebhookVerificationChecks, datatable: list[list[str]]) -> None:
+    verification_checks.unknown_receipt(table_values(datatable))
+
+
+@then("the paid verification digest is")
+def paid_verification_digest(verification_checks: WebhookVerificationChecks, datatable: list[list[str]]) -> None:
+    verification_checks.paid_control(table_values(datatable))

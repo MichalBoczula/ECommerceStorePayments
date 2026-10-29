@@ -10,7 +10,18 @@ Feature: Verified checkout notifications and durable receipt
       | TotalCurrency | PLN                                  |
     And a checkout created through the API
     And a signed checkout event "paid"
-    When I deliver the checkout webhook
+    And the webhook verification request is prepared
+      | Field                  | Value                      |
+      | EventType              | checkout.session.completed |
+      | PayloadVariant         | normal                     |
+      | MutationPath           | -                          |
+      | MutationValue          | -                          |
+      | SignatureMode          | correct                    |
+      | TimestampOffsetSeconds | 0                          |
+      | ContentType            | application/json           |
+      | BodyBytes              | natural                    |
+    And I remember webhook verification state
+    When I deliver the prepared verification webhook
     Then the response matches case "PAY22-01"
       | Field         | Value            |
       | HTTPStatuses  | 200              |
@@ -20,6 +31,17 @@ Feature: Verified checkout notifications and durable receipt
     And the current payment is "Succeeded" at version 3
     And webhook work is persisted for fulfillment
     And webhook processing did not contact external services
+    And the webhook delivery matches this verification evidence
+      | Field                  | Value   |
+      | SignatureHeaders       | 1       |
+      | MatchingV1Signatures   | 1       |
+      | BodyBytes              | natural |
+      | SignedBytesEqual       | true    |
+      | TimestampOffsetSeconds | 0       |
+    And the paid verification digest is
+      | Field         | Value            |
+      | ReceiptState  | applied          |
+      | PayloadDigest | {request.sha256} |
 
   Scenario: PAY22-02 Redeliver the same event without another transition
     The same signed paid event was already applied once. Redelivery acknowledges it without another payment transition or history snapshot.
@@ -53,14 +75,45 @@ Feature: Verified checkout notifications and durable receipt
     And a checkout created through the API
     And a signed checkout event "paid"
     And webhook delivery is "missing"
-    When I deliver the checkout webhook
+    And the webhook verification request is prepared
+      | Field                  | Value                      |
+      | EventType              | checkout.session.completed |
+      | PayloadVariant         | normal                     |
+      | MutationPath           | -                          |
+      | MutationValue          | -                          |
+      | SignatureMode          | missing                    |
+      | TimestampOffsetSeconds | 0                          |
+      | ContentType            | application/json           |
+      | BodyBytes              | natural                    |
+    And I remember webhook verification state
+    When I deliver the prepared verification webhook
     Then the response matches case "PAY22-03"
-      | Field        | Value                    |
-      | HTTPStatuses | 400                      |
-      | ContentType  | application/problem+json |
-      | Code         | webhook_invalid          |
+      | Field                  | Value                                      |
+      | HTTPStatuses           | 400                                        |
+      | ContentType            | application/problem+json                   |
+      | Code                   | webhook_invalid                            |
+      | JSON.type              | "about:blank"                              |
+      | JSON.title             | "Bad Request"                              |
+      | JSON.status            | 400                                        |
+      | JSON.detail            | "Webhook signature or payload is invalid." |
+      | JSON.instance          | "/payments/webhooks/stripe"                |
+      | JSON.errors            | []                                         |
+      | JSON.missingProperties | []                                         |
     And the current payment is "Pending" at version 2
     And no webhook receipt exists
+    And the webhook delivery matches this verification evidence
+      | Field                  | Value       |
+      | SignatureHeaders       | 0           |
+      | MatchingV1Signatures   | 0           |
+      | BodyBytes              | natural     |
+      | SignedBytesEqual       | true        |
+      | TimestampOffsetSeconds | unparseable |
+    And verification rejection preserves this complete state
+      | Field            | Value   |
+      | CurrentStatus    | pending |
+      | CurrentVersion   | 2       |
+      | NewReceipts      | 0       |
+      | NewExternalCalls | 0       |
 
   Scenario: PAY22-04 Reject tampered original bytes
     The original signed checkout bytes are changed before delivery. Signature verification rejects the request and creates no receipt.
@@ -73,13 +126,44 @@ Feature: Verified checkout notifications and durable receipt
     And a checkout created through the API
     And a signed checkout event "paid"
     And webhook delivery is "tampered"
-    When I deliver the checkout webhook
+    And the webhook verification request is prepared
+      | Field                  | Value                      |
+      | EventType              | checkout.session.completed |
+      | PayloadVariant         | normal                     |
+      | MutationPath           | -                          |
+      | MutationValue          | -                          |
+      | SignatureMode          | tampered                   |
+      | TimestampOffsetSeconds | 0                          |
+      | ContentType            | application/json           |
+      | BodyBytes              | natural                    |
+    And I remember webhook verification state
+    When I deliver the prepared verification webhook
     Then the response matches case "PAY22-04"
-      | Field        | Value                    |
-      | HTTPStatuses | 400                      |
-      | ContentType  | application/problem+json |
-      | Code         | webhook_invalid          |
+      | Field                  | Value                                      |
+      | HTTPStatuses           | 400                                        |
+      | ContentType            | application/problem+json                   |
+      | Code                   | webhook_invalid                            |
+      | JSON.type              | "about:blank"                              |
+      | JSON.title             | "Bad Request"                              |
+      | JSON.status            | 400                                        |
+      | JSON.detail            | "Webhook signature or payload is invalid." |
+      | JSON.instance          | "/payments/webhooks/stripe"                |
+      | JSON.errors            | []                                         |
+      | JSON.missingProperties | []                                         |
     And no webhook receipt exists
+    And the webhook delivery matches this verification evidence
+      | Field                  | Value   |
+      | SignatureHeaders       | 1       |
+      | MatchingV1Signatures   | 0       |
+      | BodyBytes              | natural |
+      | SignedBytesEqual       | false   |
+      | TimestampOffsetSeconds | 0       |
+    And verification rejection preserves this complete state
+      | Field            | Value   |
+      | CurrentStatus    | pending |
+      | CurrentVersion   | 2       |
+      | NewReceipts      | 0       |
+      | NewExternalCalls | 0       |
 
   Scenario: PAY22-05 Ignore a signed unrelated event
     A valid signature covers an event type unrelated to checkout. The API acknowledges the event while the payment remains Pending.
@@ -234,13 +318,44 @@ Feature: Verified checkout notifications and durable receipt
     And a checkout created through the API
     And a signed checkout event "paid"
     And webhook delivery is "disabled"
-    When I deliver the checkout webhook
+    And the webhook verification request is prepared
+      | Field                  | Value                      |
+      | EventType              | checkout.session.completed |
+      | PayloadVariant         | normal                     |
+      | MutationPath           | -                          |
+      | MutationValue          | -                          |
+      | SignatureMode          | correct                    |
+      | TimestampOffsetSeconds | 0                          |
+      | ContentType            | application/json           |
+      | BodyBytes              | natural                    |
+    And I remember webhook verification state
+    When I deliver the prepared verification webhook
     Then the response matches case "PAY22-12"
-      | Field        | Value                    |
-      | HTTPStatuses | 503                      |
-      | ContentType  | application/problem+json |
-      | Code         | webhook_disabled         |
+      | Field                  | Value                                     |
+      | HTTPStatuses           | 503                                       |
+      | ContentType            | application/problem+json                  |
+      | Code                   | webhook_disabled                          |
+      | JSON.type              | "about:blank"                             |
+      | JSON.title             | "Service Unavailable"                     |
+      | JSON.status            | 503                                       |
+      | JSON.detail            | "Webhook verification is not configured." |
+      | JSON.instance          | "/payments/webhooks/stripe"               |
+      | JSON.errors            | []                                        |
+      | JSON.missingProperties | []                                        |
     And no webhook receipt exists
+    And the webhook delivery matches this verification evidence
+      | Field                  | Value   |
+      | SignatureHeaders       | 1       |
+      | MatchingV1Signatures   | 1       |
+      | BodyBytes              | natural |
+      | SignedBytesEqual       | true    |
+      | TimestampOffsetSeconds | 0       |
+    And verification rejection preserves this complete state
+      | Field            | Value   |
+      | CurrentStatus    | pending |
+      | CurrentVersion   | 2       |
+      | NewReceipts      | 0       |
+      | NewExternalCalls | 0       |
 
   Scenario: PAY22-13 Reject unsupported webhook media
     A signed checkout body arrives with plain-text media type. The API rejects its media before applying webhook processing.
@@ -253,12 +368,43 @@ Feature: Verified checkout notifications and durable receipt
     And a checkout created through the API
     And a signed checkout event "paid"
     And webhook delivery is "media"
-    When I deliver the checkout webhook
+    And the webhook verification request is prepared
+      | Field                  | Value                      |
+      | EventType              | checkout.session.completed |
+      | PayloadVariant         | normal                     |
+      | MutationPath           | -                          |
+      | MutationValue          | -                          |
+      | SignatureMode          | correct                    |
+      | TimestampOffsetSeconds | 0                          |
+      | ContentType            | text/plain                 |
+      | BodyBytes              | natural                    |
+    And I remember webhook verification state
+    When I deliver the prepared verification webhook
     Then the response matches case "PAY22-13"
-      | Field        | Value                    |
-      | HTTPStatuses | 415                      |
-      | ContentType  | application/problem+json |
-      | Code         | unsupported_media_type   |
+      | Field                  | Value                                        |
+      | HTTPStatuses           | 415                                          |
+      | ContentType            | application/problem+json                     |
+      | Code                   | unsupported_media_type                       |
+      | JSON.type              | "about:blank"                                |
+      | JSON.title             | "Unsupported Media Type"                     |
+      | JSON.status            | 415                                          |
+      | JSON.detail            | "The request content type is not supported." |
+      | JSON.instance          | "/payments/webhooks/stripe"                  |
+      | JSON.errors            | []                                           |
+      | JSON.missingProperties | []                                           |
+    And the webhook delivery matches this verification evidence
+      | Field                  | Value   |
+      | SignatureHeaders       | 1       |
+      | MatchingV1Signatures   | 1       |
+      | BodyBytes              | natural |
+      | SignedBytesEqual       | true    |
+      | TimestampOffsetSeconds | 0       |
+    And verification rejection preserves this complete state
+      | Field            | Value   |
+      | CurrentStatus    | pending |
+      | CurrentVersion   | 2       |
+      | NewReceipts      | 0       |
+      | NewExternalCalls | 0       |
 
   Scenario: PAY22-14 Reject oversized webhook before receipt
     A webhook body exceeds the one-megabyte request limit. The API returns webhook_too_large before recording a durable receipt.
@@ -271,13 +417,44 @@ Feature: Verified checkout notifications and durable receipt
     And a checkout created through the API
     And a signed checkout event "paid"
     And webhook delivery is "large"
-    When I deliver the checkout webhook
+    And the webhook verification request is prepared
+      | Field                  | Value                      |
+      | EventType              | checkout.session.completed |
+      | PayloadVariant         | normal                     |
+      | MutationPath           | -                          |
+      | MutationValue          | -                          |
+      | SignatureMode          | correct                    |
+      | TimestampOffsetSeconds | 0                          |
+      | ContentType            | application/json           |
+      | BodyBytes              | 1048577                    |
+    And I remember webhook verification state
+    When I deliver the prepared verification webhook
     Then the response matches case "PAY22-14"
-      | Field        | Value                    |
-      | HTTPStatuses | 413                      |
-      | ContentType  | application/problem+json |
-      | Code         | webhook_too_large        |
+      | Field                  | Value                                  |
+      | HTTPStatuses           | 413                                    |
+      | ContentType            | application/problem+json               |
+      | Code                   | webhook_too_large                      |
+      | JSON.type              | "about:blank"                          |
+      | JSON.title             | "Content Too Large"                    |
+      | JSON.status            | 413                                    |
+      | JSON.detail            | "Webhook body exceeds the size limit." |
+      | JSON.instance          | "/payments/webhooks/stripe"            |
+      | JSON.errors            | []                                     |
+      | JSON.missingProperties | []                                     |
     And no webhook receipt exists
+    And the webhook delivery matches this verification evidence
+      | Field                  | Value   |
+      | SignatureHeaders       | 1       |
+      | MatchingV1Signatures   | 1       |
+      | BodyBytes              | 1048577 |
+      | SignedBytesEqual       | true    |
+      | TimestampOffsetSeconds | 0       |
+    And verification rejection preserves this complete state
+      | Field            | Value   |
+      | CurrentStatus    | pending |
+      | CurrentVersion   | 2       |
+      | NewReceipts      | 0       |
+      | NewExternalCalls | 0       |
 
   Scenario: PAY22-15 Unpaid completion cannot establish success
     A signed completion event still reports an unpaid checkout. The API acknowledges it without establishing payment success.

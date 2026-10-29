@@ -240,6 +240,11 @@ instance, interrupted persistence and lost commit acknowledgments, legacy reques
 formats and the 23-hour age boundary. Actual checkout-500 evidence raises declared
 operation/status coverage to 27/42, with fifteen reviewed gaps remaining.
 
+The [webhook verification scenarios](docs/bdd-07-webhook-verification.md) retain
+original signed bytes and physical header multiplicity, isolate signature/JSON/
+snapshot/media/size boundaries and compare every rejected-state document.
+Accepted controls verify exact received-byte digests and normalized receipts.
+
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated
 source projection. CI retains `payments-openapi` and supplies all four JSON files

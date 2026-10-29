@@ -102,6 +102,28 @@ def check_content(content: dict[str, Any]) -> None:
         raise ValueError("Captured parsed JSON differs from bytes")
 
 
+def check_header_items(record: dict[str, Any]) -> None:
+    items = record.get("headerItems")
+    if not isinstance(items, list) or any(
+        not isinstance(item, list)
+        or len(item) != 2
+        or not all(isinstance(value, str) for value in item)
+        or not item[0]
+        or item[0] != item[0].lower()
+        for item in items
+    ):
+        raise ValueError("Missing or invalid captured header items")
+    grouped: dict[str, list[str]] = defaultdict(list)
+    sensitive = {"authorization", "proxy-authorization", "cookie", "set-cookie", "x-api-key"}
+    for name, value in items:
+        if name in sensitive and value != "[redacted]":
+            raise ValueError("Sensitive captured header item was not redacted")
+        grouped[name].append(value)
+    expected = {name: "[redacted]" if name in sensitive else ", ".join(values) for name, values in grouped.items()}
+    if record.get("headers") != expected:
+        raise ValueError("Captured header items differ from the header mapping")
+
+
 def check_result_evidence(result: dict[str, Any], profile: dict[str, Any], results_dir: Path) -> None:
     case_id = result["name"].split()[0]
     identity = {
@@ -159,6 +181,7 @@ def check_result_evidence(result: dict[str, Any], profile: dict[str, Any], resul
                 raise ValueError(f"Invalid HTTP phase: {case_id}")
             if kind != "failure":
                 check_content(record["content"])
+                check_header_items(record)
             pairs[record["exchangeId"]].append(record)
         if kind.startswith("action-"):
             actions[record["actionId"]].append(kind)
@@ -170,7 +193,7 @@ def check_result_evidence(result: dict[str, Any], profile: dict[str, Any], resul
             {
                 key: value
                 for key, value in record.items()
-                if key not in {"kind", "headers", "content", "status", "exceptionType", "cancelled"}
+                if key not in {"kind", "headers", "headerItems", "content", "status", "exceptionType", "cancelled"}
             }
             for record in pair
         ]
@@ -181,7 +204,9 @@ def check_result_evidence(result: dict[str, Any], profile: dict[str, Any], resul
         raise ValueError(f"Incomplete HTTP evidence index: {case_id}")
     for item in index:
         request = next(record for record in pairs[item["exchangeId"]] if record["kind"] == "request")
-        if item != {key: value for key, value in request.items() if key not in {"kind", "headers", "content"}}:
+        if item != {
+            key: value for key, value in request.items() if key not in {"kind", "headers", "headerItems", "content"}
+        }:
             raise ValueError(f"Changed HTTP evidence index metadata: {case_id}")
         if item["actionId"] is not None and item["actionId"] not in actions:
             raise ValueError(f"HTTP exchange has no owning action: {case_id}")
