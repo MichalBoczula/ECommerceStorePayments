@@ -9,9 +9,13 @@ import json
 import re
 import sys
 import textwrap
-from collections import Counter, defaultdict
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
+
+if __package__ in (None, ""):
+    # Preserve the documented direct-script command as well as module imports.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fastapi.routing import APIRoute
 
@@ -34,6 +38,13 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.pa
 )
 from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.webhook_repository import (
     MongoWebhookRepository,
+)
+from scripts.bdd_baseline import (
+    GAPS,
+    check_repository_sources,
+    check_source_baseline,
+    coverage_report,
+    source_cases,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -282,16 +293,7 @@ def execution(root: tuple[type[Any], str]) -> tuple[list[dict[str, str]], list[d
 
 
 def source_scenarios(feature_dir: Path) -> set[str]:
-    scenario_ids: list[str] = []
-    step_ids: list[str] = []
-    for path in sorted(feature_dir.glob("*.feature")):
-        source = path.read_text(encoding="utf-8")
-        scenario_ids.extend(re.findall(r"^\s*Scenario:\s+(PAY\d+-\d+)\b", source, re.MULTILINE))
-        step_ids.extend(re.findall(r'^\s*Then the response matches case "(PAY\d+-\d+)"', source, re.MULTILINE))
-    require(bool(scenario_ids), "No acceptance scenario sources")
-    require(len(scenario_ids) == len(set(scenario_ids)), "Duplicate source scenario ID")
-    require(Counter(scenario_ids) == Counter(step_ids), "Scenario and result steps differ")
-    return set(scenario_ids)
+    return set(source_cases(feature_dir))
 
 
 def scenario_links(
@@ -304,19 +306,22 @@ def scenario_links(
     require(all(row.keys() == expected_fields for row in rows), "Invalid acceptance matrix columns")
     ids = [row["id"] for row in rows]
     require(len(ids) == len(set(ids)), "Duplicate matrix scenario ID")
-    require(set(ids) == source_scenarios(feature_dir), "Matrix and source scenarios differ")
+    cases = source_cases(feature_dir)
+    require(set(ids) == set(cases), "Matrix and source scenarios differ")
     requirements = set(
         re.findall(r"\*\*((?:PAY|STRIPE)/\d+)\s+—", (ROOT / "TECHNICAL_TODO.md").read_text(encoding="utf-8"))
     )
     links: dict[str, list[dict[str, Any]]] = defaultdict(list)
     unmatched: list[dict[str, Any]] = []
     for row in rows:
+        require(all(value.strip() for value in row.values()), f"Empty acceptance matrix value: {row['id']}")
         require(row["requirement"] in requirements, f"Unknown requirement: {row['id']}")
         verb, path = row["operation"].removesuffix(" x2").split(" ", 1)
         path_matches = [route for route in routes if route.path == path or route.path_regex.fullmatch(path)]
         match = [route for route in path_matches if verb in route.methods]
         if row["code"] == "route_not_found":
             require(not path_matches, f"Known route marked missing: {row['id']}")
+            require(row["status"] == "404", f"Unmatched-route scenario must guarantee 404: {row['id']}")
             unmatched.append(row)
             continue
         if row["code"] == "method_not_allowed":
@@ -332,10 +337,12 @@ def scenario_links(
                 "code": row["code"],
             }
         )
+    check_source_baseline(cases, rows)
     return links, unmatched
 
 
-def generate(matrix: Path = MATRIX, feature_dir: Path = FEATURES, app: Any = None) -> dict[str, Any]:
+def generate(matrix: Path = MATRIX, feature_dir: Path = FEATURES, app: Any = None, gaps: Path = GAPS) -> dict[str, Any]:
+    check_repository_sources()
     app = app or create_app()
     routes = [route for router in ROUTERS for route in router.routes if isinstance(route, APIRoute)]
     ids = [route.operation_id for route in routes]
@@ -394,7 +401,18 @@ def generate(matrix: Path = MATRIX, feature_dir: Path = FEATURES, app: Any = Non
                 "scenarios": links[route.operation_id],
             }
         )
-    return {"service": "ECommerceStorePayments", "operations": operations, "unmatchedRouteScenarios": unmatched}
+    coverage = coverage_report(app.openapi(), operations, gaps)
+    coverage.update(
+        expandedBddCases=len(source_scenarios(feature_dir)),
+        matchedRouteCases=sum(len(operation["scenarios"]) for operation in operations),
+        unmatchedRouteCases=len(unmatched),
+    )
+    return {
+        "service": "ECommerceStorePayments",
+        "operations": operations,
+        "unmatchedRouteScenarios": unmatched,
+        "coverage": coverage,
+    }
 
 
 def main() -> None:
@@ -411,7 +429,13 @@ def main() -> None:
                 args.output.write_text(output, encoding="utf-8")
             else:
                 print(output, end="")
-        print(f"Linked {len(result['operations'])} operations to flows, policies and scenarios", file=sys.stderr)
+        coverage = result["coverage"]
+        print(
+            f"Linked {len(result['operations'])} operations and {coverage['expandedBddCases']} BDD cases; "
+            f"{coverage['guaranteedScenarioStatusPairs']}/{coverage['declaredOperationStatusPairs']} "
+            f"declared status pairs have scenario intent; {len(coverage['gaps'])} reviewed gaps",
+            file=sys.stderr,
+        )
     except (AssertionError, OSError, TypeError, ValueError) as error:
         print(f"Operation link error: {error}", file=sys.stderr)
         sys.exit(1)

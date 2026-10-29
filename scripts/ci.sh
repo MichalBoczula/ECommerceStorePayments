@@ -3,6 +3,12 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+prepare_mongo_image() {
+  docker info --format 'Mongo test Docker kernel: {{.KernelVersion}}'
+  docker pull mongo:8.0
+  docker run --rm --entrypoint mongosh mongo:8.0 --version
+}
+
 case "${1:-}" in
   sync)
     uv lock --check
@@ -30,6 +36,9 @@ case "${1:-}" in
     uv run --no-sync python -m scripts.export_openapi
     ;;
   suite)
+    case "${2:-}" in
+      application|infrastructure|acceptance) prepare_mongo_image ;;
+    esac
     uv run --no-sync python -m scripts.run_suite "${2:?Provide domain|application|infrastructure|externalproviders|acceptance}"
     ;;
   build)
@@ -40,6 +49,7 @@ case "${1:-}" in
     uv audit --locked --preview-features audit-command
     ;;
   container)
+    prepare_mongo_image
     bash scripts/smoke_container.sh
     ;;
   *)

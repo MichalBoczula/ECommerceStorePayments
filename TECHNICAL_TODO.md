@@ -46,6 +46,12 @@ This tracks the Payments work compared with the reference practices in ECommerce
 - [x] **PAY/19 — CI graph and Docker Hub publication.** Five named suite jobs, quality gate and image scan passed on `main`; commit `4818fab380506b9b88eb2e154bdd4eee276960be` published both full-SHA and `latest` tags with matching digest `sha256:a5d3f5709a7332fb9d351d0ab4e1c17be9ae4d8a67eee2523d229acdb4e53b54`. See ADR-0019.
 - [x] **PAY/20 — Operational docs review.** README startup, API/health, MongoDB indexes/transactions, verification, suites and CI match the code; historical ADRs identify later changes. Local documentation/source checks and full PR CI passed.
 - [ ] **PAY/21 — First LiveDocs report rollout.** CI packages actual BDD results and generated sources and archives them after successful main image publication. Verify the first upload, select its exact LiveDocs reference, publish the report image and verify the Terraform rollout. See ADR-0023; source publication alone does not complete deployment.
+- [ ] **PAY/22 — BDD documentation hardening.** Implement the scoped
+  [BDD backlog](docs/bdd-backlog.md), preserving all 51 original BDD and 89
+  ordinary Acceptance cases. PAY-BDD-01 introduces the frozen source/runtime
+  baseline and reviewed coverage gaps; remaining evidence, domain/state,
+  contracts and final-report packages stay open. This item does not close
+  the separate STRIPE rollout or LiveDocs deployment tasks.
 
 ## Later functional stage
 

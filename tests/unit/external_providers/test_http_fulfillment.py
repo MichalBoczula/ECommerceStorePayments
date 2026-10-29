@@ -127,7 +127,13 @@ async def test_only_lookup_404_means_not_completed(
 
 @pytest.mark.parametrize(
     "field,value",
-    [("id", None), ("orderId", str(uuid4())), ("clietDataVersionId", None), ("storageUrl", ""), ("createdAt", None)],
+    [
+        ("id", None),
+        pytest.param("orderId", str(uuid4()), id="wrong-order"),
+        ("clietDataVersionId", None),
+        ("storageUrl", ""),
+        ("createdAt", None),
+    ],
 )
 async def test_incomplete_or_wrong_invoice_is_blocked(
     adapters: tuple[HttpFulfillmentOrders, HttpFulfillmentInvoices, list[Callable[[Request], Response]]],

@@ -9,6 +9,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from scripts.bdd_baseline import BASELINE, check_bdd_results
 from scripts.verify_suite import verify
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -68,7 +69,9 @@ def run(name: str) -> int:
     environment = {**os.environ, "COVERAGE_FILE": str(destination / ".coverage")}
     outcome = subprocess.run(command, cwd=ROOT, env=environment, check=False)
     try:
-        report = verify(name, destination, sources, suite.minimum)
+        report = verify(name, destination, sources, suite.minimum, baseline=BASELINE)
+        if name == "acceptance":
+            check_bdd_results(ROOT / "tests/acceptance/features", ROOT / "artifacts/allure-results/acceptance")
     except (OSError, ValueError) as error:
         print(f"Suite report error: {error}", file=sys.stderr)
         return outcome.returncode or 1

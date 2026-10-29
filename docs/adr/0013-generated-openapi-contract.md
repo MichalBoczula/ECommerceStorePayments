@@ -16,6 +16,11 @@ An OpenAPI wrapper removes FastAPI's automatic 422 entries from generated operat
 
 ## Consequences
 
+PAY-BDD-01 rechecks each actual exported OpenAPI document against frozen operation
+declarations, scenario intent and the reviewed gap inventory. Removing an old
+declaration or adding an uncovered status cannot silently pass. OpenAPI itself
+and its runtime generation remain unchanged; the coverage projection is additive.
+
 The API contract and its CI artifact reflect public status, media type and schema behavior without adding a runtime dependency. `jsonschema` and `openapi-spec-validator` are pinned development dependencies. New routes and acceptance cases need matching operation declarations and schema-valid responses. The acceptance suite validates the exercised cases; it does not claim exhaustive coverage of untested branches. A future intentional 422 response would require revisiting the OpenAPI wrapper and public validation policy.
 
 ## Alternatives considered

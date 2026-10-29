@@ -6,11 +6,13 @@ from scripts.run_suite import SUITES
 from scripts.verify_suite import verify
 
 
-def _reports(tmp_path: Path, *, total: int = 2, failures: int = 0, covered: int = 7, valid: int = 10) -> Path:
+def _reports(
+    tmp_path: Path, *, total: int = 2, failures: int = 0, skipped: int = 0, covered: int = 7, valid: int = 10
+) -> Path:
     directory = tmp_path / "domain"
     directory.mkdir(exist_ok=True)
     (directory / "junit.xml").write_text(
-        f'<testsuites><testsuite tests="{total}" failures="{failures}" errors="0" skipped="0"/></testsuites>',
+        f'<testsuites><testsuite tests="{total}" failures="{failures}" errors="0" skipped="{skipped}"/></testsuites>',
         encoding="utf-8",
     )
     (directory / "coverage.xml").write_text(
@@ -47,6 +49,7 @@ def test_valid_report_passes_at_exact_line_threshold(tmp_path: Path) -> None:
         ("missing_coverage", "Missing report"),
         ("invalid_xml", "Invalid XML report"),
         ("failed_test", "Invalid JUnit results"),
+        ("skipped_test", "Invalid JUnit results"),
         ("no_tests", "Invalid JUnit results"),
         ("low_coverage", "below 70%"),
         ("wrong_scope", "Wrong coverage sources"),
@@ -56,6 +59,7 @@ def test_missing_or_failed_reports_reject_suite(change: str, message: str, tmp_p
     directory = _reports(
         tmp_path,
         failures=1 if change == "failed_test" else 0,
+        skipped=1 if change == "skipped_test" else 0,
         total=0 if change == "no_tests" else 2,
         covered=6 if change == "low_coverage" else 7,
     )
@@ -100,3 +104,23 @@ def test_runner_does_not_accept_stale_reports(tmp_path: Path, monkeypatch: pytes
 
     monkeypatch.setattr(run_suite.subprocess, "run", no_reports)
     assert run_suite.run("domain") == 1
+
+
+@pytest.mark.parametrize("mutation", ["missing_case", "hidden_skip", "hidden_failure"])
+def test_success_counters_cannot_hide_missing_or_unsuccessful_cases(mutation: str, tmp_path: Path) -> None:
+    directory = _reports(tmp_path)
+    second = (
+        ""
+        if mutation == "missing_case"
+        else (
+            '<testcase classname="fixture" name="second">'
+            f"<{'skipped' if mutation == 'hidden_skip' else 'failure'}/></testcase>"
+        )
+    )
+    (directory / "junit.xml").write_text(
+        '<testsuites><testsuite tests="2" failures="0" errors="0" skipped="0">'
+        '<testcase classname="fixture" name="first"/>' + second + "</testsuite></testsuites>",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="JUnit counters differ from executed cases"):
+        verify("domain", directory, (tmp_path / "domain",), 70, baseline=tmp_path / "unused-baseline.json")

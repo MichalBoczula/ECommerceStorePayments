@@ -1,0 +1,1697 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "ab868c98940741ef6422dfafcab71134f3e4b8e3",
+  "sourceRunId": 40219243830,
+  "features": 5,
+  "declarations": 51,
+  "expandedBddCases": 51,
+  "standaloneAcceptanceCases": 89,
+  "cases": [
+    {
+      "id": "PAY21-01",
+      "feature": "checkout.feature",
+      "scenario": "PAY21-01 Create checkout from the server order",
+      "example": {},
+      "matrix": {
+        "id": "PAY21-01",
+        "operation": "POST /payments/{order_id}/checkout",
+        "cause": "new checkout",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/1"
+      }
+    },
+    {
+      "id": "PAY21-02",
+      "feature": "checkout.feature",
+      "scenario": "PAY21-02 Read an existing checkout instead of creating another",
+      "example": {},
+      "matrix": {
+        "id": "PAY21-02",
+        "operation": "POST /payments/{order_id}/checkout",
+        "cause": "repeated checkout",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/1"
+      }
+    },
+    {
+      "id": "PAY21-03",
+      "feature": "checkout.feature",
+      "scenario": "PAY21-03 Recover a timeout after the provider accepted checkout",
+      "example": {},
+      "matrix": {
+        "id": "PAY21-03",
+        "operation": "POST /payments/{order_id}/checkout",
+        "cause": "retry after ambiguous timeout",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/1"
+      }
+    },
+    {
+      "id": "PAY21-04",
+      "feature": "checkout.feature",
+      "scenario": "PAY21-04 Disabled checkout does not prepare a payment",
+      "example": {},
+      "matrix": {
+        "id": "PAY21-04",
+        "operation": "POST /payments/{order_id}/checkout",
+        "cause": "disabled checkout",
+        "status": "503",
+        "code": "checkout_disabled",
+        "requirement": "STRIPE/1"
+      }
+    },
+    {
+      "id": "PAY21-05",
+      "feature": "checkout.feature",
+      "scenario": "PAY21-05 Reject a Paid order before contacting Stripe",
+      "example": {},
+      "matrix": {
+        "id": "PAY21-05",
+        "operation": "POST /payments/{order_id}/checkout",
+        "cause": "order not Created",
+        "status": "409",
+        "code": "order_not_payable",
+        "requirement": "STRIPE/1"
+      }
+    },
+    {
+      "id": "PAY21-06",
+      "feature": "checkout.feature",
+      "scenario": "PAY21-06 Report provider rejection safely",
+      "example": {},
+      "matrix": {
+        "id": "PAY21-06",
+        "operation": "POST /payments/{order_id}/checkout",
+        "cause": "provider rejection",
+        "status": "502",
+        "code": "checkout_provider_error",
+        "requirement": "STRIPE/1"
+      }
+    },
+    {
+      "id": "PAY21-07",
+      "feature": "checkout.feature",
+      "scenario": "PAY21-07 Report an ambiguous provider timeout safely",
+      "example": {},
+      "matrix": {
+        "id": "PAY21-07",
+        "operation": "POST /payments/{order_id}/checkout",
+        "cause": "provider timeout",
+        "status": "504",
+        "code": "checkout_timeout",
+        "requirement": "STRIPE/1"
+      }
+    },
+    {
+      "id": "PAY21-08",
+      "feature": "checkout.feature",
+      "scenario": "PAY21-08 Reject a missing order",
+      "example": {},
+      "matrix": {
+        "id": "PAY21-08",
+        "operation": "POST /payments/{order_id}/checkout",
+        "cause": "missing order",
+        "status": "404",
+        "code": "order_not_found",
+        "requirement": "STRIPE/1"
+      }
+    },
+    {
+      "id": "PAY21-09",
+      "feature": "checkout.feature",
+      "scenario": "PAY21-09 Preserve payment snapshot after the order total changes",
+      "example": {},
+      "matrix": {
+        "id": "PAY21-09",
+        "operation": "POST /payments/{order_id}/checkout",
+        "cause": "changed order money",
+        "status": "409",
+        "code": "order_total_changed",
+        "requirement": "STRIPE/1"
+      }
+    },
+    {
+      "id": "PAY23-01",
+      "feature": "fulfillment.feature",
+      "scenario": "PAY23-01 Fulfillment reconciles ok",
+      "example": {},
+      "matrix": {
+        "id": "PAY23-01",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "normal fulfillment",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/3"
+      }
+    },
+    {
+      "id": "PAY23-02",
+      "feature": "fulfillment.feature",
+      "scenario": "PAY23-02 Fulfillment reconciles paid_ack_lost",
+      "example": {},
+      "matrix": {
+        "id": "PAY23-02",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "lost Paid response reconciled",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/3"
+      }
+    },
+    {
+      "id": "PAY23-03",
+      "feature": "fulfillment.feature",
+      "scenario": "PAY23-03 Fulfillment reconciles invoice_ack_lost",
+      "example": {},
+      "matrix": {
+        "id": "PAY23-03",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "lost invoice response reconciled",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/3"
+      }
+    },
+    {
+      "id": "PAY23-04",
+      "feature": "fulfillment.feature",
+      "scenario": "PAY23-04 PDF failure remains recoverable after the order is paid",
+      "example": {},
+      "matrix": {
+        "id": "PAY23-04",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "PDF failure and durable retry",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/3"
+      }
+    },
+    {
+      "id": "PAY11-22",
+      "feature": "health.feature",
+      "scenario": "PAY11-22 Compatibility health alias",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-22",
+        "operation": "GET /health",
+        "cause": "compatibility liveness alias",
+        "status": "200",
+        "code": "-",
+        "requirement": "PAY/6"
+      }
+    },
+    {
+      "id": "PAY11-19",
+      "feature": "health.feature",
+      "scenario": "PAY11-19 Healthy liveness",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-19",
+        "operation": "GET /health/live",
+        "cause": "liveness",
+        "status": "200",
+        "code": "-",
+        "requirement": "PAY/6"
+      }
+    },
+    {
+      "id": "PAY11-20",
+      "feature": "health.feature",
+      "scenario": "PAY11-20 Healthy readiness probes real MongoDB",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-20",
+        "operation": "GET /health/ready",
+        "cause": "MongoDB ready",
+        "status": "200",
+        "code": "-",
+        "requirement": "PAY/6"
+      }
+    },
+    {
+      "id": "PAY11-21",
+      "feature": "health.feature",
+      "scenario": "PAY11-21 Failed readiness keeps liveness healthy",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-21",
+        "operation": "GET /health/ready",
+        "cause": "MongoDB unavailable",
+        "status": "503",
+        "code": "service_unavailable",
+        "requirement": "PAY/6"
+      }
+    },
+    {
+      "id": "PAY11-01",
+      "feature": "payments.feature",
+      "scenario": "PAY11-01 Create a payment from a payable order",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-01",
+        "operation": "POST /payments/{order_id}/pay",
+        "cause": "new payable order",
+        "status": "201",
+        "code": "-",
+        "requirement": "PAY/9"
+      }
+    },
+    {
+      "id": "PAY11-02",
+      "feature": "payments.feature",
+      "scenario": "PAY11-02 Read a payment by order ID",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-02",
+        "operation": "GET /payments/order/{order_id}",
+        "cause": "existing payment",
+        "status": "200",
+        "code": "-",
+        "requirement": "PAY/9"
+      }
+    },
+    {
+      "id": "PAY11-03",
+      "feature": "payments.feature",
+      "scenario": "PAY11-03 Repeat Pay without writing or calling Orders again",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-03",
+        "operation": "POST /payments/{order_id}/pay",
+        "cause": "repeated nonterminal payment",
+        "status": "200",
+        "code": "-",
+        "requirement": "PAY/9"
+      }
+    },
+    {
+      "id": "PAY11-04",
+      "feature": "payments.feature",
+      "scenario": "PAY11-04 Missing payment",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-04",
+        "operation": "GET /payments/order/{order_id}",
+        "cause": "missing payment",
+        "status": "404",
+        "code": "payment_not_found",
+        "requirement": "PAY/9"
+      }
+    },
+    {
+      "id": "PAY11-05",
+      "feature": "payments.feature",
+      "scenario": "PAY11-05 Missing order",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-05",
+        "operation": "POST /payments/{order_id}/pay",
+        "cause": "missing order",
+        "status": "404",
+        "code": "order_not_found",
+        "requirement": "PAY/8"
+      }
+    },
+    {
+      "id": "PAY11-06",
+      "feature": "payments.feature",
+      "scenario": "PAY11-06 Order not payable",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-06",
+        "operation": "POST /payments/{order_id}/pay",
+        "cause": "order not Created",
+        "status": "409",
+        "code": "order_not_payable",
+        "requirement": "PAY/9"
+      }
+    },
+    {
+      "id": "PAY11-07",
+      "feature": "payments.feature",
+      "scenario": "PAY11-07 Invalid Orders response",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-07",
+        "operation": "POST /payments/{order_id}/pay",
+        "cause": "invalid Orders payload",
+        "status": "502",
+        "code": "order_invalid_response",
+        "requirement": "PAY/8"
+      }
+    },
+    {
+      "id": "PAY11-08",
+      "feature": "payments.feature",
+      "scenario": "PAY11-08 Orders timeout",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-08",
+        "operation": "POST /payments/{order_id}/pay",
+        "cause": "Orders timeout",
+        "status": "504",
+        "code": "order_timeout",
+        "requirement": "PAY/8"
+      }
+    },
+    {
+      "id": "PAY11-09",
+      "feature": "payments.feature",
+      "scenario": "PAY11-09 Orders outage",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-09",
+        "operation": "POST /payments/{order_id}/pay",
+        "cause": "Orders transport outage",
+        "status": "502",
+        "code": "order_unavailable",
+        "requirement": "PAY/8"
+      }
+    },
+    {
+      "id": "PAY11-10",
+      "feature": "payments.feature",
+      "scenario": "PAY11-10 Retry a failed payment and archive its previous state",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-10",
+        "operation": "POST /payments/{order_id}/pay",
+        "cause": "failed payment retry",
+        "status": "200",
+        "code": "-",
+        "requirement": "PAY/9"
+      }
+    },
+    {
+      "id": "PAY11-11",
+      "feature": "payments.feature",
+      "scenario": "PAY11-11 Retry a canceled payment",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-11",
+        "operation": "POST /payments/{order_id}/pay",
+        "cause": "canceled payment retry",
+        "status": "200",
+        "code": "-",
+        "requirement": "PAY/9"
+      }
+    },
+    {
+      "id": "PAY11-12",
+      "feature": "payments.feature",
+      "scenario": "PAY11-12 Reject retry when the order total changed",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-12",
+        "operation": "POST /payments/{order_id}/pay",
+        "cause": "changed total on retry",
+        "status": "409",
+        "code": "order_total_changed",
+        "requirement": "PAY/9"
+      }
+    },
+    {
+      "id": "PAY11-13",
+      "feature": "payments.feature",
+      "scenario": "PAY11-13 Concurrent Pay creates one current payment",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-13",
+        "operation": "POST /payments/{order_id}/pay x2",
+        "cause": "parallel first Pay",
+        "status": "200,201",
+        "code": "-",
+        "requirement": "PAY/9"
+      }
+    },
+    {
+      "id": "PAY11-14",
+      "feature": "payments.feature",
+      "scenario": "PAY11-14 Invalid order ID",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-14",
+        "operation": "POST /payments/invalid-uuid/pay",
+        "cause": "invalid path UUID",
+        "status": "400",
+        "code": "invalid_request",
+        "requirement": "PAY/10"
+      }
+    },
+    {
+      "id": "PAY11-15",
+      "feature": "payments.feature",
+      "scenario": "PAY11-15 Malformed JSON body",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-15",
+        "operation": "POST /payments/{order_id}/pay",
+        "cause": "malformed JSON body",
+        "status": "400",
+        "code": "invalid_json",
+        "requirement": "PAY/10"
+      }
+    },
+    {
+      "id": "PAY11-16",
+      "feature": "payments.feature",
+      "scenario": "PAY11-16 Unsupported request media",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-16",
+        "operation": "POST /payments/{order_id}/pay",
+        "cause": "unsupported text/plain body",
+        "status": "415",
+        "code": "unsupported_media_type",
+        "requirement": "PAY/10"
+      }
+    },
+    {
+      "id": "PAY11-17",
+      "feature": "payments.feature",
+      "scenario": "PAY11-17 Unknown route",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-17",
+        "operation": "GET /unknown-route",
+        "cause": "unmatched route",
+        "status": "404",
+        "code": "route_not_found",
+        "requirement": "PAY/10"
+      }
+    },
+    {
+      "id": "PAY11-18",
+      "feature": "payments.feature",
+      "scenario": "PAY11-18 Wrong method",
+      "example": {},
+      "matrix": {
+        "id": "PAY11-18",
+        "operation": "POST /health/live",
+        "cause": "wrong method",
+        "status": "405",
+        "code": "method_not_allowed",
+        "requirement": "PAY/10"
+      }
+    },
+    {
+      "id": "PAY22-01",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-01 Confirm a matching checkout and persist durable work",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-01",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "confirmed checkout",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-02",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-02 Redeliver the same event without another transition",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-02",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "duplicate webhook",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-03",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-03 Reject a missing signature",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-03",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "missing signature",
+        "status": "400",
+        "code": "webhook_invalid",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-04",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-04 Reject tampered original bytes",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-04",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "tampered bytes",
+        "status": "400",
+        "code": "webhook_invalid",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-05",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-05 Ignore a signed unrelated event",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-05",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "unknown event",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-06",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-06 Record mismatched money without confirming payment",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-06",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "mismatched money",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-07",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-07 Expire payment without canceling the order",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-07",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "expired checkout",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-08",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-08 Earlier expiry cannot downgrade success",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-08",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "expiry after success",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-09",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-09 Concurrent duplicate delivery commits once",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-09",
+        "operation": "POST /payments/webhooks/stripe x2",
+        "cause": "concurrent duplicate",
+        "status": "200,200",
+        "code": "-",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-10",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-10 Interrupted processing remains retryable",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-10",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "interrupted processing",
+        "status": "503",
+        "code": "webhook_retry",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-11",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-11 Redelivery finishes an interrupted receipt",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-11",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "recover pending receipt",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-12",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-12 Unconfigured webhook verification is unavailable",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-12",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "disabled verification",
+        "status": "503",
+        "code": "webhook_disabled",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-13",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-13 Reject unsupported webhook media",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-13",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "unsupported media",
+        "status": "415",
+        "code": "unsupported_media_type",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-14",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-14 Reject oversized webhook before receipt",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-14",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "oversized webhook",
+        "status": "413",
+        "code": "webhook_too_large",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-15",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-15 Unpaid completion cannot establish success",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-15",
+        "operation": "POST /payments/webhooks/stripe",
+        "cause": "unpaid completion",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/2"
+      }
+    },
+    {
+      "id": "PAY22-16",
+      "feature": "webhooks.feature",
+      "scenario": "PAY22-16 New checkout enables both card and BLIK",
+      "example": {},
+      "matrix": {
+        "id": "PAY22-16",
+        "operation": "POST /payments/{order_id}/checkout",
+        "cause": "card and BLIK",
+        "status": "200",
+        "code": "-",
+        "requirement": "STRIPE/2"
+      }
+    }
+  ],
+  "operations": [
+    {
+      "operationId": "get_health",
+      "method": "GET",
+      "path": "/health",
+      "statuses": [
+        "200",
+        "405",
+        "500"
+      ]
+    },
+    {
+      "operationId": "get_liveness",
+      "method": "GET",
+      "path": "/health/live",
+      "statuses": [
+        "200",
+        "405",
+        "500"
+      ]
+    },
+    {
+      "operationId": "get_readiness",
+      "method": "GET",
+      "path": "/health/ready",
+      "statuses": [
+        "200",
+        "405",
+        "500",
+        "503"
+      ]
+    },
+    {
+      "operationId": "createOrderCheckout",
+      "method": "POST",
+      "path": "/payments/{order_id}/checkout",
+      "statuses": [
+        "200",
+        "400",
+        "404",
+        "405",
+        "409",
+        "415",
+        "500",
+        "502",
+        "503",
+        "504"
+      ]
+    },
+    {
+      "operationId": "payOrder",
+      "method": "POST",
+      "path": "/payments/{order_id}/pay",
+      "statuses": [
+        "200",
+        "201",
+        "400",
+        "404",
+        "405",
+        "409",
+        "415",
+        "500",
+        "502",
+        "504"
+      ]
+    },
+    {
+      "operationId": "getPaymentByOrderId",
+      "method": "GET",
+      "path": "/payments/order/{order_id}",
+      "statuses": [
+        "200",
+        "400",
+        "404",
+        "405",
+        "500"
+      ]
+    },
+    {
+      "operationId": "receiveStripeWebhook",
+      "method": "POST",
+      "path": "/payments/webhooks/stripe",
+      "statuses": [
+        "200",
+        "400",
+        "405",
+        "413",
+        "415",
+        "500",
+        "503"
+      ]
+    }
+  ],
+  "suites": {
+    "domain": {
+      "count": 97,
+      "members": {
+        "tests.unit.domain.test_checkout_attempt": [
+          "test_attempt_reservation_is_idempotent_and_retry_clears_it",
+          "test_invalid_attempt_snapshots_are_rejected[after]",
+          "test_invalid_attempt_snapshots_are_rejected[before]",
+          "test_invalid_attempt_snapshots_are_rejected[missing_id]",
+          "test_invalid_attempt_snapshots_are_rejected[missing_time]",
+          "test_invalid_attempt_snapshots_are_rejected[naive_time]",
+          "test_invalid_attempt_snapshots_are_rejected[zero_id]",
+          "test_invalid_reserved_request_version_is_rejected[-1]",
+          "test_invalid_reserved_request_version_is_rejected[0]",
+          "test_invalid_reserved_request_version_is_rejected[2]",
+          "test_invalid_reserved_request_version_is_rejected[True]",
+          "test_reserved_request_version_stays_stable_and_resets_on_retry",
+          "test_verified_confirmation_recovers_same_attempt_and_round_trips[canceled]",
+          "test_verified_confirmation_recovers_same_attempt_and_round_trips[created]",
+          "test_verified_confirmation_recovers_same_attempt_and_round_trips[failed]",
+          "test_verified_confirmation_recovers_same_attempt_and_round_trips[pending]",
+          "test_verified_confirmation_rejects_unreserved_or_conflicting_provider_data[blank_payment]",
+          "test_verified_confirmation_rejects_unreserved_or_conflicting_provider_data[blank_session]",
+          "test_verified_confirmation_rejects_unreserved_or_conflicting_provider_data[payment]",
+          "test_verified_confirmation_rejects_unreserved_or_conflicting_provider_data[session]",
+          "test_verified_confirmation_rejects_unreserved_or_conflicting_provider_data[unreserved]"
+        ],
+        "tests.unit.domain.test_money": [
+          "test_money_is_immutable",
+          "test_money_normalizes_currency",
+          "test_money_rejects_invalid_currency[None]",
+          "test_money_rejects_invalid_currency[PLN1]",
+          "test_money_rejects_invalid_currency[PL]",
+          "test_money_rejects_invalid_currency[P\\u0141N]",
+          "test_money_rejects_invalid_currency[\\u20acUR]",
+          "test_money_rejects_invalid_currency[\\xdfD]",
+          "test_money_rejects_invalid_currency[]",
+          "test_money_rejects_non_positive_amount[-1]",
+          "test_money_rejects_non_positive_amount[0]",
+          "test_money_rejects_non_positive_amount[1.5]",
+          "test_money_rejects_non_positive_amount[True]"
+        ],
+        "tests.unit.domain.test_payment": [
+          "test_allowed_transition_or_exact_repeat[canceled-cancel--canceled]",
+          "test_allowed_transition_or_exact_repeat[created-cancel--canceled]",
+          "test_allowed_transition_or_exact_repeat[created-pending-cs_1-pending]",
+          "test_allowed_transition_or_exact_repeat[failed-failed-failed-failed]",
+          "test_allowed_transition_or_exact_repeat[pending-cancel--canceled]",
+          "test_allowed_transition_or_exact_repeat[pending-failed-failed-failed]",
+          "test_allowed_transition_or_exact_repeat[pending-pending-cs_1-pending]",
+          "test_allowed_transition_or_exact_repeat[pending-succeeded-pi_1-succeeded]",
+          "test_allowed_transition_or_exact_repeat[succeeded-succeeded-pi_1-succeeded]",
+          "test_create_initializes_new_payment",
+          "test_create_rejects_invalid_order_id[order_id0]",
+          "test_disallowed_transition_preserves_state[canceled-pending-cs_1]",
+          "test_disallowed_transition_preserves_state[canceled-succeeded-pi_1]",
+          "test_disallowed_transition_preserves_state[created-failed-failed]",
+          "test_disallowed_transition_preserves_state[created-succeeded-pi_1]",
+          "test_disallowed_transition_preserves_state[failed-failed-other]",
+          "test_disallowed_transition_preserves_state[failed-pending-cs_1]",
+          "test_disallowed_transition_preserves_state[failed-succeeded-pi_1]",
+          "test_disallowed_transition_preserves_state[pending-pending-cs_2]",
+          "test_disallowed_transition_preserves_state[succeeded-cancel-]",
+          "test_disallowed_transition_preserves_state[succeeded-failed-failed]",
+          "test_disallowed_transition_preserves_state[succeeded-succeeded-pi_2]",
+          "test_failure_without_code_and_cancellation_after_pending_round_trip",
+          "test_invalid_provider_data_does_not_change_payment[failure- -invalid_failure_code]",
+          "test_invalid_provider_data_does_not_change_payment[payment--invalid_provider_payment_id]",
+          "test_invalid_provider_data_does_not_change_payment[payment-pi_1 -invalid_provider_payment_id]",
+          "test_invalid_provider_data_does_not_change_payment[payment-pi_\\xe9-invalid_provider_payment_id]",
+          "test_invalid_provider_data_does_not_change_payment[session- -invalid_provider_session_id]",
+          "test_invalid_provider_data_does_not_change_payment[session- cs_1-invalid_provider_session_id]",
+          "test_invalid_provider_data_does_not_change_payment[session-cs 1-invalid_provider_session_id]",
+          "test_payment_can_transition_from_created_to_succeeded",
+          "test_payment_rejects_invalid_transition",
+          "test_rehydrate_accepts_each_consistent_state[canceled]",
+          "test_rehydrate_accepts_each_consistent_state[created]",
+          "test_rehydrate_accepts_each_consistent_state[failed]",
+          "test_rehydrate_accepts_each_consistent_state[pending]",
+          "test_rehydrate_accepts_each_consistent_state[succeeded]",
+          "test_rehydrate_rejects_inconsistent_created_retry_snapshot[0-True]",
+          "test_rehydrate_rejects_inconsistent_created_retry_snapshot[1-False]",
+          "test_rehydrate_rejects_inconsistent_state[canceled-None-None-failure-True]",
+          "test_rehydrate_rejects_inconsistent_state[created-None-None-None-True]",
+          "test_rehydrate_rejects_inconsistent_state[created-cs_1-None-None-False]",
+          "test_rehydrate_rejects_inconsistent_state[failed-cs_1-pi_1-failure-True]",
+          "test_rehydrate_rejects_inconsistent_state[pending-None-None-None-True]",
+          "test_rehydrate_rejects_inconsistent_state[pending-cs_1-None-None-False]",
+          "test_rehydrate_rejects_inconsistent_state[pending-cs_1-pi_1-None-True]",
+          "test_rehydrate_rejects_inconsistent_state[succeeded-cs_1-None-None-True]",
+          "test_rehydrate_rejects_inconsistent_state[succeeded-cs_1-pi_1-failure-True]",
+          "test_rehydrate_rejects_invalid_payment_id",
+          "test_rehydrate_rejects_invalid_provider_session",
+          "test_rehydrate_rejects_invalid_timestamps[created_at0-None]",
+          "test_rehydrate_rejects_invalid_timestamps[created_at1-updated_at1]",
+          "test_rehydrate_rejects_invalid_timestamps[created_at2-updated_at2]",
+          "test_rehydrate_rejects_invalid_version[-1]",
+          "test_rehydrate_rejects_invalid_version[1.5]",
+          "test_rehydrate_rejects_invalid_version[1]",
+          "test_rehydrate_rejects_invalid_version[True]",
+          "test_rehydrate_rejects_unknown_status",
+          "test_rehydrate_restores_persisted_state",
+          "test_retry_rejects_nonretryable_state[pending]",
+          "test_retry_rejects_nonretryable_state[succeeded]",
+          "test_retry_resets_terminal_payment_and_rehydrates_created_snapshot[canceled]",
+          "test_retry_resets_terminal_payment_and_rehydrates_created_snapshot[failed]"
+        ]
+      }
+    },
+    "application": {
+      "count": 82,
+      "members": {
+        "tests.integration.application.test_checkout_flow": [
+          "test_failed_session_save_leaves_recoverable_reservation",
+          "test_parallel_checkout_creates_one_session_and_two_atomic_history_records",
+          "test_restart_recovers_provider_success_with_same_attempt_and_history"
+        ],
+        "tests.integration.application.test_pay_flow": [
+          "test_parallel_first_pay_creates_one_payment",
+          "test_parallel_retry_has_one_version_winner[canceled]",
+          "test_parallel_retry_has_one_version_winner[failed]",
+          "test_retry_preserves_payment_id_and_archives_previous_attempt"
+        ],
+        "tests.unit.application.test_checkout": [
+          "test_checkout_cannot_use_changed_order_money_or_successful_payment",
+          "test_checkout_rechecks_order_before_any_provider_call[Cancelled]",
+          "test_checkout_rechecks_order_before_any_provider_call[Paid]",
+          "test_checkout_reserves_then_persists_pending_and_reuses_session",
+          "test_checkout_returns_both_reservation_and_pending_concurrent_winners",
+          "test_database_failure_after_provider_success_can_be_recovered",
+          "test_disabled_checkout_does_not_create_payment",
+          "test_legacy_pending_cannot_create_another_checkout",
+          "test_legacy_reserved_attempt_recovers_with_original_request_version",
+          "test_old_ambiguous_attempt_requires_reconciliation_without_provider_call",
+          "test_terminal_retry_uses_new_attempt_on_same_payment",
+          "test_timeout_after_provider_acceptance_replays_same_durable_attempt",
+          "test_unsupported_money_does_not_create_payment"
+        ],
+        "tests.unit.application.test_fulfillment_service": [
+          "test_batch_limit_is_bounded[0]",
+          "test_batch_limit_is_bounded[1001]",
+          "test_bounded_backoff_and_exhaustion[1-60]",
+          "test_bounded_backoff_and_exhaustion[10-None]",
+          "test_bounded_backoff_and_exhaustion[11-None]",
+          "test_bounded_backoff_and_exhaustion[3-240]",
+          "test_bounded_backoff_and_exhaustion[8-3600]",
+          "test_configuration_error_requires_manual_resume",
+          "test_existing_paid_order_and_invoice_require_no_writes",
+          "test_invalid_association_or_state_requires_operator_repair[amount]",
+          "test_invalid_association_or_state_requires_operator_repair[attempt]",
+          "test_invalid_association_or_state_requires_operator_repair[cancelled]",
+          "test_invalid_association_or_state_requires_operator_repair[invoice]",
+          "test_invalid_association_or_state_requires_operator_repair[order]",
+          "test_invalid_association_or_state_requires_operator_repair[owner]",
+          "test_invalid_association_or_state_requires_operator_repair[payment]",
+          "test_invalid_association_or_state_requires_operator_repair[regressed]",
+          "test_invalid_association_or_state_requires_operator_repair[unknown]",
+          "test_invoice_failure_saves_paid_progress_and_restart_does_not_repeat_paid",
+          "test_invoice_response_loss_reconciles_completed_invoice",
+          "test_lost_lease_cannot_complete_or_overwrite_new_worker",
+          "test_reconciles_ambiguous_or_repeated_paid_only_after_authoritative_read[400]",
+          "test_reconciles_ambiguous_or_repeated_paid_only_after_authoritative_read[409]",
+          "test_reconciles_ambiguous_or_repeated_paid_only_after_authoritative_read[500]",
+          "test_reconciles_ambiguous_or_repeated_paid_only_after_authoritative_read[timeout]",
+          "test_repeat_paid_error_without_paid_state_remains_retryable",
+          "test_success_and_already_completed_batch",
+          "test_success_response_without_paid_readback_is_not_accepted",
+          "test_timeout_remains_recoverable",
+          "test_unknown_error_is_saved_without_private_detail"
+        ],
+        "tests.unit.application.test_payment_service": [
+          "test_get_by_order_id_raises_when_payment_is_missing",
+          "test_pay_cannot_retry_if_order_total_changed",
+          "test_pay_cannot_retry_when_order_is_not_created[Canceled]",
+          "test_pay_cannot_retry_when_order_is_not_created[Paid]",
+          "test_pay_creates_payment_from_order_details",
+          "test_pay_propagates_duplicate_when_no_payment_exists_for_order",
+          "test_pay_propagates_unresolved_retry_conflict",
+          "test_pay_rejects_order_that_is_not_created",
+          "test_pay_retries_concurrent_create_winner_if_already_canceled",
+          "test_pay_retries_terminal_payment_in_place[canceled]",
+          "test_pay_retries_terminal_payment_in_place[failed]",
+          "test_pay_returns_concurrent_retry_winner",
+          "test_pay_returns_existing_payment_without_loading_order[created]",
+          "test_pay_returns_existing_payment_without_loading_order[pending]",
+          "test_pay_returns_existing_payment_without_loading_order[succeeded]",
+          "test_pay_returns_winner_when_another_request_creates_payment_first"
+        ],
+        "tests.unit.application.test_webhook_service": [
+          "test_confirm_once_and_pass_original_bytes_to_verifier",
+          "test_conflicts_reload_or_leave_retryable_work[1]",
+          "test_conflicts_reload_or_leave_retryable_work[4]",
+          "test_mismatched_and_unrelated_notifications_cannot_confirm_payment[attempt]",
+          "test_mismatched_and_unrelated_notifications_cannot_confirm_payment[missing]",
+          "test_mismatched_and_unrelated_notifications_cannot_confirm_payment[money]",
+          "test_mismatched_and_unrelated_notifications_cannot_confirm_payment[order]",
+          "test_mismatched_and_unrelated_notifications_cannot_confirm_payment[session]",
+          "test_mismatched_and_unrelated_notifications_cannot_confirm_payment[unknown]",
+          "test_new_attempt_cannot_be_completed_by_old_success",
+          "test_receipt_survives_interruption_and_restart_can_finish_it",
+          "test_success_wins_over_expiry_in_either_order_without_extra_success_write",
+          "test_successful_attempt_cannot_change_its_provider_payment_id",
+          "test_waiting_and_terminal_notifications_have_explicit_policy[expired]",
+          "test_waiting_and_terminal_notifications_have_explicit_policy[failed]",
+          "test_waiting_and_terminal_notifications_have_explicit_policy[waiting]"
+        ]
+      }
+    },
+    "infrastructure": {
+      "count": 250,
+      "members": {
+        "tests.integration.infrastructure.test_invoice_image_client": [
+          "test_published_invoice_order_contract_and_kiota_client"
+        ],
+        "tests.integration.infrastructure.test_mongo_fulfillment": [
+          "test_atomic_claim_concurrent_workers_and_fenced_expired_lease",
+          "test_crash_after_invoice_commit_recovers_with_one_logical_invoice",
+          "test_many_workers_and_webhook_replay_produce_one_completed_work",
+          "test_retry_due_progress_and_manual_resume_survive_new_repository"
+        ],
+        "tests.integration.infrastructure.test_mongo_payment_repository": [
+          "test_competing_creates_for_order_leave_one_payment",
+          "test_competing_updates_leave_one_winner",
+          "test_create_reads_back_domain_and_bson_values",
+          "test_database_names_isolate_documents",
+          "test_failed_archive_rolls_back_current_update",
+          "test_first_update_of_versionless_document_migrates_it_atomically",
+          "test_missing_reads_and_update",
+          "test_unique_order_index_rejects_second_payment",
+          "test_update_cannot_reassign_payment_to_another_order",
+          "test_update_round_trip_and_missing_payment"
+        ],
+        "tests.integration.infrastructure.test_mongo_webhooks": [
+          "test_atomic_confirmation_receipt_history_and_durable_fulfillment_marker",
+          "test_concurrent_deliveries_confirm_logically_once[False]",
+          "test_concurrent_deliveries_confirm_logically_once[True]",
+          "test_duplicate_identity_with_different_payload_is_rejected",
+          "test_expiry_and_success_concurrently_converge_on_success",
+          "test_failure_after_payment_and_archive_rolls_back_and_redelivery_recovers",
+          "test_receipt_only_interruption_is_recovered_by_new_process_without_provider_credentials",
+          "test_webhook_can_recover_provider_success_before_session_is_saved"
+        ],
+        "tests.integration.infrastructure.test_real_invoice_fulfillment": [
+          "test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_replies"
+        ],
+        "tests.unit.external_providers.test_http_fulfillment": [
+          "test_auth_failure_requires_configuration_repair[401]",
+          "test_auth_failure_requires_configuration_repair[403]",
+          "test_downstream_error_is_safe_and_reconcilable[204]",
+          "test_downstream_error_is_safe_and_reconcilable[302]",
+          "test_downstream_error_is_safe_and_reconcilable[400]",
+          "test_downstream_error_is_safe_and_reconcilable[404]",
+          "test_downstream_error_is_safe_and_reconcilable[409]",
+          "test_downstream_error_is_safe_and_reconcilable[429]",
+          "test_downstream_error_is_safe_and_reconcilable[500]",
+          "test_downstream_error_is_safe_and_reconcilable[503]",
+          "test_incomplete_or_wrong_invoice_is_blocked[clietDataVersionId-None]",
+          "test_incomplete_or_wrong_invoice_is_blocked[createdAt-None]",
+          "test_incomplete_or_wrong_invoice_is_blocked[id-None]",
+          "test_incomplete_or_wrong_invoice_is_blocked[storageUrl-]",
+          "test_incomplete_or_wrong_invoice_is_blocked[wrong-order]",
+          "test_invalid_owner_is_blocked[00000000-0000-0000-0000-000000000000]",
+          "test_invalid_owner_is_blocked[None]",
+          "test_invalid_owner_is_blocked[wrong-id]",
+          "test_invoice_lookup_and_create_use_generated_routes",
+          "test_only_lookup_404_means_not_completed",
+          "test_reads_valid_owner_and_exact_money",
+          "test_serializes_paid_patch",
+          "test_transport_timeout_is_recoverable"
+        ],
+        "tests.unit.external_providers.test_http_order_reader": [
+          "test_maps_404_to_order_not_found",
+          "test_maps_actual_orders_response_with_currency_exponent[0.29-USD-29]",
+          "test_maps_actual_orders_response_with_currency_exponent[1.234-KWD-1234]",
+          "test_maps_actual_orders_response_with_currency_exponent[12.34-PLN-1234]",
+          "test_maps_actual_orders_response_with_currency_exponent[500-JPY-500]",
+          "test_maps_transport_failures[ConnectError]",
+          "test_maps_transport_failures[ReadTimeout]",
+          "test_maps_unexpected_upstream_status_to_unavailable[204]",
+          "test_maps_unexpected_upstream_status_to_unavailable[302]",
+          "test_maps_unexpected_upstream_status_to_unavailable[429]",
+          "test_maps_unexpected_upstream_status_to_unavailable[500]",
+          "test_maps_unexpected_upstream_status_to_unavailable[503]",
+          "test_preserves_large_decimal_without_rounding",
+          "test_rejects_amount_that_cannot_be_represented_in_jpy",
+          "test_rejects_inconsistent_order_lines[line_currency]",
+          "test_rejects_inconsistent_order_lines[line_total]",
+          "test_rejects_invalid_order_response[id-wrong-id]",
+          "test_rejects_invalid_order_response[lines-value8]",
+          "test_rejects_invalid_order_response[status-  ]",
+          "test_rejects_invalid_order_response[totalAmount--1]",
+          "test_rejects_invalid_order_response[totalAmount-0]",
+          "test_rejects_invalid_order_response[totalAmount-1.234]",
+          "test_rejects_invalid_order_response[totalAmount-12.34]",
+          "test_rejects_invalid_order_response[totalCurrency-ZZZ]",
+          "test_rejects_invalid_order_response[totalCurrency-pln]",
+          "test_rejects_string_amount_even_when_other_fields_are_valid",
+          "test_rejects_unbounded_exponent",
+          "test_rejects_unparseable_or_incomplete_body[\"not an order\"]",
+          "test_rejects_unparseable_or_incomplete_body[[]]",
+          "test_rejects_unparseable_or_incomplete_body[{\"totalAmount\":\"12.34\"}]",
+          "test_rejects_unparseable_or_incomplete_body[{]"
+        ],
+        "tests.unit.external_providers.test_stripe_card_smoke": [
+          "test_card_delivery_repr_does_not_expose_original_payload_or_signature",
+          "test_card_fixture_rejects_live_or_invalid_sessions[cs_live_example]",
+          "test_card_fixture_rejects_live_or_invalid_sessions[cs_test_ x]",
+          "test_card_fixture_rejects_live_or_invalid_sessions[cs_test_]",
+          "test_card_fixture_rejects_live_or_invalid_sessions[cs_test_example/confirm]",
+          "test_card_probe_requires_successful_test_intent_for_exact_money[amount-1300]",
+          "test_card_probe_requires_successful_test_intent_for_exact_money[amount_received-0]",
+          "test_card_probe_requires_successful_test_intent_for_exact_money[currency-eur]",
+          "test_card_probe_requires_successful_test_intent_for_exact_money[livemode-True]",
+          "test_card_probe_requires_successful_test_intent_for_exact_money[status-processing]",
+          "test_card_recorder_passes_original_bytes_and_signature_without_modifying_asgi_messages"
+        ],
+        "tests.unit.external_providers.test_stripe_checkout": [
+          "test_configured_provider_closes_owned_async_client",
+          "test_disabled_provider_is_unavailable_without_a_client",
+          "test_new_request_version_enables_card_and_blik_and_legacy_recovery_remains_card_only",
+          "test_provider_currency_policy_prevents_requests[money0]",
+          "test_provider_currency_policy_prevents_requests[money1]",
+          "test_provider_currency_policy_prevents_requests[money2]",
+          "test_provider_rejection_is_typed_and_does_not_leak_details[400]",
+          "test_provider_rejection_is_typed_and_does_not_leak_details[401]",
+          "test_provider_rejection_is_typed_and_does_not_leak_details[409]",
+          "test_provider_rejection_is_typed_and_does_not_leak_details[429]",
+          "test_provider_rejection_is_typed_and_does_not_leak_details[500]",
+          "test_rejects_invalid_or_unrelated_provider_response[amount_total-1]",
+          "test_rejects_invalid_or_unrelated_provider_response[client_reference_id-wrong]",
+          "test_rejects_invalid_or_unrelated_provider_response[currency-eur]",
+          "test_rejects_invalid_or_unrelated_provider_response[expires_at-True]",
+          "test_rejects_invalid_or_unrelated_provider_response[id-cs_live_wrong]",
+          "test_rejects_invalid_or_unrelated_provider_response[livemode-True]",
+          "test_rejects_invalid_or_unrelated_provider_response[metadata-value6]",
+          "test_rejects_invalid_or_unrelated_provider_response[mode-subscription]",
+          "test_rejects_invalid_or_unrelated_provider_response[status-unknown]",
+          "test_rejects_invalid_or_unrelated_provider_response[url-None]",
+          "test_rejects_invalid_or_unrelated_provider_response[url-https://attacker.example/c/pay/demo]",
+          "test_rejects_invalid_or_unrelated_provider_response[url-https://checkout.stripe.com@attacker.example/c/pay/demo]",
+          "test_retrieve_never_creates_or_confirms_payment[complete]",
+          "test_retrieve_never_creates_or_confirms_payment[expired]",
+          "test_retrieve_never_creates_or_confirms_payment[open]",
+          "test_sdk_encodes_server_money_metadata_return_urls_and_stable_key",
+          "test_timeout_is_distinguished_from_transport_failure"
+        ],
+        "tests.unit.external_providers.test_stripe_sandbox_smoke": [
+          "test_sandbox_probe_accepts_test_key_without_displaying_it",
+          "test_sandbox_probe_rejects_missing_live_or_invalid_keys_without_exposing_them[None]",
+          "test_sandbox_probe_rejects_missing_live_or_invalid_keys_without_exposing_them[]",
+          "test_sandbox_probe_rejects_missing_live_or_invalid_keys_without_exposing_them[pk_test_private]",
+          "test_sandbox_probe_rejects_missing_live_or_invalid_keys_without_exposing_them[sk_live_private]",
+          "test_sandbox_probe_rejects_missing_live_or_invalid_keys_without_exposing_them[sk_test_ private]",
+          "test_sandbox_probe_rejects_missing_live_or_invalid_keys_without_exposing_them[sk_test_]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[amount_total-1300]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[currency-eur]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[id-cs_test_unrelated]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[livemode-True]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[metadata-None]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[metadata-value10]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[metadata-value9]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[payment_method_types-value4]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[payment_status-paid]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[status-expired]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[wrong-client-reference]"
+        ],
+        "tests.unit.external_providers.test_stripe_scenario_smoke": [
+          "test_3ds_success_requires_actual_authenticated_challenge[None]",
+          "test_3ds_success_requires_actual_authenticated_challenge[details1]",
+          "test_3ds_success_requires_actual_authenticated_challenge[details2]",
+          "test_3ds_success_requires_actual_authenticated_challenge[details3]",
+          "test_blik_success_requires_real_successful_blik_charge[amount-1300]",
+          "test_blik_success_requires_real_successful_blik_charge[currency-eur]",
+          "test_blik_success_requires_real_successful_blik_charge[livemode-True]",
+          "test_blik_success_requires_real_successful_blik_charge[paid-False]",
+          "test_blik_success_requires_real_successful_blik_charge[payment_method_details-value5]",
+          "test_blik_success_requires_real_successful_blik_charge[status-failed]",
+          "test_decline_requires_provider_card_decline_and_zero_received[amount-1300]",
+          "test_decline_requires_provider_card_decline_and_zero_received[amount_received-1299]",
+          "test_decline_requires_provider_card_decline_and_zero_received[currency-eur]",
+          "test_decline_requires_provider_card_decline_and_zero_received[last_payment_error-value5]",
+          "test_decline_requires_provider_card_decline_and_zero_received[livemode-True]",
+          "test_decline_requires_provider_card_decline_and_zero_received[status-succeeded]",
+          "test_failed_3ds_requires_authentication_error_and_cancellation_requires_authentication_action",
+          "test_fixture_decline_is_explicit_but_not_silently_treated_as_success",
+          "test_guided_3ds_refuses_noninteractive_output_before_printing_checkout_url",
+          "test_intent_lookup_ignores_other_account_metadata",
+          "test_outage_rejects_only_our_event_and_keeps_original_messages_for_recovery[False]",
+          "test_outage_rejects_only_our_event_and_keeps_original_messages_for_recovery[True]",
+          "test_provider_only_probe_guards_key_before_creating_stripe_client[]",
+          "test_provider_only_probe_guards_key_before_creating_stripe_client[pk_test_fixture]",
+          "test_provider_only_probe_guards_key_before_creating_stripe_client[sk_live_fixture]",
+          "test_provider_only_probe_guards_key_before_creating_stripe_client[sk_test_ short]",
+          "test_scenario_fixtures_reject_non_sandbox_sessions[cs_live_fixture-decline]",
+          "test_scenario_fixtures_reject_non_sandbox_sessions[cs_live_fixture-visa]",
+          "test_scenario_fixtures_reject_non_sandbox_sessions[cs_test_-decline]",
+          "test_scenario_fixtures_reject_non_sandbox_sessions[cs_test_-visa]",
+          "test_scenario_fixtures_reject_non_sandbox_sessions[cs_test_x/confirm-decline]",
+          "test_scenario_fixtures_reject_non_sandbox_sessions[cs_test_x/confirm-visa]"
+        ],
+        "tests.unit.external_providers.test_stripe_webhook": [
+          "test_actual_sdk_signature_verification_maps_normalized_success_without_api_key",
+          "test_rejects_missing_invalid_stale_or_tampered_signature_and_payload[duplicate_json]",
+          "test_rejects_missing_invalid_stale_or_tampered_signature_and_payload[malformed]",
+          "test_rejects_missing_invalid_stale_or_tampered_signature_and_payload[missing]",
+          "test_rejects_missing_invalid_stale_or_tampered_signature_and_payload[old]",
+          "test_rejects_missing_invalid_stale_or_tampered_signature_and_payload[tampered]",
+          "test_rejects_missing_invalid_stale_or_tampered_signature_and_payload[wrong_secret]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[bool_amount]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[connect]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[currency]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[event_id]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[float_amount]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[invalid_uuid]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[live]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[missing_metadata]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[missing_payment_id]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[mode]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[no_payment_required]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[organization]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[payment_id]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[reference]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[session_id]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[session_live]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[wrong_object]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[wrong_status]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[zero_uuid]",
+          "test_supported_event_policy_and_unknown_events[checkout.session.async_payment_failed-complete-unpaid-failed]",
+          "test_supported_event_policy_and_unknown_events[checkout.session.async_payment_succeeded-complete-paid-succeeded]",
+          "test_supported_event_policy_and_unknown_events[checkout.session.completed-complete-unpaid-waiting]",
+          "test_supported_event_policy_and_unknown_events[checkout.session.expired-expired-unpaid-expired]",
+          "test_supported_event_policy_and_unknown_events[payment_intent.payment_failed-complete-paid-unknown]",
+          "test_unconfigured_webhooks_are_disabled_independently_of_checkout_creation"
+        ],
+        "tests.unit.infrastructure.test_checkout_mapper": [
+          "test_mapper_preserves_reserved_attempt_and_supports_legacy_documents"
+        ],
+        "tests.unit.infrastructure.test_payment_mapper": [
+          "test_to_document_maps_payment_aggregate",
+          "test_to_domain_rehydrates_payment_aggregate",
+          "test_to_domain_treats_versionless_document_as_version_zero"
+        ],
+        "tests.unit.infrastructure.test_payment_repository": [
+          "test_create_and_get_by_id_round_trip",
+          "test_create_maps_duplicate_order_to_typed_error",
+          "test_get_by_order_id_returns_payment",
+          "test_update_raises_when_payment_does_not_exist",
+          "test_update_rejects_stale_payment",
+          "test_update_replaces_existing_document"
+        ],
+        "tests.unit.infrastructure.test_settings": [
+          "test_accepts_explicit_bounded_connection_settings",
+          "test_rejects_invalid_configuration[override0]",
+          "test_rejects_invalid_configuration[override10]",
+          "test_rejects_invalid_configuration[override11]",
+          "test_rejects_invalid_configuration[override12]",
+          "test_rejects_invalid_configuration[override13]",
+          "test_rejects_invalid_configuration[override14]",
+          "test_rejects_invalid_configuration[override15]",
+          "test_rejects_invalid_configuration[override16]",
+          "test_rejects_invalid_configuration[override17]",
+          "test_rejects_invalid_configuration[override18]",
+          "test_rejects_invalid_configuration[override19]",
+          "test_rejects_invalid_configuration[override1]",
+          "test_rejects_invalid_configuration[override20]",
+          "test_rejects_invalid_configuration[override21]",
+          "test_rejects_invalid_configuration[override22]",
+          "test_rejects_invalid_configuration[override23]",
+          "test_rejects_invalid_configuration[override24]",
+          "test_rejects_invalid_configuration[override25]",
+          "test_rejects_invalid_configuration[override26]",
+          "test_rejects_invalid_configuration[override27]",
+          "test_rejects_invalid_configuration[override28]",
+          "test_rejects_invalid_configuration[override29]",
+          "test_rejects_invalid_configuration[override2]",
+          "test_rejects_invalid_configuration[override30]",
+          "test_rejects_invalid_configuration[override31]",
+          "test_rejects_invalid_configuration[override32]",
+          "test_rejects_invalid_configuration[override33]",
+          "test_rejects_invalid_configuration[override34]",
+          "test_rejects_invalid_configuration[override35]",
+          "test_rejects_invalid_configuration[override3]",
+          "test_rejects_invalid_configuration[override4]",
+          "test_rejects_invalid_configuration[override5]",
+          "test_rejects_invalid_configuration[override6]",
+          "test_rejects_invalid_configuration[override7]",
+          "test_rejects_invalid_configuration[override8]",
+          "test_rejects_invalid_configuration[override9]",
+          "test_stripe_secret_is_redacted_and_fixed_https_destinations_are_accepted",
+          "test_webhook_secret_is_independent_redacted_and_blank_means_disabled"
+        ],
+        "tests.unit.infrastructure.test_webhook_mapper": [
+          "test_normalized_work_round_trip_preserves_receipt_and_contains_no_raw_body[False]",
+          "test_normalized_work_round_trip_preserves_receipt_and_contains_no_raw_body[True]"
+        ]
+      }
+    },
+    "externalproviders": {
+      "count": 175,
+      "members": {
+        "tests.unit.external_providers.test_http_fulfillment": [
+          "test_auth_failure_requires_configuration_repair[401]",
+          "test_auth_failure_requires_configuration_repair[403]",
+          "test_downstream_error_is_safe_and_reconcilable[204]",
+          "test_downstream_error_is_safe_and_reconcilable[302]",
+          "test_downstream_error_is_safe_and_reconcilable[400]",
+          "test_downstream_error_is_safe_and_reconcilable[404]",
+          "test_downstream_error_is_safe_and_reconcilable[409]",
+          "test_downstream_error_is_safe_and_reconcilable[429]",
+          "test_downstream_error_is_safe_and_reconcilable[500]",
+          "test_downstream_error_is_safe_and_reconcilable[503]",
+          "test_incomplete_or_wrong_invoice_is_blocked[clietDataVersionId-None]",
+          "test_incomplete_or_wrong_invoice_is_blocked[createdAt-None]",
+          "test_incomplete_or_wrong_invoice_is_blocked[id-None]",
+          "test_incomplete_or_wrong_invoice_is_blocked[storageUrl-]",
+          "test_incomplete_or_wrong_invoice_is_blocked[wrong-order]",
+          "test_invalid_owner_is_blocked[00000000-0000-0000-0000-000000000000]",
+          "test_invalid_owner_is_blocked[None]",
+          "test_invalid_owner_is_blocked[wrong-id]",
+          "test_invoice_lookup_and_create_use_generated_routes",
+          "test_only_lookup_404_means_not_completed",
+          "test_reads_valid_owner_and_exact_money",
+          "test_serializes_paid_patch",
+          "test_transport_timeout_is_recoverable"
+        ],
+        "tests.unit.external_providers.test_http_order_reader": [
+          "test_maps_404_to_order_not_found",
+          "test_maps_actual_orders_response_with_currency_exponent[0.29-USD-29]",
+          "test_maps_actual_orders_response_with_currency_exponent[1.234-KWD-1234]",
+          "test_maps_actual_orders_response_with_currency_exponent[12.34-PLN-1234]",
+          "test_maps_actual_orders_response_with_currency_exponent[500-JPY-500]",
+          "test_maps_transport_failures[ConnectError]",
+          "test_maps_transport_failures[ReadTimeout]",
+          "test_maps_unexpected_upstream_status_to_unavailable[204]",
+          "test_maps_unexpected_upstream_status_to_unavailable[302]",
+          "test_maps_unexpected_upstream_status_to_unavailable[429]",
+          "test_maps_unexpected_upstream_status_to_unavailable[500]",
+          "test_maps_unexpected_upstream_status_to_unavailable[503]",
+          "test_preserves_large_decimal_without_rounding",
+          "test_rejects_amount_that_cannot_be_represented_in_jpy",
+          "test_rejects_inconsistent_order_lines[line_currency]",
+          "test_rejects_inconsistent_order_lines[line_total]",
+          "test_rejects_invalid_order_response[id-wrong-id]",
+          "test_rejects_invalid_order_response[lines-value8]",
+          "test_rejects_invalid_order_response[status-  ]",
+          "test_rejects_invalid_order_response[totalAmount--1]",
+          "test_rejects_invalid_order_response[totalAmount-0]",
+          "test_rejects_invalid_order_response[totalAmount-1.234]",
+          "test_rejects_invalid_order_response[totalAmount-12.34]",
+          "test_rejects_invalid_order_response[totalCurrency-ZZZ]",
+          "test_rejects_invalid_order_response[totalCurrency-pln]",
+          "test_rejects_string_amount_even_when_other_fields_are_valid",
+          "test_rejects_unbounded_exponent",
+          "test_rejects_unparseable_or_incomplete_body[\"not an order\"]",
+          "test_rejects_unparseable_or_incomplete_body[[]]",
+          "test_rejects_unparseable_or_incomplete_body[{\"totalAmount\":\"12.34\"}]",
+          "test_rejects_unparseable_or_incomplete_body[{]"
+        ],
+        "tests.unit.external_providers.test_stripe_card_smoke": [
+          "test_card_delivery_repr_does_not_expose_original_payload_or_signature",
+          "test_card_fixture_rejects_live_or_invalid_sessions[cs_live_example]",
+          "test_card_fixture_rejects_live_or_invalid_sessions[cs_test_ x]",
+          "test_card_fixture_rejects_live_or_invalid_sessions[cs_test_]",
+          "test_card_fixture_rejects_live_or_invalid_sessions[cs_test_example/confirm]",
+          "test_card_probe_requires_successful_test_intent_for_exact_money[amount-1300]",
+          "test_card_probe_requires_successful_test_intent_for_exact_money[amount_received-0]",
+          "test_card_probe_requires_successful_test_intent_for_exact_money[currency-eur]",
+          "test_card_probe_requires_successful_test_intent_for_exact_money[livemode-True]",
+          "test_card_probe_requires_successful_test_intent_for_exact_money[status-processing]",
+          "test_card_recorder_passes_original_bytes_and_signature_without_modifying_asgi_messages"
+        ],
+        "tests.unit.external_providers.test_stripe_checkout": [
+          "test_configured_provider_closes_owned_async_client",
+          "test_disabled_provider_is_unavailable_without_a_client",
+          "test_new_request_version_enables_card_and_blik_and_legacy_recovery_remains_card_only",
+          "test_provider_currency_policy_prevents_requests[money0]",
+          "test_provider_currency_policy_prevents_requests[money1]",
+          "test_provider_currency_policy_prevents_requests[money2]",
+          "test_provider_rejection_is_typed_and_does_not_leak_details[400]",
+          "test_provider_rejection_is_typed_and_does_not_leak_details[401]",
+          "test_provider_rejection_is_typed_and_does_not_leak_details[409]",
+          "test_provider_rejection_is_typed_and_does_not_leak_details[429]",
+          "test_provider_rejection_is_typed_and_does_not_leak_details[500]",
+          "test_rejects_invalid_or_unrelated_provider_response[amount_total-1]",
+          "test_rejects_invalid_or_unrelated_provider_response[client_reference_id-wrong]",
+          "test_rejects_invalid_or_unrelated_provider_response[currency-eur]",
+          "test_rejects_invalid_or_unrelated_provider_response[expires_at-True]",
+          "test_rejects_invalid_or_unrelated_provider_response[id-cs_live_wrong]",
+          "test_rejects_invalid_or_unrelated_provider_response[livemode-True]",
+          "test_rejects_invalid_or_unrelated_provider_response[metadata-value6]",
+          "test_rejects_invalid_or_unrelated_provider_response[mode-subscription]",
+          "test_rejects_invalid_or_unrelated_provider_response[status-unknown]",
+          "test_rejects_invalid_or_unrelated_provider_response[url-None]",
+          "test_rejects_invalid_or_unrelated_provider_response[url-https://attacker.example/c/pay/demo]",
+          "test_rejects_invalid_or_unrelated_provider_response[url-https://checkout.stripe.com@attacker.example/c/pay/demo]",
+          "test_retrieve_never_creates_or_confirms_payment[complete]",
+          "test_retrieve_never_creates_or_confirms_payment[expired]",
+          "test_retrieve_never_creates_or_confirms_payment[open]",
+          "test_sdk_encodes_server_money_metadata_return_urls_and_stable_key",
+          "test_timeout_is_distinguished_from_transport_failure"
+        ],
+        "tests.unit.external_providers.test_stripe_sandbox_smoke": [
+          "test_sandbox_probe_accepts_test_key_without_displaying_it",
+          "test_sandbox_probe_rejects_missing_live_or_invalid_keys_without_exposing_them[None]",
+          "test_sandbox_probe_rejects_missing_live_or_invalid_keys_without_exposing_them[]",
+          "test_sandbox_probe_rejects_missing_live_or_invalid_keys_without_exposing_them[pk_test_private]",
+          "test_sandbox_probe_rejects_missing_live_or_invalid_keys_without_exposing_them[sk_live_private]",
+          "test_sandbox_probe_rejects_missing_live_or_invalid_keys_without_exposing_them[sk_test_ private]",
+          "test_sandbox_probe_rejects_missing_live_or_invalid_keys_without_exposing_them[sk_test_]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[amount_total-1300]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[currency-eur]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[id-cs_test_unrelated]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[livemode-True]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[metadata-None]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[metadata-value10]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[metadata-value9]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[payment_method_types-value4]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[payment_status-paid]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[status-expired]",
+          "test_sandbox_probe_rejects_wrong_mode_money_methods_or_association[wrong-client-reference]"
+        ],
+        "tests.unit.external_providers.test_stripe_scenario_smoke": [
+          "test_3ds_success_requires_actual_authenticated_challenge[None]",
+          "test_3ds_success_requires_actual_authenticated_challenge[details1]",
+          "test_3ds_success_requires_actual_authenticated_challenge[details2]",
+          "test_3ds_success_requires_actual_authenticated_challenge[details3]",
+          "test_blik_success_requires_real_successful_blik_charge[amount-1300]",
+          "test_blik_success_requires_real_successful_blik_charge[currency-eur]",
+          "test_blik_success_requires_real_successful_blik_charge[livemode-True]",
+          "test_blik_success_requires_real_successful_blik_charge[paid-False]",
+          "test_blik_success_requires_real_successful_blik_charge[payment_method_details-value5]",
+          "test_blik_success_requires_real_successful_blik_charge[status-failed]",
+          "test_decline_requires_provider_card_decline_and_zero_received[amount-1300]",
+          "test_decline_requires_provider_card_decline_and_zero_received[amount_received-1299]",
+          "test_decline_requires_provider_card_decline_and_zero_received[currency-eur]",
+          "test_decline_requires_provider_card_decline_and_zero_received[last_payment_error-value5]",
+          "test_decline_requires_provider_card_decline_and_zero_received[livemode-True]",
+          "test_decline_requires_provider_card_decline_and_zero_received[status-succeeded]",
+          "test_failed_3ds_requires_authentication_error_and_cancellation_requires_authentication_action",
+          "test_fixture_decline_is_explicit_but_not_silently_treated_as_success",
+          "test_guided_3ds_refuses_noninteractive_output_before_printing_checkout_url",
+          "test_intent_lookup_ignores_other_account_metadata",
+          "test_outage_rejects_only_our_event_and_keeps_original_messages_for_recovery[False]",
+          "test_outage_rejects_only_our_event_and_keeps_original_messages_for_recovery[True]",
+          "test_provider_only_probe_guards_key_before_creating_stripe_client[]",
+          "test_provider_only_probe_guards_key_before_creating_stripe_client[pk_test_fixture]",
+          "test_provider_only_probe_guards_key_before_creating_stripe_client[sk_live_fixture]",
+          "test_provider_only_probe_guards_key_before_creating_stripe_client[sk_test_ short]",
+          "test_scenario_fixtures_reject_non_sandbox_sessions[cs_live_fixture-decline]",
+          "test_scenario_fixtures_reject_non_sandbox_sessions[cs_live_fixture-visa]",
+          "test_scenario_fixtures_reject_non_sandbox_sessions[cs_test_-decline]",
+          "test_scenario_fixtures_reject_non_sandbox_sessions[cs_test_-visa]",
+          "test_scenario_fixtures_reject_non_sandbox_sessions[cs_test_x/confirm-decline]",
+          "test_scenario_fixtures_reject_non_sandbox_sessions[cs_test_x/confirm-visa]"
+        ],
+        "tests.unit.external_providers.test_stripe_webhook": [
+          "test_actual_sdk_signature_verification_maps_normalized_success_without_api_key",
+          "test_rejects_missing_invalid_stale_or_tampered_signature_and_payload[duplicate_json]",
+          "test_rejects_missing_invalid_stale_or_tampered_signature_and_payload[malformed]",
+          "test_rejects_missing_invalid_stale_or_tampered_signature_and_payload[missing]",
+          "test_rejects_missing_invalid_stale_or_tampered_signature_and_payload[old]",
+          "test_rejects_missing_invalid_stale_or_tampered_signature_and_payload[tampered]",
+          "test_rejects_missing_invalid_stale_or_tampered_signature_and_payload[wrong_secret]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[bool_amount]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[connect]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[currency]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[event_id]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[float_amount]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[invalid_uuid]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[live]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[missing_metadata]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[missing_payment_id]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[mode]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[no_payment_required]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[organization]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[payment_id]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[reference]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[session_id]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[session_live]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[wrong_object]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[wrong_status]",
+          "test_rejects_wrong_account_mode_and_inconsistent_checkout_contract[zero_uuid]",
+          "test_supported_event_policy_and_unknown_events[checkout.session.async_payment_failed-complete-unpaid-failed]",
+          "test_supported_event_policy_and_unknown_events[checkout.session.async_payment_succeeded-complete-paid-succeeded]",
+          "test_supported_event_policy_and_unknown_events[checkout.session.completed-complete-unpaid-waiting]",
+          "test_supported_event_policy_and_unknown_events[checkout.session.expired-expired-unpaid-expired]",
+          "test_supported_event_policy_and_unknown_events[payment_intent.payment_failed-complete-paid-unknown]",
+          "test_unconfigured_webhooks_are_disabled_independently_of_checkout_creation"
+        ]
+      }
+    },
+    "acceptance": {
+      "count": 140,
+      "members": {
+        "tests.acceptance.test_api": [
+          "test_every_matrix_case_has_one_source_scenario_and_expected_result_step",
+          "test_pay1101_create_a_payment_from_a_payable_order",
+          "test_pay1102_read_a_payment_by_order_id",
+          "test_pay1103_repeat_pay_without_writing_or_calling_orders_again",
+          "test_pay1104_missing_payment",
+          "test_pay1105_missing_order",
+          "test_pay1106_order_not_payable",
+          "test_pay1107_invalid_orders_response",
+          "test_pay1108_orders_timeout",
+          "test_pay1109_orders_outage",
+          "test_pay1110_retry_a_failed_payment_and_archive_its_previous_state",
+          "test_pay1111_retry_a_canceled_payment",
+          "test_pay1112_reject_retry_when_the_order_total_changed",
+          "test_pay1113_concurrent_pay_creates_one_current_payment",
+          "test_pay1114_invalid_order_id",
+          "test_pay1115_malformed_json_body",
+          "test_pay1116_unsupported_request_media",
+          "test_pay1117_unknown_route",
+          "test_pay1118_wrong_method",
+          "test_pay1119_healthy_liveness",
+          "test_pay1120_healthy_readiness_probes_real_mongodb",
+          "test_pay1121_failed_readiness_keeps_liveness_healthy",
+          "test_pay1122_compatibility_health_alias",
+          "test_pay2101_create_checkout_from_the_server_order",
+          "test_pay2102_read_an_existing_checkout_instead_of_creating_another",
+          "test_pay2103_recover_a_timeout_after_the_provider_accepted_checkout",
+          "test_pay2104_disabled_checkout_does_not_prepare_a_payment",
+          "test_pay2105_reject_a_paid_order_before_contacting_stripe",
+          "test_pay2106_report_provider_rejection_safely",
+          "test_pay2107_report_an_ambiguous_provider_timeout_safely",
+          "test_pay2108_reject_a_missing_order",
+          "test_pay2109_preserve_payment_snapshot_after_the_order_total_changes",
+          "test_pay2201_confirm_a_matching_checkout_and_persist_durable_work",
+          "test_pay2202_redeliver_the_same_event_without_another_transition",
+          "test_pay2203_reject_a_missing_signature",
+          "test_pay2204_reject_tampered_original_bytes",
+          "test_pay2205_ignore_a_signed_unrelated_event",
+          "test_pay2206_record_mismatched_money_without_confirming_payment",
+          "test_pay2207_expire_payment_without_canceling_the_order",
+          "test_pay2208_earlier_expiry_cannot_downgrade_success",
+          "test_pay2209_concurrent_duplicate_delivery_commits_once",
+          "test_pay2210_interrupted_processing_remains_retryable",
+          "test_pay2211_redelivery_finishes_an_interrupted_receipt",
+          "test_pay2212_unconfigured_webhook_verification_is_unavailable",
+          "test_pay2213_reject_unsupported_webhook_media",
+          "test_pay2214_reject_oversized_webhook_before_receipt",
+          "test_pay2215_unpaid_completion_cannot_establish_success",
+          "test_pay2216_new_checkout_enables_both_card_and_blik"
+        ],
+        "tests.acceptance.test_fulfillment": [
+          "test_pay2301_fulfillment_reconciles_ok",
+          "test_pay2302_fulfillment_reconciles_paid_ack_lost",
+          "test_pay2303_fulfillment_reconciles_invoice_ack_lost",
+          "test_pay2304_pdf_failure_remains_recoverable_after_the_order_is_paid"
+        ],
+        "tests.integration.api.test_health": [
+          "test_startup_creates_named_index_and_readiness_uses_real_mongodb",
+          "test_startup_fails_quickly_when_mongodb_is_unreachable",
+          "test_startup_rejects_conflicting_named_index"
+        ],
+        "tests.unit.api.test_checkout": [
+          "test_body_rejection_applies_to_both_commands[checkout]",
+          "test_body_rejection_applies_to_both_commands[pay]",
+          "test_checkout_response_and_existing_pay_contract",
+          "test_disabled_checkout_is_documented_and_returns_503",
+          "test_provider_errors_are_safe_http_problems[CheckoutProviderError-502-checkout_provider_error]",
+          "test_provider_errors_are_safe_http_problems[CheckoutTimeoutError-504-checkout_timeout]"
+        ],
+        "tests.unit.api.test_health": [
+          "test_health_returns_healthy_status",
+          "test_openapi_is_generated_without_starting_mongodb",
+          "test_readiness_reports_unavailable_without_exposing_mongo_error"
+        ],
+        "tests.unit.api.test_openapi_contract": [
+          "test_actual_health_and_error_bodies_match_generated_schemas",
+          "test_contract_drift_fails[duplicate_id]",
+          "test_contract_drift_fails[missing_schema]",
+          "test_contract_drift_fails[missing_status]",
+          "test_contract_drift_fails[phantom_422]",
+          "test_contract_drift_fails[wrong_media]",
+          "test_export_lints_generated_openapi_without_mongodb"
+        ],
+        "tests.unit.api.test_operation_links": [
+          "test_duplicate_operation_id_fails",
+          "test_duplicate_scenario_id_fails",
+          "test_generated_links_follow_executed_flows_and_domain_policies",
+          "test_missing_called_policy_fails",
+          "test_missing_executed_service_call_fails",
+          "test_stale_matrix_links_fail[PAY/9-Unknown requirement]",
+          "test_stale_matrix_links_fail[PAY11-01\\t-Matrix and source scenarios differ]",
+          "test_stale_matrix_links_fail[POST /payments/{order_id}/pay-Orphan or ambiguous scenario route]"
+        ],
+        "tests.unit.api.test_order_integration_errors": [
+          "test_pay_maps_orders_failures_to_gateway_errors[OrderInvalidResponseError-502-order_invalid_response]",
+          "test_pay_maps_orders_failures_to_gateway_errors[OrderTimeoutError-504-order_timeout]",
+          "test_pay_maps_orders_failures_to_gateway_errors[OrderUnavailableError-502-order_unavailable]"
+        ],
+        "tests.unit.api.test_pay_semantics": [
+          "test_get_missing_payment_returns_404",
+          "test_pay_maps_retry_conflicts_to_409[OrderTotalChangedError]",
+          "test_pay_maps_retry_conflicts_to_409[PaymentConflictError]",
+          "test_pay_returns_new_or_existing_status_and_get_reflects_payment[False-200]",
+          "test_pay_returns_new_or_existing_status_and_get_reflects_payment[True-201]"
+        ],
+        "tests.unit.api.test_payment_duplicate": [
+          "test_pay_maps_unresolved_duplicate_to_conflict"
+        ],
+        "tests.unit.api.test_public_errors": [
+          "test_framework_and_validation_errors_are_sanitized",
+          "test_framework_json_validation_reports_only_required_contract_names",
+          "test_get_missing_payment_has_distinct_code",
+          "test_instance_omits_query_and_trace_header_is_not_reflected",
+          "test_pay_errors_have_safe_stable_contract[error0-404-order_not_found]",
+          "test_pay_errors_have_safe_stable_contract[error1-409-order_not_payable]",
+          "test_pay_errors_have_safe_stable_contract[error2-409-order_total_changed]",
+          "test_pay_errors_have_safe_stable_contract[error3-409-payment_conflict]",
+          "test_pay_errors_have_safe_stable_contract[error4-409-payment_conflict]",
+          "test_pay_errors_have_safe_stable_contract[error5-409-invalid_payment_transition]",
+          "test_pay_errors_have_safe_stable_contract[error6-400-validation_failed]",
+          "test_pay_errors_have_safe_stable_contract[error7-500-internal_error]",
+          "test_pay_rejects_invalid_json_unsupported_media_type_and_unexpected_body",
+          "test_problem_openapi_media_and_schema_match_http_contract",
+          "test_success_response_receives_distinct_trace_ids"
+        ],
+        "tests.unit.api.test_startup": [
+          "test_startup_failure_closes_database_and_orders_client[indexes]",
+          "test_startup_failure_closes_database_and_orders_client[probe]"
+        ],
+        "tests.unit.api.test_webhooks": [
+          "test_processing_deadline_returns_retry_and_preserves_pending_work",
+          "test_signed_webhook_uses_prepared_service_and_returns_minimal_ack",
+          "test_unconfigured_webhook_returns_service_unavailable",
+          "test_webhook_errors_have_safe_problem_bodies[duplicate_header-400-webhook_invalid]",
+          "test_webhook_errors_have_safe_problem_bodies[large-413-webhook_too_large]",
+          "test_webhook_errors_have_safe_problem_bodies[media-415-unsupported_media_type]",
+          "test_webhook_errors_have_safe_problem_bodies[missing-400-webhook_invalid]",
+          "test_webhook_errors_have_safe_problem_bodies[retry-503-webhook_retry]",
+          "test_webhook_errors_have_safe_problem_bodies[tampered-400-webhook_invalid]"
+        ],
+        "tests.unit.test_architecture": [
+          "test_architecture_command_rejects_a_negative_fixture",
+          "test_current_source_respects_architecture",
+          "test_explicit_readiness_and_composition_exceptions_are_narrow",
+          "test_forbidden_source_import_fails[api-app.py-from ecommerce_store_payments.infrastructure.persistence.mongodb.documents import payment_document\\n-MongoDB document outside infrastructure]",
+          "test_forbidden_source_import_fails[api-routes/bad.py-from ecommerce_store_payments.infrastructure.config import settings\\n-forbidden api -> infrastructure]",
+          "test_forbidden_source_import_fails[application-bad.py-from ecommerce_store_payments import infrastructure\\n-forbidden application -> infrastructure]",
+          "test_forbidden_source_import_fails[application-bad.py-from pymongo import MongoClient\\n-MongoDB driver outside persistence]",
+          "test_forbidden_source_import_fails[application-bad.py-import ecommerce_store_payments.api.app\\n-forbidden application -> api]",
+          "test_forbidden_source_import_fails[domain-bad.py-__import__('ecommerce_store_payments.api.app')\\n-forbidden domain -> api]",
+          "test_forbidden_source_import_fails[domain-bad.py-from ecommerce_store_payments.infrastructure.persistence.mongodb import mongo_database\\n-forbidden domain -> infrastructure]",
+          "test_forbidden_source_import_fails[domain-bad.py-from pydantic import BaseModel\\n-framework outside adapters]",
+          "test_forbidden_source_import_fails[domain-payments/bad.py-from ...infrastructure import config\\n-forbidden domain -> infrastructure]",
+          "test_forbidden_source_import_fails[infrastructure-bad.py-from ecommerce_store_payments.api import dependencies\\n-forbidden infrastructure -> api]",
+          "test_forbidden_source_import_fails[infrastructure-clients/bad.py-from pymongo import MongoClient\\n-MongoDB driver outside persistence]",
+          "test_import_text_in_a_string_is_not_a_dependency"
+        ],
+        "tests.unit.test_suite_reports": [
+          "test_missing_or_failed_reports_reject_suite[failed_test-Invalid JUnit results]",
+          "test_missing_or_failed_reports_reject_suite[invalid_xml-Invalid XML report]",
+          "test_missing_or_failed_reports_reject_suite[low_coverage-below 70%]",
+          "test_missing_or_failed_reports_reject_suite[missing_coverage-Missing report]",
+          "test_missing_or_failed_reports_reject_suite[missing_junit-Missing report]",
+          "test_missing_or_failed_reports_reject_suite[no_tests-Invalid JUnit results]",
+          "test_missing_or_failed_reports_reject_suite[wrong_scope-Wrong coverage sources]",
+          "test_runner_does_not_accept_stale_reports",
+          "test_runner_preserves_test_failure_even_with_valid_reports",
+          "test_suite_paths_cover_every_test_with_only_external_boundary_overlap",
+          "test_valid_report_passes_at_exact_line_threshold"
+        ]
+      }
+    }
+  },
+  "identityMigrations": [
+    {
+      "owner": "tests.unit.external_providers.test_http_fulfillment",
+      "parameter": "orderId-<random UUID>",
+      "stableId": "wrong-order"
+    },
+    {
+      "owner": "tests.unit.external_providers.test_stripe_sandbox_smoke",
+      "parameter": "client_reference_id-<random UUID>",
+      "stableId": "wrong-client-reference"
+    }
+  ]
+}
