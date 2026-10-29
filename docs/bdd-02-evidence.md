@@ -85,6 +85,48 @@ retained evidence after an intentional assertion failure. The child results are
 isolated from published acceptance results. Real MongoDB scenarios and full image
 verification run in CI because Docker is unavailable in the editing environment.
 
-Implementation verification is in progress; the backlog checkbox stays open until
-full CI and an independent archive/render audit pass. Tasks 3–16 and overall
-PAY/22 remain open. Sixteen declared status gaps remain assigned to Task 11.
+## Verified implementation
+
+[CI run 40929738816](https://github.com/MichalBoczula/ECommerceStorePayments/actions/runs/40929738816)
+passes all source, contract, wheel, security, suite, package, container smoke/image
+scan and final gates. Frozen implementation head:
+`da5ab8ae7bdbdc7a985fc0164ee3569f58d470b5`; tested merge:
+`dfbce2e797d3777d280ee8b200fcb538a6e327d5`; exact tree:
+`0cfcaa99266c5f52688ba49758bbd451d8e84847`. Parents and tree were checked against
+Task 1's merged base and the PR head.
+
+- **814 passing suite executions, zero failures/skips:** Domain 97, Application 82,
+  Infrastructure 250, ExternalProviders 175, Acceptance 210. There are 639 distinct
+  members; the intentional 175-member external-provider overlap remains.
+  Acceptance contains the same 51 BDD plus 159 ordinary tests, retaining every
+  Task 1 member and adding 35 shared-evidence regressions. Local unit tests: 553.
+- Domain/Application/Infrastructure line coverage remains 96.88% / 96.16% /
+  90.90%, with the existing separate 70% floors. ExternalProviders/Acceptance
+  report 96.35% / 98.06%. Application code, dependencies, baseline and matrix,
+  workflow pins and scan rules remain unchanged. All four generated exports are
+  byte-identical to Task 1.
+- All seven downloaded outer artifacts match GitHub's SHA-256 digests. The frozen
+  inner bundle is **841,285 bytes**, SHA-256
+  `c01cd6073f3e69aa5f30742f66c4e65a8875089f0db53f45789fbf0d09a44558`, with
+  **816 verified manifest entries**: 51 results, 5 feature sources, 4 exports and
+  **756 attachments** (654 JSON, 102 native Gherkin CSV tables).
+- An independent closed-inventory/path/size/hash/source/JUnit/raw-result audit and
+  pinned Allure 2.46.1 render pass. Every original name/full name/history/test
+  identity/title path and outcome is retained. Every rendered case, description,
+  ordered step and attachment matches its raw result; all case/attachment/entry
+  assets pass local HTTP reads. Every case has both executable tables and JSON
+  identity, input, expected-response and exchange-index evidence.
+- Actual captures contain **213 request/outcome pairs**: 207 responses and 6
+  transport failures, plus 12 explicit action start/result pairs. Setup, both
+  concurrent attempts, supporting liveness, lost acknowledgements and worker-owned
+  downstream calls are verified. Complete oversized-webhook bytes and all body
+  digests survive raw packaging and rendering. Private authorization headers and
+  exception messages are absent from their designated evidence fields.
+- Pinned lock/sync, formatting/Ruff/strict Pyright, architecture, exact source and
+  OpenAPI commands, and wheel build/install pass locally. Docker is unavailable
+  locally; full real MongoDB/Invoice/container evidence comes from CI.
+
+Task 2 is complete. Tasks 3–16 and overall PAY/22 remain open. Sixteen declared
+status gaps remain assigned to Task 11. A final documentation-only completion
+commit is checked again in full CI and with fresh artifacts before PR handoff.
+Selected LiveDocs refresh remains manual after the main archive is published.
