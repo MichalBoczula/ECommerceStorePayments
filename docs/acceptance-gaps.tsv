@@ -7,7 +7,6 @@ get_readiness	500	No BDD case for a complete safe unexpected server problem.	PAY
 createOrderCheckout	400	No BDD case for invalid route input or unexpected command body.	PAY-BDD-11
 createOrderCheckout	405	No BDD case for the wrong method on this known route.	PAY-BDD-11
 createOrderCheckout	415	No BDD case for unsupported command media.	PAY-BDD-11
-createOrderCheckout	500	No BDD case for a complete safe unexpected server problem.	PAY-BDD-11
 payOrder	405	No BDD case for the wrong method on this known route.	PAY-BDD-11
 payOrder	500	No BDD case for a complete safe unexpected server problem.	PAY-BDD-11
 getPaymentByOrderId	400	No BDD case for invalid route input or unexpected command body.	PAY-BDD-11

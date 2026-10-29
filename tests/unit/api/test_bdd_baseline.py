@@ -35,18 +35,18 @@ def sources(tmp_path: Path) -> tuple[Path, Path, Path]:
 def test_original_source_inventory_and_reviewed_coverage() -> None:
     coverage = generate()["coverage"]
     assert coverage == {
-        "expandedBddCases": 81,
-        "matchedRouteCases": 80,
+        "expandedBddCases": 99,
+        "matchedRouteCases": 98,
         "unmatchedRouteCases": 1,
         "declaredOperationStatusPairs": 42,
-        "guaranteedScenarioStatusPairs": 26,
+        "guaranteedScenarioStatusPairs": 27,
         "wrongMethodStatusPairs": 1,
         "gaps": sorted(
             list(csv.DictReader(GAPS.open(encoding="utf-8"), delimiter="\t")),
             key=lambda row: (row["operationId"], int(row["status"])),
         ),
     }
-    assert len(coverage["gaps"]) == 16
+    assert len(coverage["gaps"]) == 15
 
 
 def test_documented_direct_source_command_checks_the_guard() -> None:
@@ -58,7 +58,7 @@ def test_documented_direct_source_command_checks_the_guard() -> None:
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert "26/42" in result.stderr and "16 reviewed gaps" in result.stderr
+    assert "27/42" in result.stderr and "15 reviewed gaps" in result.stderr
 
 
 def test_coordinated_source_and_matrix_removal_cannot_replace_baseline(tmp_path: Path) -> None:
@@ -98,7 +98,7 @@ def test_original_title_is_frozen_but_additive_tables_are_allowed(tmp_path: Path
         "    Given a payable order", "    Given a payable order\n      | Amount | 1299 |", 1
     )
     path.write_text(text)
-    assert generate(matrix=matrix, feature_dir=features, gaps=gaps)["coverage"]["expandedBddCases"] == 81
+    assert generate(matrix=matrix, feature_dir=features, gaps=gaps)["coverage"]["expandedBddCases"] == 99
     path.write_text(text.replace("Create a payment from a payable order", "A replacement behavior", 1))
     with pytest.raises(ValueError, match="Changed baseline BDD identity: PAY11-01"):
         generate(matrix=matrix, feature_dir=features, gaps=gaps)
@@ -196,8 +196,8 @@ def test_new_case_closes_gap_only_when_reviewed_gap_is_removed(tmp_path: Path) -
         + "\n"
     )
     coverage = generate(matrix=matrix, feature_dir=features, gaps=gaps)["coverage"]
-    assert coverage["expandedBddCases"] == 82 and coverage["guaranteedScenarioStatusPairs"] == 27
-    assert len(coverage["gaps"]) == 15
+    assert coverage["expandedBddCases"] == 100 and coverage["guaranteedScenarioStatusPairs"] == 28
+    assert len(coverage["gaps"]) == 14
 
 
 @pytest.mark.parametrize("mutation", ["duplicate", "unknown_task", "empty_reason"])

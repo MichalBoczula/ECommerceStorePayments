@@ -25,6 +25,7 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database 
 from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.webhook_repository import (
     MongoWebhookRepository,
 )
+from tests.acceptance.checkout_recovery_checks import CheckoutRecoveryChecks
 from tests.acceptance.conftest import AcceptanceContext
 from tests.acceptance.evidence import table_values
 from tests.webhook_fixtures import encode, payload_for, signature
@@ -37,6 +38,7 @@ scenarios(
     "features/payment_reads.feature",
     "features/retries.feature",
     "features/checkout_success.feature",
+    "features/checkout_recovery.feature",
 )
 
 MATRIX_PATH = Path(__file__).resolve().parents[2] / "docs" / "acceptance-matrix.tsv"
@@ -93,7 +95,8 @@ def existing_checkout(acceptance: AcceptanceContext) -> None:
 
 
 @given("an ambiguous checkout timeout")
-def checkout_timeout(acceptance: AcceptanceContext) -> None:
+def checkout_timeout(acceptance: AcceptanceContext, recovery_checks: CheckoutRecoveryChecks) -> None:
+    recovery_checks.remember("Initial checkout collections before")
     acceptance.stripe.mode = "timeout_once"
     acceptance.send("POST", f"/payments/{acceptance.orders.order_id}/checkout")
     assert acceptance.responses[0].status_code == 504

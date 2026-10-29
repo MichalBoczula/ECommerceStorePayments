@@ -194,8 +194,8 @@ Generate the operation projection with `uv run --no-sync python scripts/generate
 
 Run `bash scripts/ci.sh openapi` to export and lint the database-free OpenAPI at `artifacts/verification/openapi.json` (or `uv run --no-sync python -m scripts.export_openapi --output <path>`). OpenAPI 3.1 validation and operation/scenario status, media and schema checks use pinned development dependencies in `uv.lock`. Acceptance tests validate each observed HTTP body against its declared JSON Schema, with the unmatched-route response checked against the shared problem schema. CI uploads the generated JSON as `payments-openapi`. The API documents path validation as 400, matching runtime, instead of FastAPI's default 422. See [ADR-0013](docs/adr/0013-generated-openapi-contract.md).
 
-The operation-link projection reports 26/42 declared status pairs with scenario
-intent and sixteen [reviewed gaps](docs/acceptance-gaps.tsv). New uncovered or
+The operation-link projection reports 27/42 declared status pairs with scenario
+intent and fifteen [reviewed gaps](docs/acceptance-gaps.tsv). New uncovered or
 stale resolved gaps fail verification. The known-path wrong-method 405 is counted
 explicitly; unmatched routing cannot inflate named-operation coverage. These are
 source/matrix checks, not runtime branch telemetry or attached exchange evidence.
@@ -233,6 +233,12 @@ The [checkout success scenarios](docs/bdd-05-checkout-success.md) compare comple
 nested responses, exact Stripe form parameters and idempotency keys, card/BLIK
 configuration and unchanged open/complete/expired session reads. New checkouts
 verify complete reservation/Pending archives and preserve unrelated orders.
+
+The [checkout recovery scenarios](docs/bdd-06-checkout-recovery.md) verify complete
+safe failures, durable reservations, exact request replay through a fresh app
+instance, interrupted persistence and lost commit acknowledgments, legacy request
+formats and the 23-hour age boundary. Actual checkout-500 evidence raises declared
+operation/status coverage to 27/42, with fifteen reviewed gaps remaining.
 
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated

@@ -9,7 +9,7 @@ selected LiveDocs refresh and Terraform deployment remain manual.
 - [x] **PAY-BDD-01 — Baseline and coverage guard.** Preserve the original 51 BDD
   and 89 ordinary Acceptance cases, existing suites and reproducible dependency
   inputs. Freeze scenario/runtime identities, guard operation/status/cause links,
-  classify the sixteen current gaps and reject tracked verification output.
+  classify the initial sixteen gaps and reject tracked verification output.
   See [baseline and verification](bdd-01-baseline.md).
 - [x] **PAY-BDD-02 — Shared BDD structure and evidence.** Readable descriptions,
   stable IDs, meaningful input/expected Gherkin tables and centralized immutable
@@ -24,8 +24,9 @@ selected LiveDocs refresh and Terraform deployment remain manual.
 - [x] **PAY-BDD-05 — Checkout success.** Complete nested responses, provider
   request/idempotency parameters, card/BLIK and repeated-session behavior.
   See [checkout success](bdd-05-checkout-success.md).
-- [ ] **PAY-BDD-06 — Checkout failure and recovery.** Rejection, ambiguous
+- [x] **PAY-BDD-06 — Checkout failure and recovery.** Rejection, ambiguous
   timeouts, interrupted persistence, legacy attempts, age and request-version limits.
+  See [checkout failure and recovery](bdd-06-checkout-recovery.md).
 - [ ] **PAY-BDD-07 — Webhook verification.** Actual signed bytes/headers,
   signature/payload/media/size boundaries and unchanged rejected state.
 - [ ] **PAY-BDD-08 — Webhook lifecycle and replay.** Full receipts/reasons,
