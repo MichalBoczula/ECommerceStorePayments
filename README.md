@@ -234,6 +234,12 @@ nested responses, exact Stripe form parameters and idempotency keys, card/BLIK
 configuration and unchanged open/complete/expired session reads. New checkouts
 verify complete reservation/Pending archives and preserve unrelated orders.
 
+The [checkout recovery scenarios](docs/bdd-06-checkout-recovery.md) verify complete
+safe failures, durable reservations, exact request replay through a fresh app
+instance, interrupted persistence and lost commit acknowledgments, legacy request
+formats and the 23-hour age boundary. Actual checkout-500 evidence raises declared
+operation/status coverage to 27/42, with fifteen reviewed gaps remaining.
+
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated
 source projection. CI retains `payments-openapi` and supplies all four JSON files

@@ -80,3 +80,21 @@ PAY05-04	POST /payments/{order_id}/checkout	repeated open checkout reads retain 
 PAY05-05	POST /payments/{order_id}/checkout	create a fresh checkout after a failed attempt	200	-	STRIPE/1
 PAY05-06	POST /payments/{order_id}/checkout	create a fresh checkout after a canceled attempt	200	-	STRIPE/1
 PAY05-07	POST /payments/{order_id}/checkout	use configured return urls and isolate equal-money orders	200	-	STRIPE/1
+PAY06-01	POST /payments/{order_id}/checkout	preserve one reservation across repeated provider rejections	502	checkout_provider_error	STRIPE/1
+PAY06-02	POST /payments/{order_id}/checkout	recover a timeout before the provider accepts checkout	504	checkout_timeout	STRIPE/1
+PAY06-03	POST /payments/{order_id}/checkout	recover interruption before the pending save	500	internal_error	STRIPE/1
+PAY06-04	POST /payments/{order_id}/checkout	recover a lost acknowledgment after the pending commit	500	internal_error	STRIPE/1
+PAY06-05	POST /payments/{order_id}/checkout	recover interruption before the reservation save	500	internal_error	STRIPE/1
+PAY06-06	POST /payments/{order_id}/checkout	recover a legacy card-only reserved request	200	-	STRIPE/1
+PAY06-07	POST /payments/{order_id}/checkout	recover an existing version-two reservation	200	-	STRIPE/1
+PAY06-08	POST /payments/{order_id}/checkout	require reconciliation at exactly twenty-three hours	409	checkout_recovery_required	STRIPE/1
+PAY06-09	POST /payments/{order_id}/checkout	recover one millisecond before the attempt age limit	200	-	STRIPE/1
+PAY06-10	POST /payments/{order_id}/checkout	require reconciliation one millisecond beyond the age limit	409	checkout_recovery_required	STRIPE/1
+PAY06-11	POST /payments/{order_id}/checkout	require reconciliation for legacy pending without an attempt	409	checkout_recovery_required	STRIPE/1
+PAY06-12	POST /payments/{order_id}/checkout	reject an unsupported positive reserved request version	502	checkout_provider_error	STRIPE/1
+PAY06-13	POST /payments/{order_id}/checkout	preserve pending checkout after a provider rejection	502	checkout_provider_error	STRIPE/1
+PAY06-14	POST /payments/{order_id}/checkout	preserve pending checkout after a provider read timeout	504	checkout_timeout	STRIPE/1
+PAY06-15	POST /payments/{order_id}/checkout	recover a provider response with mismatched money	502	checkout_provider_error	STRIPE/1
+PAY06-16	POST /payments/{order_id}/checkout	recover a provider connection failure before acceptance	502	checkout_provider_error	STRIPE/1
+PAY06-17	POST /payments/{order_id}/checkout	preserve an existing payment when checkout is disabled	503	checkout_disabled	STRIPE/1
+PAY06-18	POST /payments/{order_id}/checkout	reject checkout for a succeeded payment without changes	409	checkout_unavailable	STRIPE/1

@@ -2,6 +2,7 @@ import asyncio
 import json
 import re
 from collections.abc import Generator, Mapping
+from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -41,6 +42,7 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.pa
     MongoPaymentRepository,
 )
 from tests.acceptance.checkout_checks import CheckoutChecks
+from tests.acceptance.checkout_recovery_checks import CheckoutRecoveryChecks
 from tests.acceptance.evidence import EvidenceClient, ScenarioEvidence, table_values
 from tests.acceptance.payment_checks import PaymentChecks
 from tests.acceptance.retry_checks import RetryChecks
@@ -201,6 +203,7 @@ class AcceptanceStripeTransport(StripeTransport):
         self.sessions: dict[str, dict[str, Any]] = {}
         self.exchange_ids: list[str] = []
         self.mode = "ok"
+        self.session_template = deepcopy(self.payload)
 
     async def request_async(
         self, method: str, url: str, headers: Mapping[str, str], post_data: Any = None
@@ -224,18 +227,30 @@ class AcceptanceStripeTransport(StripeTransport):
     async def _respond(
         self, method: str, url: str, headers: Mapping[str, str], post_data: Any = None
     ) -> tuple[bytes, int, Mapping[str, str]]:
+        # Keep accepted sessions separate from a rejected/malformed response. A later
+        # replay must return the accepted session rather than a poisoned shared payload.
+        self.calls.append((method, url, dict(headers), post_data))
         if self.mode == "rejection":
-            self.code = 400
-            self.payload = {"error": {"type": "invalid_request_error", "message": "private Stripe detail"}}
-        elif method == "post":
+            return (
+                json.dumps({"error": {"type": "invalid_request_error", "message": "private Stripe detail"}}).encode(),
+                400,
+                {},
+            )
+        if self.mode in {"connection", "timeout_before"}:
+            error = stripe.APIConnectionError("private Stripe transport detail")
+            if self.mode == "timeout_before":
+                error.__cause__ = ReadTimeout("private timeout")
+            raise error
+        if method == "post":
             body = parse_qs(str(post_data))
             key = headers["Idempotency-Key"]
             metadata = {name: body[f"metadata[{name}]"][0] for name in ("payment_id", "order_id", "attempt_id")}
             candidate = {
-                **self.payload,
+                **deepcopy(self.session_template),
                 "id": f"cs_test_{metadata['attempt_id']}",
                 "url": f"https://checkout.stripe.com/c/pay/cs_test_{metadata['attempt_id']}",
                 "amount_total": int(body["line_items[0][price_data][unit_amount]"][0]),
+                "currency": body["line_items[0][price_data][currency]"][0],
                 "client_reference_id": body["client_reference_id"][0],
                 "metadata": metadata,
             }
@@ -244,13 +259,13 @@ class AcceptanceStripeTransport(StripeTransport):
                 self.mode = "ok"
                 error = stripe.APIConnectionError("private timeout")
                 error.__cause__ = ReadTimeout("private timeout")
-                self.error = error
+                raise error
         else:
             self.payload = next(payload for payload in self.sessions.values() if url.endswith(str(payload["id"])))
-        try:
-            return await super().request_async(method, url, headers, post_data)
-        finally:
-            self.error = None
+        payload = deepcopy(self.payload)
+        if self.mode == "invalid_money":
+            payload["amount_total"] = int(str(payload["amount_total"])) + 1
+        return json.dumps(payload).encode(), 200, {"request-id": "req_boundary_test"}
 
 
 @pytest.fixture
@@ -523,3 +538,66 @@ def retrieved_checkout(checkout_checks: CheckoutChecks) -> None:
 @then("repeated checkout keeps the complete response and durable state")
 def repeat_checkout(checkout_checks: CheckoutChecks, datatable: list[list[str]]) -> None:
     checkout_checks.repeat(table_values(datatable))
+
+
+@pytest.fixture
+def recovery_checks(payment_checks: PaymentChecks, checkout_checks: CheckoutChecks) -> CheckoutRecoveryChecks:
+    return CheckoutRecoveryChecks(payment_checks, checkout_checks)
+
+
+@given("I remember checkout recovery state")
+def remember_recovery(recovery_checks: CheckoutRecoveryChecks) -> None:
+    recovery_checks.remember()
+
+
+@given("the earlier checkout failure matches")
+def earlier_checkout_problem(recovery_checks: CheckoutRecoveryChecks, datatable: list[list[str]]) -> None:
+    recovery_checks.earlier_problem(table_values(datatable))
+
+
+@given("the earlier checkout failure leaves")
+@then("checkout failure leaves this complete state")
+def failed_checkout_state(recovery_checks: CheckoutRecoveryChecks, datatable: list[list[str]]) -> None:
+    recovery_checks.effect(table_values(datatable))
+
+
+@given("a reserved checkout fixture contains")
+def reserved_checkout(
+    recovery_checks: CheckoutRecoveryChecks, datatable: list[list[str]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    recovery_checks.reserve(table_values(datatable), monkeypatch)
+
+
+@given("a legacy Pending checkout has no attempt identity")
+def legacy_pending_checkout(recovery_checks: CheckoutRecoveryChecks, datatable: list[list[str]]) -> None:
+    recovery_checks.legacy_pending(table_values(datatable))
+
+
+@given(parsers.parse('checkout persistence is interrupted at "{point}"'))
+def interrupted_checkout(recovery_checks: CheckoutRecoveryChecks, point: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    recovery_checks.interrupt(point, monkeypatch)
+
+
+@then("the failed provider request is")
+def failed_checkout_request(recovery_checks: CheckoutRecoveryChecks, datatable: list[list[str]]) -> None:
+    recovery_checks.failed_request(table_values(datatable))
+
+
+@then("the complete recovered checkout response is")
+def complete_recovered_checkout(recovery_checks: CheckoutRecoveryChecks, datatable: list[list[str]]) -> None:
+    recovery_checks.current_recovery(table_values(datatable))
+
+
+@then("a fresh application instance recovers checkout with")
+def recover_checkout_in_fresh_app(recovery_checks: CheckoutRecoveryChecks, datatable: list[list[str]]) -> None:
+    recovery_checks.fresh_recovery(table_values(datatable))
+
+
+@then("the recovery provider request is")
+def recovered_checkout_request(recovery_checks: CheckoutRecoveryChecks, datatable: list[list[str]]) -> None:
+    recovery_checks.recovery_request(table_values(datatable))
+
+
+@then("repeated provider rejection preserves the reserved attempt")
+def repeated_checkout_failure(recovery_checks: CheckoutRecoveryChecks, datatable: list[list[str]]) -> None:
+    recovery_checks.repeat_failure(table_values(datatable))

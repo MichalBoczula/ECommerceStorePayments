@@ -51,3 +51,12 @@ actual SDK form/headers and persisted attempt idempotency, complete state/histor
 effects and unchanged open/complete/expired session reads. New reservations keep
 request version 2 with card and BLIK. This adds controlled-boundary documentation
 evidence without changing provider policy or claiming real hosted payment execution.
+
+## Checkout failure and recovery evidence
+
+[PAY-BDD-06](../bdd-06-checkout-recovery.md) verifies complete safe failures,
+exact durable reservation/session effects, byte-identical request replay through
+a fresh application instance, pre-save interruption and lost post-commit
+acknowledgments. Physically historical fields, card-only version 1, card/BLIK
+version 2, unsupported positive versions and millisecond age boundaries retain
+the implemented policy. Dedicated transaction rollback remains PAY-BDD-12.

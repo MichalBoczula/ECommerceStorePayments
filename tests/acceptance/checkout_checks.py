@@ -80,9 +80,15 @@ def checkout_response(
 
 
 def provider_request(
-    call: tuple[str, str, Mapping[str, str], Any], stored: dict[str, Any], authored: dict[str, str]
+    call: tuple[str, str, Mapping[str, str], Any],
+    stored: dict[str, Any],
+    authored: dict[str, str],
+    *,
+    request_version: int = 2,
 ) -> dict[str, list[str]]:
-    assert authored.keys() == REQUEST_FIELDS
+    assert request_version in (1, 2)
+    fields = REQUEST_FIELDS - {"form.payment_method_types[1]"} if request_version == 1 else REQUEST_FIELDS
+    assert authored.keys() == fields
     method, url, headers, data = call
     headers = {key.lower(): value for key, value in headers.items()}
     assert method.upper() == authored["Method"] == "POST"
@@ -104,11 +110,15 @@ def provider_request(
     assert headers["idempotency-key"] == resolve(authored["IdempotencyKey"])
     assert headers["idempotency-key"] == f"checkout:{stored['_id']}:{stored['checkout_attempt_id']}"
     assert isinstance(stored["checkout_attempt_id"], UUID) and stored["checkout_attempt_id"].int != 0
-    assert stored["checkout_request_version"] == 2
+    assert stored.get("checkout_request_version", 1) == request_version
     body = parse_qs(str(data), keep_blank_values=True, strict_parsing=True)
     expected = {k.removeprefix("form."): [resolve(v)] for k, v in authored.items() if k.startswith("form.")}
     assert body == expected, "The entire encoded form, including absence of extra fields, must match"
-    assert body["payment_method_types[0]"] == ["card"] and body["payment_method_types[1]"] == ["blik"]
+    assert body["payment_method_types[0]"] == ["card"]
+    if request_version == 2:
+        assert body["payment_method_types[1]"] == ["blik"]
+    else:
+        assert "payment_method_types[1]" not in body
     assert body["line_items[0][price_data][unit_amount]"] == [str(stored["amount_minor"])]
     assert body["line_items[0][price_data][currency]"] == [stored["currency"].lower()]
     return body
