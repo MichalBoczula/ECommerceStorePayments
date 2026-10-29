@@ -24,3 +24,14 @@ Each successful transition writes two documents and keeps the current payment in
 - Put all versions into `payments` and mark one active: multiplies the operational collection and complicates unique order and active-state queries.
 - Write history outside the current-state transaction: an interrupted write can leave history and current state inconsistent.
 - Store only transition events: would not preserve the complete earlier document and requires reconstruction to inspect a state.
+
+
+## PAY-BDD-04 evidence (2026-10-29)
+
+[Retry/history scenarios](../bdd-04-retries-history.md) compare every archived
+field, exact one-version/one-archive effects, immutable older snapshots and
+populated unrelated collections. Historical-schema fixtures deliberately insert
+physically absent fields after legal domain setup; the accepted compatibility
+path normalizes their first archived version to zero. This package changes no
+repository, state policy, index or schema. Dedicated competing writes and rollback
+fault injection remain Task 12.

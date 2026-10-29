@@ -35,8 +35,8 @@ def sources(tmp_path: Path) -> tuple[Path, Path, Path]:
 def test_original_source_inventory_and_reviewed_coverage() -> None:
     coverage = generate()["coverage"]
     assert coverage == {
-        "expandedBddCases": 60,
-        "matchedRouteCases": 59,
+        "expandedBddCases": 74,
+        "matchedRouteCases": 73,
         "unmatchedRouteCases": 1,
         "declaredOperationStatusPairs": 42,
         "guaranteedScenarioStatusPairs": 26,
@@ -98,7 +98,7 @@ def test_original_title_is_frozen_but_additive_tables_are_allowed(tmp_path: Path
         "    Given a payable order", "    Given a payable order\n      | Amount | 1299 |", 1
     )
     path.write_text(text)
-    assert generate(matrix=matrix, feature_dir=features, gaps=gaps)["coverage"]["expandedBddCases"] == 60
+    assert generate(matrix=matrix, feature_dir=features, gaps=gaps)["coverage"]["expandedBddCases"] == 74
     path.write_text(text.replace("Create a payment from a payable order", "A replacement behavior", 1))
     with pytest.raises(ValueError, match="Changed baseline BDD identity: PAY11-01"):
         generate(matrix=matrix, feature_dir=features, gaps=gaps)
@@ -196,7 +196,7 @@ def test_new_case_closes_gap_only_when_reviewed_gap_is_removed(tmp_path: Path) -
         + "\n"
     )
     coverage = generate(matrix=matrix, feature_dir=features, gaps=gaps)["coverage"]
-    assert coverage["expandedBddCases"] == 61 and coverage["guaranteedScenarioStatusPairs"] == 27
+    assert coverage["expandedBddCases"] == 75 and coverage["guaranteedScenarioStatusPairs"] == 27
     assert len(coverage["gaps"]) == 15
 
 

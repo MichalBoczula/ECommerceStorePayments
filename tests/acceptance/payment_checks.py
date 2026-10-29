@@ -62,6 +62,7 @@ def full_payment(
     *,
     reference: dict[str, Any] | None = None,
     creation_window: tuple[datetime, datetime] | None = None,
+    update_window: tuple[datetime, datetime] | None = None,
 ) -> None:
     assert body.keys() == authored.keys() == PUBLIC_FIELDS, "All ten public fields must be present, with no extras"
     reference = stored if reference is None else reference
@@ -72,9 +73,10 @@ def full_payment(
             parsed = utc_date(actual)
             expected = reference[key]
             assert isinstance(expected, datetime) and expected.utcoffset() == timedelta(0)
-            if key == "created_at" and creation_window is not None:
-                assert creation_window[0] <= parsed <= creation_window[1], "Creation time is outside the actual request"
-                # BSON datetime precision is milliseconds; the create response retains Python microseconds.
+            window = creation_window if key == "created_at" else update_window
+            if window is not None:
+                assert window[0] <= parsed <= window[1], "Mutation time is outside the actual request"
+                # BSON has millisecond precision; mutation responses can retain Python microseconds.
                 assert parsed.replace(microsecond=parsed.microsecond // 1000 * 1000) == expected
             else:
                 assert parsed == expected, key
@@ -90,7 +92,8 @@ def full_payment(
                 assert document_value is None, key
             else:
                 parsed = utc_date(actual)
-                if key == "created_at" and creation_window is not None:
+                window = creation_window if key == "created_at" else update_window
+                if window is not None:
                     parsed = parsed.replace(microsecond=parsed.microsecond // 1000 * 1000)
                 assert parsed == document_value, key
         elif key == "amount_minor":

@@ -42,6 +42,7 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.pa
 )
 from tests.acceptance.evidence import EvidenceClient, ScenarioEvidence, table_values
 from tests.acceptance.payment_checks import PaymentChecks
+from tests.acceptance.retry_checks import RetryChecks
 from tests.unit.external_providers.test_stripe_checkout import StripeTransport
 from tests.webhook_fixtures import WEBHOOK_SECRET
 
@@ -429,3 +430,43 @@ def unchanged_payment(payment_checks: PaymentChecks) -> None:
 @then("only the requested payment is inserted")
 def only_requested_payment(payment_checks: PaymentChecks) -> None:
     payment_checks.only_created()
+
+
+@pytest.fixture
+def retry_checks(payment_checks: PaymentChecks) -> RetryChecks:
+    return RetryChecks(payment_checks)
+
+
+@given(parsers.parse('a historical payment in state "{state}" has no version or checkout fields'))
+def historical_payment(retry_checks: RetryChecks, state: str, datatable: list[list[str]]) -> None:
+    retry_checks.legacy(state, table_values(datatable))
+
+
+@given(parsers.parse('Orders currency changes to "{currency}"'))
+def changed_currency(acceptance: AcceptanceContext, currency: str) -> None:
+    acceptance.orders.currency = currency
+
+
+@then("the complete retry response is")
+def complete_retry(retry_checks: RetryChecks, datatable: list[list[str]]) -> None:
+    retry_checks.complete(table_values(datatable))
+
+
+@then("the retry changes only this version and archive")
+def retry_archive(retry_checks: RetryChecks, datatable: list[list[str]]) -> None:
+    retry_checks.changed(table_values(datatable))
+
+
+@then("the rejected retry preserves every document")
+def rejected_retry(retry_checks: RetryChecks) -> None:
+    retry_checks.rejected()
+
+
+@then("repeating Pay preserves the completed retry")
+def repeat_retry(retry_checks: RetryChecks) -> None:
+    retry_checks.repeat()
+
+
+@then("a later failed attempt is retried without changing older snapshots")
+def later_retry(retry_checks: RetryChecks, datatable: list[list[str]]) -> None:
+    retry_checks.later_cycle(table_values(datatable))

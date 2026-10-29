@@ -225,6 +225,10 @@ The [complete Pay/read scenarios](docs/bdd-03-pay-reads.md) verify exact money,
 all ten response fields, stored UTC/null/provider values, existing-state repeats
 and preservation of populated unrelated payment/history/receipt collections.
 
+The [retry/history scenarios](docs/bdd-04-retries-history.md) check complete
+previous-state archives, provider/checkout resets, version increments, repeated
+and later attempts, historical missing fields and unchanged rejected state.
+
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated
 source projection. CI retains `payments-openapi` and supplies all four JSON files
