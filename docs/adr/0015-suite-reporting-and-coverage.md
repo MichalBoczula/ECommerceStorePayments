@@ -36,6 +36,10 @@ names receive explicit stable IDs; the approved naming migrations are recorded.
 Suite selection, intentional external-provider overlap and coverage floors stay
 unchanged. See [the baseline](../bdd-01-baseline.md).
 
+Mongo-backed suites and container smoke use Ubuntu 22.04 after the PAY-BDD-01
+clean-runner startup failure on 24.04. The shared entry point records Docker
+kernel/image preflight evidence; security/source/pure-unit jobs retain 24.04.
+
 Reviewers can inspect suite-specific failures and reports. New Infrastructure code, including adapters, contributes to its 70% denominator. Tests added under new directories must be assigned to a suite; a unit test guards that every existing test file is assigned. The Acceptance and ExternalProviders percentages are reported without new thresholds while provider capabilities evolve. Named suite jobs use separate runners and may start more than one MongoDB container across jobs.
 
 ## Alternatives considered

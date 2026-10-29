@@ -187,6 +187,21 @@ def check_runtime_baseline(name: str, members: list[tuple[str, str]], baseline_p
         raise ValueError(f"Removed baseline suite members in {name}: {list(missing)}")
 
 
+def check_bdd_results(feature_dir: Path, results_dir: Path) -> None:
+    """New source/matrix cases cannot claim coverage without a real BDD result."""
+    cases = source_cases(feature_dir)
+    observed: list[str] = []
+    for path in results_dir.glob("*-result.json"):
+        result = json.loads(path.read_text(encoding="utf-8"))
+        match = re.match(r"(PAY\d+-\d+)\b", result.get("name", ""))
+        case_id = match[1] if match else ""
+        if case_id not in cases or result.get("name") != cases[case_id].scenario or result.get("status") != "passed":
+            raise ValueError(f"Unknown, renamed or unsuccessful BDD result: {path.name}")
+        observed.append(case_id)
+    if Counter(observed) != Counter(cases.keys()):
+        raise ValueError("Source BDD cases differ from executed Allure cases")
+
+
 def check_tracked_sources(paths: list[str]) -> None:
     """Generated Kiota source is intentional; generated verification output is not."""
     required = {"uv.lock", ".python-version", "pyproject.toml", "contracts/invoice/source.json"}

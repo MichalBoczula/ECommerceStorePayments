@@ -10,6 +10,7 @@ import pytest
 from scripts.bdd_baseline import (
     BASELINE,
     GAPS,
+    check_bdd_results,
     check_runtime_baseline,
     check_source_baseline,
     check_tracked_sources,
@@ -236,6 +237,34 @@ def test_runtime_duplicate_identity_cannot_fill_a_missing_member() -> None:
     members[0] = members[1]
     with pytest.raises(ValueError, match="duplicate JUnit identity"):
         check_runtime_baseline("domain", members, BASELINE)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "duplicate", "failed", "renamed", "unknown"])
+def test_every_current_case_requires_one_passed_allure_result(mutation: str, tmp_path: Path) -> None:
+    features = tmp_path / "features"
+    features.mkdir()
+    (features / "case.feature").write_text(
+        'Feature: Guard\n  Scenario: PAY99-01 Example\n    When action\n    Then the response matches case "PAY99-01"\n'
+    )
+    results = tmp_path / "results"
+    results.mkdir()
+    good = {"name": "PAY99-01 Example", "status": "passed"}
+    result_path = results / "one-result.json"
+    result_path.write_text(json.dumps(good))
+    check_bdd_results(features, results)
+    if mutation == "missing":
+        result_path.unlink()
+    elif mutation == "duplicate":
+        (results / "two-result.json").write_text(json.dumps(good))
+    else:
+        good["status" if mutation == "failed" else "name"] = {
+            "failed": "broken",
+            "renamed": "PAY99-01 Different",
+            "unknown": "PAY99-02 Unknown",
+        }[mutation]
+        result_path.write_text(json.dumps(good))
+    with pytest.raises(ValueError):
+        check_bdd_results(features, results)
 
 
 @pytest.mark.parametrize(
