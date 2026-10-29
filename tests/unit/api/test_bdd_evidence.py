@@ -235,7 +235,7 @@ def bundle(tmp_path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
 
 def test_current_source_and_complete_captured_evidence_are_publishable(tmp_path: Path) -> None:
     check_source_evidence(FEATURES, MATRIX)
-    assert len(source_evidence(FEATURES)) == 144
+    assert len(source_evidence(FEATURES)) == 179
     result, profile = bundle(tmp_path)
     check_result_evidence(result, profile, tmp_path)
 

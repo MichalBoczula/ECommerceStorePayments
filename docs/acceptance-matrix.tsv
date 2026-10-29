@@ -143,3 +143,38 @@ PAY07-42	POST /payments/webhooks/stripe	accept the maximum event identifier leng
 PAY07-43	POST /payments/webhooks/stripe	reject an event identifier one character too long	400	webhook_invalid	STRIPE/2
 PAY07-44	POST /payments/webhooks/stripe	reject a webhook amount below the supported minimum	400	webhook_invalid	STRIPE/2
 PAY07-45	POST /payments/webhooks/stripe	reject a webhook amount above the supported maximum	400	webhook_invalid	STRIPE/2
+PAY08-01	POST /payments/webhooks/stripe	confirm asynchronous payment success	200	-	STRIPE/2
+PAY08-02	POST /payments/webhooks/stripe	record asynchronous payment failure	200	-	STRIPE/2
+PAY08-03	POST /payments/webhooks/stripe	late paid completion wins after expiry	200	-	STRIPE/2
+PAY08-04	POST /payments/webhooks/stripe	late asynchronous success wins after failure	200	-	STRIPE/2
+PAY08-05	POST /payments/webhooks/stripe	ignore asynchronous failure after success	200	-	STRIPE/2
+PAY08-06	POST /payments/webhooks/stripe	ignore unpaid completion after success	200	-	STRIPE/2
+PAY08-07	POST /payments/webhooks/stripe	ignore another failure of a failed attempt	200	-	STRIPE/2
+PAY08-08	POST /payments/webhooks/stripe	ignore expiry of a canceled attempt	200	-	STRIPE/2
+PAY08-09	POST /payments/webhooks/stripe	confirm late success of a canceled attempt	200	-	STRIPE/2
+PAY08-10	POST /payments/webhooks/stripe	ignore a distinct success for the same provider payment	200	-	STRIPE/2
+PAY08-11	POST /payments/webhooks/stripe	reject a different provider payment after success	200	-	STRIPE/2
+PAY08-12	POST /payments/webhooks/stripe	reject a verified event for an absent payment	200	-	STRIPE/2
+PAY08-13	POST /payments/webhooks/stripe	reject a different order identity	200	-	STRIPE/2
+PAY08-14	POST /payments/webhooks/stripe	reject a different checkout session	200	-	STRIPE/2
+PAY08-15	POST /payments/webhooks/stripe	ignore old success after a real checkout retry	200	-	STRIPE/2
+PAY08-16	POST /payments/webhooks/stripe	ignore old expiry after a real checkout retry	200	-	STRIPE/2
+PAY08-17	POST /payments/webhooks/stripe	ignore old failure after a real checkout retry	200	-	STRIPE/2
+PAY08-18	POST /payments/webhooks/stripe	ignore notification for a legacy attemptless payment	200	-	STRIPE/2
+PAY08-19	POST /payments/webhooks/stripe	confirm success before the session was persisted	200	-	STRIPE/2
+PAY08-20	POST /payments/webhooks/stripe	fail a reserved checkout before its session was persisted	200	-	STRIPE/2
+PAY08-21	POST /payments/webhooks/stripe	expire a reserved checkout before its session was persisted	200	-	STRIPE/2
+PAY08-22	POST /payments/webhooks/stripe	reject different signed bytes for an applied event	400	webhook_collision	STRIPE/2
+PAY08-23	POST /payments/webhooks/stripe	reject another payload for an applied event identity	400	webhook_collision	STRIPE/2
+PAY08-24	POST /payments/webhooks/stripe	reject a collision without replacing pending work	400	webhook_collision	STRIPE/2
+PAY08-25	POST /payments/webhooks/stripe	reject a collision with an ignored receipt	400	webhook_collision	STRIPE/2
+PAY08-26	POST /payments/webhooks/stripe	redeliver an ignored event without rewriting its receipt	200	-	STRIPE/2
+PAY08-27	POST /payments/webhooks/stripe	redeliver a rejected event without rewriting its receipt	200	-	STRIPE/2
+PAY08-28	POST /payments/webhooks/stripe	a fresh application resumes a pending receipt	503	webhook_retry	STRIPE/2
+PAY08-29	POST /payments/webhooks/stripe	an operator resumes success without provider credentials	503	webhook_retry	STRIPE/2
+PAY08-30	POST /payments/webhooks/stripe	an operator completes an unsupported pending event	503	webhook_retry	STRIPE/2
+PAY08-31	POST /payments/webhooks/stripe	an operator completes a mismatched pending event	503	webhook_retry	STRIPE/2
+PAY08-32	POST /payments/webhooks/stripe	an operator ignores pending work from an old attempt	503	webhook_retry	STRIPE/2
+PAY08-33	POST /payments/webhooks/stripe	redelivery recovers an acknowledgement lost after commit	503	webhook_retry	STRIPE/2
+PAY08-34	POST /payments/webhooks/stripe	reload once after a controlled stale version	200	-	STRIPE/2
+PAY08-35	POST /payments/webhooks/stripe	leave durable work after exhausting conflict retries	503	webhook_retry	STRIPE/2

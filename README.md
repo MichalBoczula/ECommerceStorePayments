@@ -245,6 +245,12 @@ original signed bytes and physical header multiplicity, isolate signature/JSON/
 snapshot/media/size boundaries and compare every rejected-state document.
 Accepted controls verify exact received-byte digests and normalized receipts.
 
+The [webhook lifecycle scenarios](docs/bdd-08-webhook-lifecycle.md) verify all
+receipt fields and reasons, exact current/history changes, asynchronous and late
+outcomes, stale attempts, duplicates and signed event-ID collisions. Fresh app
+redelivery and credential-free operator replay recover durable work with complete
+payment reads and no downstream calls.
+
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated
 source projection. CI retains `payments-openapi` and supplies all four JSON files
