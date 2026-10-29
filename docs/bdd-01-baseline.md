@@ -135,3 +135,58 @@ This package does not add tables, JSON/HTTP attachments, descriptions or exchang
 IDs to the existing 51 Allure cases. Those known gaps remain PAY-BDD-02, followed
 by complete domain/state/contract packages. Selected LiveDocs refresh and Azure
 deployment remain manual; no production rollout is claimed.
+
+## Verified implementation evidence
+
+Implementation head `d86f23ef16f868bc21e3f50ca8dd616bfa1779ea` passes full
+[CI 40923486875](https://github.com/MichalBoczula/ECommerceStorePayments/actions/runs/40923486875).
+The tested merge `595398c68f300b1c1b62793887f2ad3914e30cae` has the audited main
+and that head as parents and matches implementation tree
+`4a1c781ff8ce81806c72727341da5bd7de36cb4b` exactly. Quality, audited locked
+dependencies, PR Dependency Review, secret scan, all five suites, package/quality
+gates, real Mongo-backed container smoke, unchanged Trivy policy and final gate
+pass. PR publication and Blob archival are correctly skipped.
+
+| Suite | Passed; zero failures/skips | Line coverage |
+| --- | ---: | ---: |
+| Domain | 97 | 96.88% |
+| Application | 82 | 96.16% |
+| Infrastructure | 250 | 90.90% |
+| External providers | 175 | 96.35% |
+| Acceptance | 175 | 98.06% |
+
+Acceptance is **51 original BDD cases + 124 ordinary cases**. All original 89
+ordinary cases survive; exactly 35 guard regressions are added. All 569 distinct
+original members remain, with only the two documented parameter-ID migrations.
+Current suites execute 779 cases, representing 604 distinct members because the
+same 175 external-provider cases run twice intentionally. Coverage floors remain
+separate and unchanged; no handwritten Infrastructure code is excluded.
+
+Independent downloads match every official Actions artifact digest. The inner
+ZIP is **106,136 bytes**, SHA-256
+`96e19f25f0a3880f07dbe08fd66873047489fc2cdb083cc5aaf3f043d92ce025`;
+all sixty manifest paths, lengths and hashes match, with closed inventory and
+safe paths. Source/run provenance matches the tested merge/run above. Every
+feature byte matches reviewed and original source. OpenAPI, flow and policy
+exports remain byte-identical to the original main archive; all original
+operation-link fields remain identical, with only coverage added.
+
+Pinned Allure **2.46.1** independently renders all 51 cases. Every original title,
+full name, history/test identity, title path, feature label, ordered/nested step
+and outcome survives. Each generated case and report entry asset resolves through
+local HTTP. There are still no JSON/HTTP/table attachments, exactly as reported
+in the audit; this is not falsely claimed as completed PAY-BDD-02 work.
+
+Locally, pinned installation and lock checks, all 518 unit cases, the official
+Domain/ExternalProviders runners, full collection retention, format, Ruff, strict
+Pyright, architecture, exact CI link/OpenAPI commands, wheel build/install and
+Markdown/git checks pass. The locked audit reports no known vulnerabilities or
+adverse statuses. Actual MongoDB/Invoice/PDF/container/image evidence comes from
+CI; Docker is unavailable locally. Mongo-backed CI records kernel
+`6.8.0-1070-azure` on the compatible runner.
+
+This completion record freezes the verified implementation. The final
+documentation-only head must independently pass full CI and fresh artifact
+checks before review; its exact verification is recorded on the PR. PAY/22 and
+PAY-BDD-02–16 stay open. No deployment, selected LiveDocs refresh, real-account
+Stripe verification or runtime branch telemetry is claimed.
