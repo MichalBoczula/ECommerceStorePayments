@@ -1,7 +1,7 @@
 import asyncio
 import json
 import re
-from collections.abc import Generator, Mapping
+from collections.abc import Callable, Generator, Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -44,6 +44,7 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.pa
 from tests.acceptance.checkout_checks import CheckoutChecks
 from tests.acceptance.checkout_recovery_checks import CheckoutRecoveryChecks
 from tests.acceptance.evidence import EvidenceClient, ScenarioEvidence, table_values
+from tests.acceptance.fulfillment_checks import FulfillmentChecks
 from tests.acceptance.payment_checks import PaymentChecks
 from tests.acceptance.retry_checks import RetryChecks
 from tests.acceptance.webhook_lifecycle_checks import WebhookLifecycleChecks
@@ -66,9 +67,12 @@ class OrdersBoundary:
     currency: str = "PLN"
     calls: int = 0
     http_calls: list[tuple[str, str]] = field(default_factory=list[tuple[str, str]])
+    fulfillment_handler: Callable[[Request], OrdersResponse] | None = None
 
     def handle(self, request: Request) -> OrdersResponse:
         self.http_calls.append((request.method, request.url.path))
+        if self.fulfillment_handler is not None:
+            return self.fulfillment_handler(request)
         if request.url.path.startswith("/invoices/"):
             if request.method == "POST":
                 self.invoice_creates += 1
@@ -698,3 +702,55 @@ def lifecycle_interrupt(
 @then("durable webhook recovery runs with")
 def lifecycle_recover(lifecycle_checks: WebhookLifecycleChecks, datatable: list[list[str]]) -> None:
     lifecycle_checks.recover(table_values(datatable))
+
+
+@pytest.fixture
+def fulfillment_checks(payment_checks: PaymentChecks) -> FulfillmentChecks:
+    return FulfillmentChecks(payment_checks)
+
+
+@given("unrelated fulfillment has completed through the worker")
+def settle_unrelated_work(fulfillment_checks: FulfillmentChecks) -> None:
+    fulfillment_checks.settle_unrelated()
+
+
+@given("verified fulfillment work is prepared")
+def prepare_fulfillment_work(fulfillment_checks: FulfillmentChecks, datatable: list[list[str]]) -> None:
+    fulfillment_checks.prepare(table_values(datatable))
+
+
+@given("I remember complete fulfillment state")
+def remember_fulfillment_work(fulfillment_checks: FulfillmentChecks) -> None:
+    fulfillment_checks.remember()
+
+
+@then("the complete durable fulfillment record is")
+def assert_fulfillment_record(fulfillment_checks: FulfillmentChecks, datatable: list[list[str]]) -> None:
+    fulfillment_checks.state(table_values(datatable))
+
+
+@then("the worker performs exactly these HTTP operations")
+def assert_fulfillment_http(fulfillment_checks: FulfillmentChecks, datatable: list[list[str]]) -> None:
+    fulfillment_checks.http(table_values(datatable))
+
+
+@then("the complete payment read after fulfillment is")
+def assert_fulfillment_payment_read(fulfillment_checks: FulfillmentChecks, datatable: list[list[str]]) -> None:
+    fulfillment_checks.read(table_values(datatable))
+
+
+@given("local fulfillment persistence is interrupted")
+def interrupt_fulfillment_persistence(
+    fulfillment_checks: FulfillmentChecks, datatable: list[list[str]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fulfillment_checks.interrupt(table_values(datatable), monkeypatch)
+
+
+@then("the controlled downstream state changes to")
+def change_fulfillment_boundary(fulfillment_checks: FulfillmentChecks, datatable: list[list[str]]) -> None:
+    fulfillment_checks.change(table_values(datatable))
+
+
+@then("the operator resumes repaired fulfillment with")
+def resume_repaired_fulfillment(fulfillment_checks: FulfillmentChecks, datatable: list[list[str]]) -> None:
+    fulfillment_checks.resume(table_values(datatable))
