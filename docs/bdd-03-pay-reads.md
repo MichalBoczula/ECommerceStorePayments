@@ -70,9 +70,46 @@ They verify exact fixture numbers through the real Kiota parser, lossless BSON
 capture and changed unrelated fields at unchanged collection counts. Source checks
 keep complete response and effect assertions on all eleven success cases in scope.
 
-Local verification and full CI/archive/render inspection are in progress. Docker
-is unavailable locally, so CI supplies real MongoDB/Invoice/container evidence.
-The Task 3 checkbox remains open until those checks pass. Tasks 4–16, the sixteen
+[Implementation CI 40933885048](https://github.com/MichalBoczula/ECommerceStorePayments/actions/runs/40933885048)
+passes all source/contract/wheel/security checks, all five suites, documentation
+packaging, real Mongo-backed container smoke, Trivy scanning and the final gate.
+Frozen implementation head: `50a111ed0ee51b5abb7c2d20f7f670e8bcf46ce4`;
+tested merge: `f6b3aede6516041209b63aed7b7ed96b9ecb7e3a`;
+exact tree: `03d8cb59dc68452d016e198186c2e88910e82525`.
+The merge parents and tested tree match Task 2's merged base and this head.
+
+- **850 passing suite executions, zero failures/skips:** Domain 97, Application 82,
+  Infrastructure 250, ExternalProviders 175, Acceptance 246. There are 675 distinct
+  members, with the intentional 175-member external-provider overlap retained.
+  Acceptance is **60 BDD + 186 ordinary**: every Task 2 member is retained, with
+  nine new BDD and 27 regression cases. All 580 local unit tests pass.
+- Line coverage remains 96.88% / 96.16% / 90.90% for the separately gated
+  Domain/Application/Infrastructure layers, and 96.35% / 98.06% for
+  ExternalProviders/Acceptance. The three separate 70% floors stay unchanged.
+- All seven official outer artifact digests match. The frozen inner archive is
+  **1,197,990 bytes**, SHA-256
+  `f45d2fd76e68c5e66160d04f27208666ba27ea10e5aea00d92a1de57be4087ea`, with
+  **1,130 verified manifest entries**: 60 results, 6 feature sources, 4 exports
+  and **1,060 attachments** (913 JSON, 147 native Gherkin CSV tables).
+- Independent closed-inventory/path/size/hash, source/export, JUnit and raw-result
+  checks pass. Pinned Allure 2.46.1 renders all cases and attachments; original
+  names/full names/history/test identities/title paths survive. Every rendered
+  description, ordered/nested step and attachment matches its raw result. Every
+  case/attachment/entry asset passes local HTTP reads.
+- Independent Task 3 checks verify eleven complete success payloads, five read
+  states, all three Pay repeat states, complete empty/populated missing problems,
+  exact large decimal money, explicit timestamp precision/bounds and exact
+  collection effects. The archive contains 295 actual request/outcome pairs
+  (289 responses, 6 transport failures) and 18 explicit action start/result pairs.
+- OpenAPI, flows and validation-policy exports are byte-identical to Task 2;
+  operation-links adds only the nine scenario rows and current case counts. Original
+  baseline/matrix rows and the sixteen reviewed gaps remain unchanged. Pinned
+  lock/sync, format/Ruff/strict Pyright, architecture, exact links/OpenAPI commands,
+  wheel build/install, local Markdown links and git checks pass. Docker is
+  unavailable locally; CI supplies real MongoDB/Invoice/container/image evidence.
+
+Task 3 is complete. The final documentation-only completion head is checked again
+in full CI and with fresh artifacts before PR handoff. Tasks 4–16, the sixteen
 Task 11 status gaps and overall PAY/22 remain open. Public contracts, application
 and persistence code, dependencies, coverage/security gates and LiveDocs/Blob
 publication paths are unchanged. Selected LiveDocs refresh remains manual.
