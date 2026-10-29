@@ -33,8 +33,9 @@ selected LiveDocs refresh and Terraform deployment remain manual.
 - [x] **PAY-BDD-08 — Webhook lifecycle and replay.** Full receipts/reasons,
   transitions, async outcomes, stale attempts, collisions, duplicates and recovery.
   See [webhook lifecycle and replay](bdd-08-webhook-lifecycle.md).
-- [ ] **PAY-BDD-09 — Fulfillment and invoice recovery.** Explicit worker actions,
+- [x] **PAY-BDD-09 — Fulfillment and invoice recovery.** Explicit worker actions,
   complete durable progress/retries and Paid/invoice/PDF acknowledgement recovery.
+  See [fulfillment and invoice recovery](bdd-09-fulfillment-recovery.md).
 - [ ] **PAY-BDD-10 — Business validation.** Isolated values, exact currency
   conversion and accepted boundaries; distinguish HTTP inputs from standalone rules.
 - [ ] **PAY-BDD-11 — Framework failures.** Close reviewed status gaps, cover
