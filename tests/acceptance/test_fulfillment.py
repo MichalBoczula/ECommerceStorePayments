@@ -66,7 +66,8 @@ def redeliver(acceptance: AcceptanceContext) -> None:
         content=acceptance.webhook_payload,
         headers={"content-type": "application/json", "stripe-signature": signature(acceptance.webhook_payload)},
     )
-    assert response.status_code == 200
+    assert response.status_code == 200 and response.headers["content-type"] == "application/json"
+    assert response.json() == {"received": True}
     acceptance.responses = [response]
     acceptance.last_operation = "POST /payments/webhooks/stripe"
 

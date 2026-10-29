@@ -25,6 +25,7 @@ Feature: Published Invoice fulfillment and real PDF recovery
       | Mode           | ok                                                                      |
       | ImageDigest    | sha256:6e9244804a2645f8aecaff89f60cff03337a94b70ca877195e585c678f2d996a |
       | TimeoutSeconds | 30                                                                      |
+      | Environment    | Testing                                                                 |
     And I remember complete fulfillment state
     Then the response matches case "PAY09-33"
       | Field         | Value            |
@@ -37,7 +38,7 @@ Feature: Published Invoice fulfillment and real PDF recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -98,7 +99,7 @@ Feature: Published Invoice fulfillment and real PDF recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 0     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -170,6 +171,7 @@ Feature: Published Invoice fulfillment and real PDF recovery
       | Mode           | paid_ack_lost                                                           |
       | ImageDigest    | sha256:6e9244804a2645f8aecaff89f60cff03337a94b70ca877195e585c678f2d996a |
       | TimeoutSeconds | 30                                                                      |
+      | Environment    | Testing                                                                 |
     And I remember complete fulfillment state
     Then the response matches case "PAY09-34"
       | Field         | Value            |
@@ -182,7 +184,7 @@ Feature: Published Invoice fulfillment and real PDF recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -243,7 +245,7 @@ Feature: Published Invoice fulfillment and real PDF recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 0     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -315,6 +317,7 @@ Feature: Published Invoice fulfillment and real PDF recovery
       | Mode           | invoice_ack_lost                                                        |
       | ImageDigest    | sha256:6e9244804a2645f8aecaff89f60cff03337a94b70ca877195e585c678f2d996a |
       | TimeoutSeconds | 30                                                                      |
+      | Environment    | Testing                                                                 |
     And I remember complete fulfillment state
     Then the response matches case "PAY09-35"
       | Field         | Value            |
@@ -327,7 +330,7 @@ Feature: Published Invoice fulfillment and real PDF recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -388,7 +391,7 @@ Feature: Published Invoice fulfillment and real PDF recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 0     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -460,6 +463,7 @@ Feature: Published Invoice fulfillment and real PDF recovery
       | Mode           | pdf_storage_failure                                                     |
       | ImageDigest    | sha256:6e9244804a2645f8aecaff89f60cff03337a94b70ca877195e585c678f2d996a |
       | TimeoutSeconds | 30                                                                      |
+      | Environment    | Testing                                                                 |
     And I remember complete fulfillment state
     Then the response matches case "PAY09-36"
       | Field         | Value            |
@@ -472,7 +476,7 @@ Feature: Published Invoice fulfillment and real PDF recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                        |
       | _id                                | {before}                     |
       | event_type                         | {before}                     |
@@ -524,7 +528,7 @@ Feature: Published Invoice fulfillment and real PDF recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -585,7 +589,7 @@ Feature: Published Invoice fulfillment and real PDF recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 0     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |

@@ -155,6 +155,7 @@ def test_all_worker_cases_author_complete_presence_isolation_http_and_read_table
                 steps = [s for s in scenario.steps if s.name == name]
                 assert steps
                 for step in steps:
+                    assert step.type == "then"
                     assert step.datatable is not None
                     assert table_values([[c.value for c in row.cells] for row in step.datatable.rows]).keys() == fields
             for step in scenario.steps:

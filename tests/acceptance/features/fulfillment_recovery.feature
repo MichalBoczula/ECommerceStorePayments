@@ -32,7 +32,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -111,7 +111,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -190,7 +190,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value               |
       | _id                                | {before}            |
       | event_type                         | {before}            |
@@ -246,7 +246,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -325,7 +325,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                      |
       | _id                                | {before}                   |
       | event_type                         | {before}                   |
@@ -404,7 +404,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                 |
       | _id                                | {before}              |
       | event_type                         | {before}              |
@@ -483,7 +483,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -562,7 +562,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                        |
       | _id                                | {before}                     |
       | event_type                         | {before}                     |
@@ -618,7 +618,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -697,7 +697,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                        |
       | _id                                | {before}                     |
       | event_type                         | {before}                     |
@@ -753,7 +753,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -832,7 +832,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                        |
       | _id                                | {before}                     |
       | event_type                         | {before}                     |
@@ -888,7 +888,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -967,7 +967,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                         |
       | _id                                | {before}                      |
       | event_type                         | {before}                      |
@@ -1046,7 +1046,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                         |
       | _id                                | {before}                      |
       | event_type                         | {before}                      |
@@ -1125,7 +1125,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                |
       | _id                                | {before}             |
       | event_type                         | {before}             |
@@ -1204,7 +1204,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value            |
       | _id                                | {before}         |
       | event_type                         | {before}         |
@@ -1283,7 +1283,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value               |
       | _id                                | {before}            |
       | event_type                         | {before}            |
@@ -1362,7 +1362,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                      |
       | _id                                | {before}                   |
       | event_type                         | {before}                   |
@@ -1441,7 +1441,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                      |
       | _id                                | {before}                   |
       | event_type                         | {before}                   |
@@ -1520,7 +1520,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value              |
       | _id                                | {before}           |
       | event_type                         | {before}           |
@@ -1599,7 +1599,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value              |
       | _id                                | {before}           |
       | event_type                         | {before}           |
@@ -1678,7 +1678,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                        |
       | _id                                | {before}                     |
       | event_type                         | {before}                     |
@@ -1734,7 +1734,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                 |
       | _id                                | {before}              |
       | event_type                         | {before}              |
@@ -1813,7 +1813,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                        |
       | _id                                | {before}                     |
       | event_type                         | {before}                     |
@@ -1869,7 +1869,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                   |
       | _id                                | {before}                |
       | event_type                         | {before}                |
@@ -1948,7 +1948,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                        |
       | _id                                | {before}                     |
       | event_type                         | {before}                     |
@@ -1999,7 +1999,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100        |
       | Clock     | before_due |
       | Processed | 0          |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                        |
       | _id                                | {before}                     |
       | event_type                         | {before}                     |
@@ -2078,7 +2078,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value               |
       | _id                                | {before}            |
       | event_type                         | {before}            |
@@ -2157,7 +2157,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value               |
       | _id                                | {before}            |
       | event_type                         | {before}            |
@@ -2236,7 +2236,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value               |
       | _id                                | {before}            |
       | event_type                         | {before}            |
@@ -2315,7 +2315,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -2397,7 +2397,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                     |
       | _id                                | {before}                  |
       | event_type                         | {before}                  |
@@ -2453,7 +2453,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -2535,7 +2535,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                     |
       | _id                                | {before}                  |
       | event_type                         | {before}                  |
@@ -2591,7 +2591,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -2673,7 +2673,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                     |
       | _id                                | {before}                  |
       | event_type                         | {before}                  |
@@ -2729,7 +2729,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -2811,7 +2811,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -2862,7 +2862,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 0     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -2941,7 +2941,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value                         |
       | _id                                | {before}                      |
       | event_type                         | {before}                      |
@@ -3001,7 +3001,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | due   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |
@@ -3080,7 +3080,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 0     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value               |
       | _id                                | {before}            |
       | event_type                         | {before}            |
@@ -3159,7 +3159,7 @@ Feature: Complete durable fulfillment and invoice recovery
       | Limit     | 100   |
       | Clock     | now   |
       | Processed | 1     |
-    And the complete durable fulfillment record is
+    Then the complete durable fulfillment record is
       | Field                              | Value             |
       | _id                                | {before}          |
       | event_type                         | {before}          |

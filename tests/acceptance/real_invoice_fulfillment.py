@@ -275,6 +275,8 @@ def real_invoice_boundary(acceptance: AcceptanceContext) -> Generator[RealInvoic
                 with (
                     DockerContainer(INVOICE_PDF_IMAGE)
                     .with_network(network)
+                    .with_env("ASPNETCORE_ENVIRONMENT", "Testing")
+                    .with_env("ExternalServices__ProductCatalog__BaseUrl", "http://unused-catalog.example.test")
                     .with_env(
                         "MongoDbSettings__ConnectionString", "mongodb://invoice-mongo:27017/?directConnection=true"
                     )
@@ -283,7 +285,13 @@ def real_invoice_boundary(acceptance: AcceptanceContext) -> Generator[RealInvoic
                     .with_exposed_ports(8080) as container
                 ):
                     url = f"http://{container.get_container_host_ip()}:{container.get_exposed_port(8080)}"
-                    wait_for_invoice_api(url)
+                    try:
+                        wait_for_invoice_api(url)
+                    except RuntimeError:
+                        logs = container.get_logs()
+                        print("Published Invoice startup stdout:", logs[0].decode()[-16000:])
+                        print("Published Invoice startup stderr:", logs[1].decode()[-16000:])
+                        raise
                     boundary = RealInvoiceBoundary(context, url, database, container)
                     try:
                         yield boundary
@@ -294,8 +302,9 @@ def real_invoice_boundary(acceptance: AcceptanceContext) -> Generator[RealInvoic
 def prepare_real(
     checks: FulfillmentChecks, boundary: RealInvoiceBoundary, values: dict[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    assert values.keys() == {"Mode", "ImageDigest", "TimeoutSeconds"}
+    assert values.keys() == {"Mode", "ImageDigest", "TimeoutSeconds", "Environment"}
     assert values["ImageDigest"] == INVOICE_PDF_IMAGE.split("@")[1] and values["TimeoutSeconds"] == "30"
+    assert values["Environment"] == "Testing"
     mode = values["Mode"]
     assert mode in {"ok", "paid_ack_lost", "invoice_ack_lost", "pdf_storage_failure"}
     assert checks.boundary is not None

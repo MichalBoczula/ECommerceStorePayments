@@ -41,6 +41,8 @@ replica-set database and Chromium PDF generation. The new test-only image pin is
 `mb0101/ecommerce-store-invoice-api@sha256:6e9244804a2645f8aecaff89f60cff03337a94b70ca877195e585c678f2d996a`,
 from master `d28dd23c14dee519ac753da6fe2c32289581ca3e`, successfully scanned/published
 by [Invoice CI 40908053521](https://github.com/MichalBoczula/ECommerceStoreInvoice/actions/runs/40908053521).
+The disposable container uses the explicit `Testing` environment with local PDF
+storage. The image's Production Blob-storage requirement remains enforced.
 Existing older published-image compatibility tests and production image selections
 remain unchanged. The older fulfillment image predates the PDF download route.
 
