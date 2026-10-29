@@ -830,7 +830,7 @@ Feature: Verified checkout notifications and durable receipt
       | amount_minor        | 1299               |
       | currency            | "PLN"              |
       | session_id          | {event.session_id} |
-      | provider_payment_id | "pi_fixture"               |
+      | provider_payment_id | "pi_fixture"       |
       | state               | "ignored"          |
       | reason              | "awaiting_payment" |
       | received_at         | {request.window}   |
@@ -855,7 +855,7 @@ Feature: Verified checkout notifications and durable receipt
       | currency            | "PLN"               |
       | status              | "pending"           |
       | provider_session_id | {stored.session_id} |
-      | provider_payment_id | "pi_fixture"                |
+      | provider_payment_id | null                |
       | failure_code        | null                |
       | created_at          | {stored.created_at} |
       | updated_at          | {stored.updated_at} |

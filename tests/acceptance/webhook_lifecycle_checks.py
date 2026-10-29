@@ -210,10 +210,13 @@ class WebhookLifecycleChecks:
         elif state == "legacy_pending":
             with context.evidence.action("Insert historical Pending schema without an attempt", values) as output:
                 context.payments.update_one(
-                    {"_id": stored["_id"]}, {"$unset": {"checkout_attempt_id": "", "checkout_started_at": ""}}
+                    {"_id": stored["_id"]},
+                    {"$unset": {"checkout_attempt_id": "", "checkout_started_at": "", "checkout_request_version": ""}},
                 )
                 historical = context.payments.find_one({"_id": stored["_id"]})
-                assert historical is not None and "checkout_attempt_id" not in historical
+                assert historical is not None and not (
+                    {"checkout_attempt_id", "checkout_started_at", "checkout_request_version"} & historical.keys()
+                )
                 PaymentMapper.to_domain(historical)
                 output["stored"] = lossless(historical)
         context.webhook_payload = b""
@@ -347,7 +350,7 @@ class WebhookLifecycleChecks:
             for snapshot in (normalized_before, normalized_after):
                 target = self.payments.target(snapshot)
                 assert target is not None
-                target.update(checkout_attempt_id=None, checkout_started_at=None)
+                target.update(checkout_attempt_id=None, checkout_started_at=None, checkout_request_version=1)
         else:
             normalized_before, normalized_after = self.before, after
         lifecycle_delta(
