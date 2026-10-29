@@ -1,4 +1,5 @@
 import csv
+import json
 import re
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
@@ -24,6 +25,7 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.we
     MongoWebhookRepository,
 )
 from tests.acceptance.conftest import AcceptanceContext
+from tests.acceptance.evidence import table_values
 from tests.webhook_fixtures import encode, payload_for, signature
 
 scenarios(
@@ -155,8 +157,8 @@ def get_by_order(acceptance: AcceptanceContext) -> None:
 def concurrent_pay(acceptance: AcceptanceContext) -> None:
     path = f"/payments/{acceptance.orders.order_id}/pay"
     with ThreadPoolExecutor(max_workers=2) as executor:
-        first = executor.submit(acceptance.client.post, path)
-        second = executor.submit(acceptance.client.post, path)
+        first = executor.submit(acceptance.client.post, path, attempt="pay-1")
+        second = executor.submit(acceptance.client.post, path, attempt="pay-2")
         acceptance.responses = [first.result(), second.result()]
     acceptance.last_operation = f"{OPERATION_PAY} x2"
 
@@ -196,8 +198,30 @@ def get_health(acceptance: AcceptanceContext, path: str) -> None:
 
 
 @then(parsers.parse('the response matches case "{case_id}"'))
-def matches_matrix(acceptance: AcceptanceContext, case_id: str) -> None:
+def matches_matrix(acceptance: AcceptanceContext, case_id: str, datatable: list[list[str]]) -> None:
     expected = _matrix()[case_id]
+    authored = table_values(datatable)
+    assert {"HTTPStatuses", "ContentType", "Code"} <= authored.keys()
+    assert authored["HTTPStatuses"] == expected["status"]
+    assert authored["Code"] == expected["code"]
+    assert all(key in {"HTTPStatuses", "ContentType", "Code"} or key.startswith("JSON.") for key in authored)
+    for response in acceptance.responses:
+        assert response.headers["content-type"] == authored["ContentType"]
+        for key, value in authored.items():
+            if key.startswith("JSON."):
+                actual = response.json()
+                for part in key.removeprefix("JSON.").split("."):
+                    actual = actual[part]
+                assert actual == json.loads(value), key
+    acceptance.evidence.record(
+        "Expected response",
+        {
+            **acceptance.evidence.identity,
+            "stepPhase": acceptance.evidence.phase,
+            "value": authored,
+            "exchangeIds": [response.extensions["payments.bdd.exchangeId"] for response in acceptance.responses],
+        },
+    )
     assert acceptance.last_operation == expected["operation"]
     assert sorted(response.status_code for response in acceptance.responses) == sorted(
         int(code) for code in expected["status"].split(",")
@@ -359,11 +383,11 @@ def concurrent_webhooks(acceptance: AcceptanceContext) -> None:
     body = acceptance.webhook_payload
     headers = {"stripe-signature": signature(body), "content-type": "application/json"}
 
-    def send() -> Response:
-        return acceptance.client.post("/payments/webhooks/stripe", content=body, headers=headers)
+    def send(attempt: str) -> Response:
+        return acceptance.client.post("/payments/webhooks/stripe", content=body, headers=headers, attempt=attempt)
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        first, second = executor.submit(send), executor.submit(send)
+        first, second = executor.submit(send, "webhook-1"), executor.submit(send, "webhook-2")
         acceptance.responses = [first.result(), second.result()]
     acceptance.last_operation = "POST /payments/webhooks/stripe x2"
 

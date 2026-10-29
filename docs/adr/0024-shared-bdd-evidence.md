@@ -1,0 +1,34 @@
+# ADR-0024: Scenario-local immutable BDD evidence
+
+Status: Accepted
+
+Date: 2026-10-29
+
+## Context
+
+The original BDD results contained readable steps but no descriptions, executable
+input/expected tables or HTTP attachments. A latest-response field cannot preserve
+setup, concurrent and supporting work or explain fulfillment recovery.
+
+## Decision
+
+Use the existing pytest-bdd adapter and scenario IDs with shared, scenario-local
+capture in test infrastructure. Serialize observations when they occur, correlate
+HTTP request/outcome pairs and explicit actions, and publish queued JSON on the
+scenario thread. Preserve native table attachments, exact body bytes and safe
+headers. Failed steps retain earlier evidence. The normal source and Acceptance
+entry points enforce the evidence structure before publication.
+
+Follow the Products, Users and Invoice collectors while using Python Gherkin title
+IDs and pytest hooks. Keep scenario instances independent of generated resource
+identifiers. Mark controlled downstream transports explicitly and preserve real
+FastAPI/MongoDB acceptance execution. No new package or application change is
+needed. See [the structure and verification contract](../bdd-02-evidence.md).
+
+## Consequences
+
+LiveDocs receives larger archives containing actual per-scenario observations.
+Preserving full oversized-webhook bytes is intentional. Stable identities support
+later source/evidence joins; source flows remain declared metadata, with richer
+RAG links deferred to Task 15. Later packages extend body/state assertions without
+replacing the shared collector or weakening the baseline.

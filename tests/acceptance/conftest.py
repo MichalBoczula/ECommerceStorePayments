@@ -1,10 +1,12 @@
 import asyncio
+import re
 from collections.abc import Generator, Mapping
 from dataclasses import dataclass, field
 from typing import Any, cast
 from urllib.parse import parse_qs
 from uuid import UUID, uuid4
 
+import allure
 import pytest
 import stripe
 from fastapi.testclient import TestClient
@@ -14,6 +16,8 @@ from httpx2 import Response
 from pydantic import SecretStr
 from pymongo import MongoClient
 from pymongo.collection import Collection
+from pytest_bdd import given, when
+from pytest_bdd.parser import Feature, Scenario, Step
 
 from ecommerce_store_payments.api.app import create_app
 from ecommerce_store_payments.application.payments.checkout_provider import CheckoutRequest
@@ -33,6 +37,7 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database 
 from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.payment_repository import (
     MongoPaymentRepository,
 )
+from tests.acceptance.evidence import EvidenceClient, ScenarioEvidence, table_values
 from tests.unit.external_providers.test_stripe_checkout import StripeTransport
 from tests.webhook_fixtures import WEBHOOK_SECRET
 
@@ -48,6 +53,7 @@ class OrdersBoundary:
     mode: str = "created"
     status: str = "Created"
     amount: float = 12.99
+    currency: str = "PLN"
     calls: int = 0
 
     def handle(self, request: Request) -> OrdersResponse:
@@ -96,15 +102,16 @@ class OrdersBoundary:
                 "clientId": str(self.client_id),
                 "status": self.status,
                 "totalAmount": self.amount,
-                "totalCurrency": "PLN",
-                "lines": [{"lineTotalAmount": self.amount, "productVersion": {"priceCurrency": "PLN"}}],
+                "totalCurrency": self.currency,
+                "lines": [{"lineTotalAmount": self.amount, "productVersion": {"priceCurrency": self.currency}}],
             },
         )
 
 
 @dataclass
 class AcceptanceContext:
-    client: TestClient
+    client: EvidenceClient
+    evidence: ScenarioEvidence
     orders: OrdersBoundary
     settings: Settings
     mongo: MongoClient[PaymentDocument]
@@ -115,6 +122,7 @@ class AcceptanceContext:
     initial_orders_calls: int = 0
     webhook_payload: bytes = b""
     webhook_delivery: str = "valid"
+    health_path: str = ""
 
     @property
     def payments(self) -> Collection[PaymentDocument]:
@@ -160,16 +168,36 @@ class AcceptanceContext:
             finally:
                 await database.close()
 
-        asyncio.run(update())
+        with self.evidence.action("Prepare terminal payment through repository", {"status": status.value}):
+            asyncio.run(update())
 
 
 class AcceptanceStripeTransport(StripeTransport):
-    def __init__(self) -> None:
+    def __init__(self, evidence: ScenarioEvidence) -> None:
+        self.evidence = evidence
         super().__init__(CheckoutRequest(uuid4(), uuid4(), uuid4(), Money(1299, "PLN")))
         self.sessions: dict[str, dict[str, object]] = {}
         self.mode = "ok"
 
     async def request_async(
+        self, method: str, url: str, headers: Mapping[str, str], post_data: Any = None
+    ) -> tuple[bytes, int, Mapping[str, str]]:
+        body = post_data.encode() if isinstance(post_data, str) else bytes(post_data or b"")
+        captured_headers = {key.lower(): value for key, value in headers.items()}
+        exchange = self.evidence.begin(
+            method, url, captured_headers, body, target="stripe", role="provider-boundary", controlled=True
+        )
+        try:
+            response = await self._respond(method, url, headers, post_data)
+            payload, status, response_headers = response
+            response_headers = {"content-type": "application/json", **response_headers}
+            self.evidence.response(exchange, status, response_headers, payload)
+            return payload, status, response_headers
+        except BaseException as error:
+            self.evidence.failure(exchange, error)
+            raise
+
+    async def _respond(
         self, method: str, url: str, headers: Mapping[str, str], post_data: Any = None
     ) -> tuple[bytes, int, Mapping[str, str]]:
         if self.mode == "rejection":
@@ -201,7 +229,9 @@ class AcceptanceStripeTransport(StripeTransport):
 
 
 @pytest.fixture
-def acceptance(mongo_url: str, monkeypatch: pytest.MonkeyPatch) -> Generator[AcceptanceContext]:
+def acceptance(
+    mongo_url: str, monkeypatch: pytest.MonkeyPatch, evidence: ScenarioEvidence
+) -> Generator[AcceptanceContext]:
     database_name = f"payments_acceptance_{uuid4().hex}"
     settings = Settings(
         environment="test",
@@ -213,12 +243,30 @@ def acceptance(mongo_url: str, monkeypatch: pytest.MonkeyPatch) -> Generator[Acc
         stripe_webhook_secret=SecretStr(WEBHOOK_SECRET),
     )
     orders = OrdersBoundary()
-    stripe_boundary = AcceptanceStripeTransport()
+    stripe_boundary = AcceptanceStripeTransport(evidence)
     mongo: MongoClient[PaymentDocument] = MongoClient(mongo_url, uuidRepresentation="standard", tz_aware=True)
+
+    def observed_orders(request: Request) -> OrdersResponse:
+        exchange = evidence.begin(
+            request.method,
+            str(request.url),
+            request.headers,
+            request.read(),
+            target="invoices" if request.url.path.startswith("/invoices/") else "orders",
+            role="invoices-boundary" if request.url.path.startswith("/invoices/") else "orders-boundary",
+            controlled=True,
+        )
+        try:
+            response = orders.handle(request)
+            evidence.response(exchange, response.status_code, response.headers, response.read())
+            return response
+        except BaseException as error:
+            evidence.failure(exchange, error)
+            raise
 
     def orders_client(*, base_url: str, timeout: float, trust_env: bool) -> AsyncClient:
         return AsyncClient(
-            base_url=base_url, timeout=timeout, trust_env=trust_env, transport=MockTransport(orders.handle)
+            base_url=base_url, timeout=timeout, trust_env=trust_env, transport=MockTransport(observed_orders)
         )
 
     monkeypatch.setattr("ecommerce_store_payments.api.app.AsyncClient", orders_client)
@@ -238,10 +286,91 @@ def acceptance(mongo_url: str, monkeypatch: pytest.MonkeyPatch) -> Generator[Acc
     try:
         with TestClient(create_app(settings)) as client:
             yield AcceptanceContext(
-                client=client, orders=orders, settings=settings, mongo=mongo, stripe=stripe_boundary
+                client=EvidenceClient(client, evidence),
+                evidence=evidence,
+                orders=orders,
+                settings=settings,
+                mongo=mongo,
+                stripe=stripe_boundary,
             )
     finally:
         try:
             mongo.drop_database(database_name)
         finally:
             mongo.close()
+
+
+EVIDENCE_KEY = pytest.StashKey[ScenarioEvidence]()
+
+
+def _node(request: pytest.FixtureRequest) -> pytest.Function:
+    # pytest exposes FixtureRequest.node without a concrete Item annotation.
+    return cast(pytest.Function, cast(Any, request).node)
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_bdd_before_scenario(request: pytest.FixtureRequest, feature: Feature, scenario: Scenario) -> None:
+    identity = re.match(r"(PAY\d+-\d+)\b", scenario.name)
+    if identity is None or not feature.name or not scenario.description or not scenario.description.strip():
+        raise ValueError("A stable scenario ID and readable description are required")
+    callspec = getattr(_node(request), "callspec", None)
+    parameters = {
+        str(key): str(value) for key, value in getattr(callspec, "params", {}).get("_pytest_bdd_example", {}).items()
+    }
+    captured = ScenarioEvidence(identity[1], feature.name, scenario.name, parameters)
+    _node(request).stash[EVIDENCE_KEY] = captured
+    cast(Any, allure.dynamic).description(scenario.description.strip())
+    captured.publish_identity()
+
+
+@pytest.fixture
+def evidence(request: pytest.FixtureRequest) -> ScenarioEvidence:
+    return _node(request).stash[EVIDENCE_KEY]
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_bdd_before_step(request: pytest.FixtureRequest, step: Step) -> None:
+    captured = _node(request).stash[EVIDENCE_KEY]
+    captured.phase = step.type.capitalize()
+    captured.step = step.name
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_bdd_after_step(request: pytest.FixtureRequest) -> None:
+    _node(request).stash[EVIDENCE_KEY].flush()
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_bdd_step_error(request: pytest.FixtureRequest) -> None:
+    _node(request).stash[EVIDENCE_KEY].flush()
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_bdd_after_scenario(request: pytest.FixtureRequest) -> None:
+    if EVIDENCE_KEY in _node(request).stash:
+        _node(request).stash[EVIDENCE_KEY].finish()
+
+
+@given("the order fixture contains")
+def order_inputs(acceptance: AcceptanceContext, datatable: list[list[str]]) -> None:
+    values = table_values(datatable)
+    assert values.keys() == {"OrderId", "ClientId", "TotalAmount", "TotalCurrency"}
+    acceptance.orders.order_id = UUID(values["OrderId"])
+    acceptance.orders.client_id = UUID(values["ClientId"])
+    acceptance.orders.amount = float(values["TotalAmount"])
+    acceptance.orders.currency = values["TotalCurrency"]
+    acceptance.evidence.observation("Scenario inputs", values)
+
+
+@given("the health request uses")
+def health_inputs(acceptance: AcceptanceContext, datatable: list[list[str]]) -> None:
+    values = table_values(datatable)
+    assert values.keys() == {"Path"}
+    acceptance.health_path = values["Path"]
+    acceptance.evidence.observation("Scenario inputs", values)
+
+
+@when("I request the health probe")
+def request_health(acceptance: AcceptanceContext) -> None:
+    assert acceptance.health_path
+    acceptance.send("GET", acceptance.health_path)

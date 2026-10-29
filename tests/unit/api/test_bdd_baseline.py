@@ -179,7 +179,11 @@ def test_new_case_closes_gap_only_when_reviewed_gap_is_removed(tmp_path: Path) -
     with (features / "checkout.feature").open("a") as stream:
         stream.write(
             "\n  Scenario: PAY99-01 Additional checkout validation\n"
+            "    An additional checkout validation case closes a reviewed declaration gap through a real result.\n"
+            "    Given the health request uses\n      | Field | Value |\n      | Path | /health |\n"
             '    When action\n    Then the response matches case "PAY99-01"\n'
+            "      | Field | Value |\n      | HTTPStatuses | 400 |\n"
+            "      | ContentType | application/problem+json |\n      | Code | invalid_request |\n"
         )
     with matrix.open("a") as stream:
         stream.write(

@@ -46,6 +46,7 @@ from scripts.bdd_baseline import (
     coverage_report,
     source_cases,
 )
+from scripts.bdd_evidence import check_source_evidence
 
 ROOT = Path(__file__).resolve().parents[1]
 MATRIX = ROOT / "docs/acceptance-matrix.tsv"
@@ -338,6 +339,7 @@ def scenario_links(
             }
         )
     check_source_baseline(cases, rows)
+    check_source_evidence(feature_dir, matrix)
     return links, unmatched
 
 

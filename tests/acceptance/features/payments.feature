@@ -1,118 +1,334 @@
 Feature: Payment API with real persistence and a controlled Orders boundary
 
   Scenario: PAY11-01 Create a payment from a payable order
-    Given a payable order
+    A Created order supplies the payment amount and currency. Pay creates one current payment without a history snapshot.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And a payable order
     When I pay the order
     Then the response matches case "PAY11-01"
+      | Field             | Value            |
+      | HTTPStatuses      | 201              |
+      | ContentType       | application/json |
+      | Code              | -                |
+      | JSON.status       | "created"        |
+      | JSON.amount_minor | 1299             |
+      | JSON.currency     | "PLN"            |
     And the database has 1 current payment and 0 history snapshots
     And the current payment is "Created" at version 0
 
   Scenario: PAY11-02 Read a payment by order ID
-    Given a payment created through the API
+    A payment already exists for the requested order. Reading by order ID returns the original payment identity.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And a payment created through the API
     When I get the payment by order ID
     Then the response matches case "PAY11-02"
+      | Field             | Value            |
+      | HTTPStatuses      | 200              |
+      | ContentType       | application/json |
+      | Code              | -                |
+      | JSON.status       | "created"        |
+      | JSON.amount_minor | 1299             |
+      | JSON.currency     | "PLN"            |
     And the response refers to the original payment
 
   Scenario: PAY11-03 Repeat Pay without writing or calling Orders again
-    Given a payment created through the API
+    Pay is repeated for an existing nonterminal payment. It returns the same identity without another Orders call or database write.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And a payment created through the API
     When I pay the order
     Then the response matches case "PAY11-03"
+      | Field             | Value            |
+      | HTTPStatuses      | 200              |
+      | ContentType       | application/json |
+      | Code              | -                |
+      | JSON.status       | "created"        |
+      | JSON.amount_minor | 1299             |
+      | JSON.currency     | "PLN"            |
     And the response refers to the original payment
     And Orders was not called again
     And the database has 1 current payment and 0 history snapshots
 
   Scenario: PAY11-04 Missing payment
-    Given a payable order
+    The requested order has no stored payment. The API returns payment_not_found and both payment collections stay empty.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And a payable order
     When I get the payment by order ID
     Then the response matches case "PAY11-04"
+      | Field        | Value                    |
+      | HTTPStatuses | 404                      |
+      | ContentType  | application/problem+json |
+      | Code         | payment_not_found        |
     And the database has 0 current payments and 0 history snapshots
 
   Scenario: PAY11-05 Missing order
-    Given Orders returns "missing"
+    Orders returns a missing-order response to Pay. The API returns order_not_found without creating a payment or history.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And Orders returns "missing"
     When I pay the order
     Then the response matches case "PAY11-05"
+      | Field        | Value                    |
+      | HTTPStatuses | 404                      |
+      | ContentType  | application/problem+json |
+      | Code         | order_not_found          |
     And the database has 0 current payments and 0 history snapshots
 
   Scenario: PAY11-06 Order not payable
-    Given Orders reports status "Paid"
+    Orders reports a Paid order that cannot be paid again. Pay rejects it with order_not_payable and creates no payment.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And Orders reports status "Paid"
     When I pay the order
     Then the response matches case "PAY11-06"
+      | Field        | Value                    |
+      | HTTPStatuses | 409                      |
+      | ContentType  | application/problem+json |
+      | Code         | order_not_payable        |
     And the database has 0 current payments and 0 history snapshots
 
   Scenario: PAY11-07 Invalid Orders response
-    Given Orders returns "invalid"
+    Orders returns an invalid total in its JSON response. Pay exposes a safe order_invalid_response problem and stores nothing.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And Orders returns "invalid"
     When I pay the order
     Then the response matches case "PAY11-07"
+      | Field        | Value                    |
+      | HTTPStatuses | 502                      |
+      | ContentType  | application/problem+json |
+      | Code         | order_invalid_response   |
     And the database has 0 current payments and 0 history snapshots
 
   Scenario: PAY11-08 Orders timeout
-    Given Orders returns "timeout"
+    The Orders HTTP request times out before returning an order. Pay returns order_timeout without creating durable payment state.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And Orders returns "timeout"
     When I pay the order
     Then the response matches case "PAY11-08"
+      | Field        | Value                    |
+      | HTTPStatuses | 504                      |
+      | ContentType  | application/problem+json |
+      | Code         | order_timeout            |
     And the database has 0 current payments and 0 history snapshots
 
   Scenario: PAY11-09 Orders outage
-    Given Orders returns "outage"
+    The controlled Orders transport cannot connect to the service. Pay returns order_unavailable without exposing private connection details.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And Orders returns "outage"
     When I pay the order
     Then the response matches case "PAY11-09"
+      | Field        | Value                    |
+      | HTTPStatuses | 502                      |
+      | ContentType  | application/problem+json |
+      | Code         | order_unavailable        |
     And the database has 0 current payments and 0 history snapshots
 
   Scenario: PAY11-10 Retry a failed payment and archive its previous state
-    Given a "Failed" payment created through the API
+    A failed payment is retried for the same unchanged order. Its identity survives and the previous states remain in history.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And a "Failed" payment created through the API
     When I pay the order
     Then the response matches case "PAY11-10"
+      | Field             | Value            |
+      | HTTPStatuses      | 200              |
+      | ContentType       | application/json |
+      | Code              | -                |
+      | JSON.status       | "created"        |
+      | JSON.amount_minor | 1299             |
+      | JSON.currency     | "PLN"            |
     And the response refers to the original payment
     And the current payment is "Created" at version 3
     And the history statuses are "Created,Pending,Failed"
 
   Scenario: PAY11-11 Retry a canceled payment
-    Given a "Canceled" payment created through the API
+    A canceled payment is retried for the same unchanged order. It returns to Created while preserving the canceled snapshot.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And a "Canceled" payment created through the API
     When I pay the order
     Then the response matches case "PAY11-11"
+      | Field             | Value            |
+      | HTTPStatuses      | 200              |
+      | ContentType       | application/json |
+      | Code              | -                |
+      | JSON.status       | "created"        |
+      | JSON.amount_minor | 1299             |
+      | JSON.currency     | "PLN"            |
     And the response refers to the original payment
     And the current payment is "Created" at version 2
     And the history statuses are "Created,Canceled"
 
   Scenario: PAY11-12 Reject retry when the order total changed
-    Given a "Failed" payment created through the API
+    Orders changes its total after the payment has failed. Retry returns order_total_changed and retains the failed payment version.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And a "Failed" payment created through the API
     And Orders total has changed
     When I pay the order
     Then the response matches case "PAY11-12"
+      | Field        | Value                    |
+      | HTTPStatuses | 409                      |
+      | ContentType  | application/problem+json |
+      | Code         | order_total_changed      |
     And the current payment is "Failed" at version 2
     And the history statuses are "Created,Pending"
 
   Scenario: PAY11-13 Concurrent Pay creates one current payment
-    Given a payable order
+    Two first Pay requests target one order concurrently. Both responses refer to one payment and only one current document exists.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And a payable order
     When I submit two Pay requests concurrently
     Then the response matches case "PAY11-13"
+      | Field             | Value            |
+      | HTTPStatuses      | 200,201          |
+      | ContentType       | application/json |
+      | Code              | -                |
+      | JSON.status       | "created"        |
+      | JSON.amount_minor | 1299             |
+      | JSON.currency     | "PLN"            |
     And both responses refer to one payment
     And the database has 1 current payment and 0 history snapshots
 
   Scenario: PAY11-14 Invalid order ID
-    Given a payable order
+    Pay receives a path segment that is not a UUID. Request validation returns invalid_request without creating payment state.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And a payable order
     When I pay with an invalid order ID
     Then the response matches case "PAY11-14"
+      | Field        | Value                    |
+      | HTTPStatuses | 400                      |
+      | ContentType  | application/problem+json |
+      | Code         | invalid_request          |
     And the database has 0 current payments and 0 history snapshots
 
   Scenario: PAY11-15 Malformed JSON body
-    Given a payable order
+    Pay receives an incomplete JSON object with JSON media type. Parsing returns invalid_json before any payment is stored.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And a payable order
     When I pay with malformed JSON
     Then the response matches case "PAY11-15"
+      | Field        | Value                    |
+      | HTTPStatuses | 400                      |
+      | ContentType  | application/problem+json |
+      | Code         | invalid_json             |
     And the database has 0 current payments and 0 history snapshots
 
   Scenario: PAY11-16 Unsupported request media
-    Given a payable order
+    Pay receives a plain-text body instead of JSON. The API returns unsupported_media_type and leaves payment storage empty.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And a payable order
     When I pay with plain text
     Then the response matches case "PAY11-16"
+      | Field        | Value                    |
+      | HTTPStatuses | 415                      |
+      | ContentType  | application/problem+json |
+      | Code         | unsupported_media_type   |
     And the database has 0 current payments and 0 history snapshots
 
   Scenario: PAY11-17 Unknown route
-    Given a payable order
+    A request targets a path without a registered route. The API returns a safe route_not_found problem for that path.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And a payable order
     When I request an unknown route
     Then the response matches case "PAY11-17"
+      | Field        | Value                    |
+      | HTTPStatuses | 404                      |
+      | ContentType  | application/problem+json |
+      | Code         | route_not_found          |
 
   Scenario: PAY11-18 Wrong method
-    Given a payable order
+    POST targets the read-only liveness endpoint. The API returns method_not_allowed and advertises GET in the Allow header.
+    Given the order fixture contains
+      | Field         | Value                                |
+      | OrderId       | 11111111-1111-4111-8111-111111111111 |
+      | ClientId      | 22222222-2222-4222-8222-222222222222 |
+      | TotalAmount   | 12.99                                |
+      | TotalCurrency | PLN                                  |
+    And a payable order
     When I post to a read-only health route
     Then the response matches case "PAY11-18"
+      | Field        | Value                    |
+      | HTTPStatuses | 405                      |
+      | ContentType  | application/problem+json |
+      | Code         | method_not_allowed       |
     And the Allow header is "GET"
