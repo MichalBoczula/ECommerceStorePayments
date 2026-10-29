@@ -170,6 +170,13 @@ class WebhookLifecycleChecks:
         self.event_id: str | None = None
         self.faults: list[dict[str, Any]] = []
         self.prepared_payloads: dict[str, dict[str, Any]] = {}
+        self.observation_counts: dict[str, int] = {}
+
+    def observe(self, name: str, value: object) -> None:
+        number = self.observation_counts.get(name, 0) + 1
+        self.observation_counts[name] = number
+        label = name if number == 1 else f"{name} ({number})"
+        self.context.evidence.observation(label, value)
 
     def start(self, values: dict[str, str]) -> None:
         assert values.keys() == {"State"}
@@ -266,7 +273,7 @@ class WebhookLifecycleChecks:
         if values["Encoding"] == "trailing_space":
             body += b" "
         self.context.webhook_payload = body
-        self.context.evidence.observation(
+        self.observe(
             "Webhook lifecycle event inputs",
             {"expected": values, "payload": event, "sha256": hashlib.sha256(body).hexdigest()},
         )
@@ -275,9 +282,7 @@ class WebhookLifecycleChecks:
         self.before = self.payments.snapshot()
         self.calls = len(self.context.orders.http_calls), len(self.context.stripe.calls)
         self.sessions = deepcopy(self.context.stripe.sessions)
-        self.context.evidence.observation(
-            "Webhook lifecycle before", {"collections": lossless(self.before), "externalCalls": self.calls}
-        )
+        self.observe("Webhook lifecycle before", {"collections": lossless(self.before), "externalCalls": self.calls})
 
     def deliver(self, fresh: bool = False) -> None:
         context = self.context
@@ -317,7 +322,7 @@ class WebhookLifecycleChecks:
         assert [d for d in after["stripe_webhooks"] if d["_id"] != self.event_id] == [
             d for d in self.before["stripe_webhooks"] if d["_id"] != self.event_id
         ]
-        self.context.evidence.observation(
+        self.observe(
             "Complete webhook lifecycle receipt",
             {
                 "expected": values,
@@ -374,7 +379,7 @@ class WebhookLifecycleChecks:
                 "missingProperties",
             }
             assert problem["traceId"] == response.headers["x-trace-id"] and "private" not in response.text
-        self.context.evidence.observation(
+        self.observe(
             "Complete webhook lifecycle delta",
             {
                 "expected": values,
@@ -405,7 +410,7 @@ class WebhookLifecycleChecks:
         assert self.payments.snapshot() == snapshot
         assert re.fullmatch(r"[0-9a-f]{32}", response.headers["x-trace-id"])
         assert self.calls == (len(self.context.orders.http_calls), len(self.context.stripe.calls))
-        self.context.evidence.observation(
+        self.observe(
             "Complete payment read after webhook",
             {
                 "expected": values,
@@ -474,7 +479,7 @@ class WebhookLifecycleChecks:
             assert repeated.status_code == int(values["RepeatedResult"]) == 200
             assert repeated.json() == first.json() == {"received": True}
             assert self.payments.snapshot() == snapshot
-            self.context.evidence.observation(
+            self.observe(
                 "Fresh application redelivery results",
                 {
                     "expected": values,
