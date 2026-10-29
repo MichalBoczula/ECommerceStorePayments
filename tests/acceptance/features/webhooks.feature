@@ -531,10 +531,17 @@ Feature: Verified checkout notifications and durable receipt
     And I remember complete webhook lifecycle state
     When I deliver the checkout webhook
     Then the response matches case "PAY22-10"
-      | Field        | Value                    |
-      | HTTPStatuses | 503                      |
-      | ContentType  | application/problem+json |
-      | Code         | webhook_retry            |
+      | Field                  | Value                                 |
+      | HTTPStatuses           | 503                                   |
+      | ContentType            | application/problem+json              |
+      | Code                   | webhook_retry                         |
+      | JSON.type              | "about:blank"                         |
+      | JSON.title             | "Service Unavailable"                 |
+      | JSON.status            | 503                                   |
+      | JSON.detail            | "Webhook processing must be retried." |
+      | JSON.instance          | "/payments/webhooks/stripe"           |
+      | JSON.errors            | []                                    |
+      | JSON.missingProperties | []                                    |
     And the current payment is "Pending" at version 2
     And the webhook receipt is "pending"
     And the complete lifecycle receipt is
@@ -823,7 +830,7 @@ Feature: Verified checkout notifications and durable receipt
       | amount_minor        | 1299               |
       | currency            | "PLN"              |
       | session_id          | {event.session_id} |
-      | provider_payment_id | null               |
+      | provider_payment_id | "pi_fixture"               |
       | state               | "ignored"          |
       | reason              | "awaiting_payment" |
       | received_at         | {request.window}   |
@@ -848,7 +855,7 @@ Feature: Verified checkout notifications and durable receipt
       | currency            | "PLN"               |
       | status              | "pending"           |
       | provider_session_id | {stored.session_id} |
-      | provider_payment_id | null                |
+      | provider_payment_id | "pi_fixture"                |
       | failure_code        | null                |
       | created_at          | {stored.created_at} |
       | updated_at          | {stored.updated_at} |
