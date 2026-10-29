@@ -54,10 +54,50 @@ stream cancellation and other technical scenarios remain separate packages.
 
 ## Verification and remaining work
 
-Implementation verification and the full CI/archive/render audit are recorded
-after they pass. Fifty-five new regressions cover raw/header fidelity, per-item
-redaction, publication rejection of broken inventories, SDK timestamp behavior,
-complete rejected collections and exact accepted receipt/digest assertions.
+All **754 local unit tests** pass, including 55 new assertion/source regressions.
+Pinned lock/sync, formatting/Ruff/strict Pyright, architecture, exact links/OpenAPI
+export, wheel build/install, changed Markdown links and git checks pass. Ordinary
+warnings remain visible. Docker is unavailable locally; CI supplies real database,
+Invoice, container and image evidence.
+
+[Implementation CI 40959711148](https://github.com/MichalBoczula/ECommerceStorePayments/actions/runs/40959711148)
+passes all source/contract/wheel/security checks, all five suites, documentation
+packaging, quality gate, real Mongo-backed container smoke, Trivy and final gate.
+Frozen implementation head: `46b333835bda4341c257334c01b6040a01593dbd`;
+tested merge: `7470773752808486bbf9dcef029f3168b8e06965`;
+exact tree: `d254a5e036672c05ee584b4e58fd8c985f311722`.
+Exact parents/tree were checked against Task 6's merged base and this head.
+
+- **1,108 passing suite executions, zero failures/skips:** Domain 97, Application
+  82, Infrastructure 250, ExternalProviders 175, Acceptance 504. There are **933
+  distinct members**, retaining the intentional 175-member provider-suite overlap.
+  Acceptance is **144 BDD + 360 ordinary**. Every Task 6 member survives, with
+  forty-five BDD and 55 ordinary regressions added.
+- Coverage remains 96.88% / 96.16% / 90.90% for Domain/Application/Infrastructure
+  and 96.35% / 98.06% for ExternalProviders/Acceptance. The separate 70% floors,
+  generated client exclusions and security gates remain unchanged.
+- All seven official outer artifact digests match. The frozen inner bundle is
+  **5,339,476 bytes**, SHA-256
+  `d6c991911ab72a9d124bd8df0365a424cb38f8a887cc694a57bf940ae55d2eee`, with **4,595 verified
+  manifest entries**: 144 results, 10 features, 4 exports and **4,437 attachments**
+  (3,755 JSON, 679 native CSV tables and 3 retained expected-fault logs).
+- Pinned Allure 2.46.1 renders every case, authored description, ordered/nested
+  step and attachment matching raw bytes. All case/attachment/entry assets pass
+  local HTTP reads. Every prior name/full name/history/test identity/title path
+  survives. OpenAPI/flows/validation-policy bytes match Task 6; operation-links
+  adds only forty-five scenarios and current counts, preserving the fifteen gaps.
+- Independent raw HTTP/HMAC/BSON checks verify every header inventory/redaction,
+  **51 signed-wire witnesses, 43 complete unchanged safe rejections, seven complete
+  accepted-boundary receipts and the paid received-byte digest**. Exact timestamp,
+  physical-header/rotation, typed mutation, JSON/UTF-8, media, 1 MiB and identifier
+  boundaries pass. Earlier Pay/read/retry/history/checkout/recovery audits also pass.
+- Captures contain **1,274 HTTP request/outcome pairs**: 1,263 responses and 11
+  intentional transport failures, plus **57 explicit action start/result pairs**.
+  Every BDD case passed. The three captured logs belong to earlier expected
+  persistence-fault scenarios; no new unexpected failure or skipped case is hidden.
+
+Task 7 is complete. A final documentation-only completion head is checked again
+in full CI and with fresh archive/render audits before PR handoff.
 
 Application/API/persistence code, dependencies, workflow/image pins, frozen
 baseline/matrix rows, security/coverage floors, Blob publication and manual

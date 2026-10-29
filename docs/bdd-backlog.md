@@ -27,7 +27,7 @@ selected LiveDocs refresh and Terraform deployment remain manual.
 - [x] **PAY-BDD-06 — Checkout failure and recovery.** Rejection, ambiguous
   timeouts, interrupted persistence, legacy attempts, age and request-version limits.
   See [checkout failure and recovery](bdd-06-checkout-recovery.md).
-- [ ] **PAY-BDD-07 — Webhook verification.** Actual signed bytes/headers,
+- [x] **PAY-BDD-07 — Webhook verification.** Actual signed bytes/headers,
   signature/payload/media/size boundaries and unchanged rejected state.
   See [webhook verification](bdd-07-webhook-verification.md).
 - [ ] **PAY-BDD-08 — Webhook lifecycle and replay.** Full receipts/reasons,
