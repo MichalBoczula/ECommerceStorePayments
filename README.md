@@ -229,6 +229,11 @@ The [retry/history scenarios](docs/bdd-04-retries-history.md) check complete
 previous-state archives, provider/checkout resets, version increments, repeated
 and later attempts, historical missing fields and unchanged rejected state.
 
+The [checkout success scenarios](docs/bdd-05-checkout-success.md) compare complete
+nested responses, exact Stripe form parameters and idempotency keys, card/BLIK
+configuration and unchanged open/complete/expired session reads. New checkouts
+verify complete reservation/Pending archives and preserve unrelated orders.
+
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated
 source projection. CI retains `payments-openapi` and supplies all four JSON files

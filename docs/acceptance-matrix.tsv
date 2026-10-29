@@ -73,3 +73,10 @@ PAY04-11	POST /payments/{order_id}/pay	retain failed payment when its order is m
 PAY04-12	POST /payments/{order_id}/pay	retain failed payment after an invalid orders payload	502	order_invalid_response	PAY/9
 PAY04-13	POST /payments/{order_id}/pay	retain failed payment when orders times out	504	order_timeout	PAY/9
 PAY04-14	POST /payments/{order_id}/pay	retain failed payment during an orders outage	502	order_unavailable	PAY/9
+PAY05-01	POST /payments/{order_id}/checkout	create checkout for an existing created payment	200	-	STRIPE/1
+PAY05-02	POST /payments/{order_id}/checkout	read a complete provider session without confirming payment	200	-	STRIPE/1
+PAY05-03	POST /payments/{order_id}/checkout	read a expired provider session without confirming payment	200	-	STRIPE/1
+PAY05-04	POST /payments/{order_id}/checkout	repeated open checkout reads retain the same session	200	-	STRIPE/1
+PAY05-05	POST /payments/{order_id}/checkout	create a fresh checkout after a failed attempt	200	-	STRIPE/1
+PAY05-06	POST /payments/{order_id}/checkout	create a fresh checkout after a canceled attempt	200	-	STRIPE/1
+PAY05-07	POST /payments/{order_id}/checkout	use configured return urls and isolate equal-money orders	200	-	STRIPE/1

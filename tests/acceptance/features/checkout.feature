@@ -9,6 +9,7 @@ Feature: Hosted checkout creation and recovery
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
     And a payable order
+    And I remember checkout state and provider calls
     When I create checkout for the order
     Then the response matches case "PAY21-01"
       | Field                     | Value            |
@@ -22,6 +23,44 @@ Feature: Hosted checkout creation and recovery
     And the current payment is "Pending" at version 2
     And the database has 1 current payment and 2 history snapshots
     And Stripe has one checkout session
+    And the complete checkout response is
+      | Field                       | Value                                  |
+      | payment.id                  | {stored.id}                            |
+      | payment.order_id            | "11111111-1111-4111-8111-111111111111" |
+      | payment.amount_minor        | 1299                                   |
+      | payment.currency            | "PLN"                                  |
+      | payment.status              | "pending"                              |
+      | payment.provider_session_id | {stored.provider_session_id}                  |
+      | payment.provider_payment_id | null                                   |
+      | payment.failure_code        | null                                   |
+      | payment.created_at          | {stored.created_at}                    |
+      | payment.updated_at          | {stored.updated_at}                    |
+      | checkout_url                | {provider.url}                         |
+      | checkout_status             | "open"                                 |
+      | expires_at                  | {provider.expires_at}                  |
+    And only this checkout is created with this provider request
+      | Field                                              | Value                                         |
+      | Method                                             | POST                                          |
+      | Path                                               | /v1/checkout/sessions                         |
+      | StripeVersion                                      | 2026-08-26.dahlia                             |
+      | ContentType                                        | application/x-www-form-urlencoded             |
+      | IdempotencyKey                                     | checkout:{payment.id}:{attempt.id}            |
+      | form.mode                                          | payment                                       |
+      | form.payment_method_types[0]                       | card                                          |
+      | form.payment_method_types[1]                       | blik                                          |
+      | form.client_reference_id                           | {payment.id}                                  |
+      | form.metadata[payment_id]                          | {payment.id}                                  |
+      | form.metadata[order_id]                            | {order.id}                                    |
+      | form.metadata[attempt_id]                          | {attempt.id}                                  |
+      | form.payment_intent_data[metadata][payment_id]     | {payment.id}                                  |
+      | form.payment_intent_data[metadata][order_id]       | {order.id}                                    |
+      | form.payment_intent_data[metadata][attempt_id]     | {attempt.id}                                  |
+      | form.success_url                                   | http://localhost:4200/orders?checkout=success |
+      | form.cancel_url                                    | http://localhost:4200/orders?checkout=cancel  |
+      | form.line_items[0][quantity]                       | 1                                             |
+      | form.line_items[0][price_data][currency]           | pln                                           |
+      | form.line_items[0][price_data][unit_amount]        | 1299                                          |
+      | form.line_items[0][price_data][product_data][name] | Order {order.id}                              |
 
   Scenario: PAY21-02 Read an existing checkout instead of creating another
     A Pending payment already has an open hosted checkout. Repeating checkout reads that session without creating a second one.
@@ -32,6 +71,7 @@ Feature: Hosted checkout creation and recovery
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
     And a checkout created through the API
+    And I remember checkout state and provider calls
     When I create checkout for the order
     Then the response matches case "PAY21-02"
       | Field                     | Value            |
@@ -45,6 +85,22 @@ Feature: Hosted checkout creation and recovery
     And the current payment is "Pending" at version 2
     And the database has 1 current payment and 2 history snapshots
     And Stripe has one checkout session
+    And the complete checkout response is
+      | Field                       | Value                                  |
+      | payment.id                  | {stored.id}                            |
+      | payment.order_id            | "11111111-1111-4111-8111-111111111111" |
+      | payment.amount_minor        | 1299                                   |
+      | payment.currency            | "PLN"                                  |
+      | payment.status              | "pending"                              |
+      | payment.provider_session_id | {stored.provider_session_id}                  |
+      | payment.provider_payment_id | null                                   |
+      | payment.failure_code        | null                                   |
+      | payment.created_at          | {stored.created_at}                    |
+      | payment.updated_at          | {stored.updated_at}                    |
+      | checkout_url                | {provider.url}                         |
+      | checkout_status             | "open"                                 |
+      | expires_at                  | {provider.expires_at}                  |
+    And checkout reads only the existing provider session without writes
 
   Scenario: PAY21-03 Recover a timeout after the provider accepted checkout
     Stripe accepted a checkout but its first response was lost. A retry recovers the same provider session and finishes Pending state.

@@ -36,6 +36,7 @@ scenarios(
     "features/webhooks.feature",
     "features/payment_reads.feature",
     "features/retries.feature",
+    "features/checkout_success.feature",
 )
 
 MATRIX_PATH = Path(__file__).resolve().parents[2] / "docs" / "acceptance-matrix.tsv"
