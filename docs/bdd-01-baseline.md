@@ -111,6 +111,13 @@ observed runner/startup incompatibility without skipping tests, substituting a
 fake database or changing application storage behavior. Actual CI must verify it;
 the earlier empty container error does not establish a more specific root cause.
 
+The repaired [run 40922412829](https://github.com/MichalBoczula/ECommerceStorePayments/actions/runs/40922412829)
+passed all five suites, source/security checks, packaging and actual container
+smoke. Trivy then reported fixable HIGH findings in the existing Debian `libssl3`
+and `openssl` packages (CVE-2026-84782). The runtime's existing targeted apt upgrade
+also upgrades these two installed packages; the Python base tag and scanner's
+severity/fix policy stay unchanged. A later full successful image scan is required.
+
 ## Verification and scope
 
 Focused regressions mutate original source/matrix pairs, titles and Examples,

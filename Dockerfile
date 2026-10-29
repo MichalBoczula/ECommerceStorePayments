@@ -21,7 +21,7 @@ ENV PATH="/app/.venv/bin:${PATH}" \
 # The base image bundles pip with vendored msgpack and setuptools versions.
 # Runtime installation is complete in the build stage, so pip is unnecessary.
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends --only-upgrade libpcre2-8-0 perl-base \
+    && apt-get install --yes --no-install-recommends --only-upgrade libpcre2-8-0 perl-base libssl3 openssl \
     && rm -rf /var/lib/apt/lists/* \
     && python -m pip uninstall --yes pip
 
