@@ -9,6 +9,7 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
     And a payable order
+    And I remember the payment and every collection
     When I pay the order
     Then the response matches case "PAY11-01"
       | Field             | Value            |
@@ -20,6 +21,19 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | JSON.currency     | "PLN"            |
     And the database has 1 current payment and 0 history snapshots
     And the current payment is "Created" at version 0
+    And the complete payment response is
+      | Field               | Value                                  |
+      | id                  | {stored.id}                            |
+      | order_id            | "11111111-1111-4111-8111-111111111111" |
+      | amount_minor        | 1299                                   |
+      | currency            | "PLN"                                  |
+      | status              | "created"                              |
+      | provider_session_id | null                                   |
+      | provider_payment_id | null                                   |
+      | failure_code        | null                                   |
+      | created_at          | {stored.created_at}                    |
+      | updated_at          | null                                   |
+    And only the requested payment is inserted
 
   Scenario: PAY11-02 Read a payment by order ID
     A payment already exists for the requested order. Reading by order ID returns the original payment identity.
@@ -29,7 +43,15 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | ClientId      | 22222222-2222-4222-8222-222222222222 |
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
+    And an unrelated succeeded payment fills all collections
+      | Field         | Value                                |
+      | OrderId       | 66666666-6666-4666-8666-666666666666 |
+      | ClientId      | 77777777-7777-4777-8777-777777777777 |
+      | TotalAmount   | 31.73                                |
+      | TotalCurrency | PLN                                  |
     And a payment created through the API
+    And I remember the payment and every collection
+    And Orders returns "outage"
     When I get the payment by order ID
     Then the response matches case "PAY11-02"
       | Field             | Value            |
@@ -40,6 +62,19 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | JSON.amount_minor | 1299             |
       | JSON.currency     | "PLN"            |
     And the response refers to the original payment
+    And the complete payment response is
+      | Field               | Value                                  |
+      | id                  | {stored.id}                            |
+      | order_id            | "11111111-1111-4111-8111-111111111111" |
+      | amount_minor        | 1299                                   |
+      | currency            | "PLN"                                  |
+      | status              | "created"                              |
+      | provider_session_id | null                                   |
+      | provider_payment_id | null                                   |
+      | failure_code        | null                                   |
+      | created_at          | {stored.created_at}                    |
+      | updated_at          | null                                   |
+    And every payment collection and external call count is unchanged
 
   Scenario: PAY11-03 Repeat Pay without writing or calling Orders again
     Pay is repeated for an existing nonterminal payment. It returns the same identity without another Orders call or database write.
@@ -50,6 +85,8 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
     And a payment created through the API
+    And I remember the payment and every collection
+    And Orders returns "outage"
     When I pay the order
     Then the response matches case "PAY11-03"
       | Field             | Value            |
@@ -62,6 +99,19 @@ Feature: Payment API with real persistence and a controlled Orders boundary
     And the response refers to the original payment
     And Orders was not called again
     And the database has 1 current payment and 0 history snapshots
+    And the complete payment response is
+      | Field               | Value                                  |
+      | id                  | {stored.id}                            |
+      | order_id            | "11111111-1111-4111-8111-111111111111" |
+      | amount_minor        | 1299                                   |
+      | currency            | "PLN"                                  |
+      | status              | "created"                              |
+      | provider_session_id | null                                   |
+      | provider_payment_id | null                                   |
+      | failure_code        | null                                   |
+      | created_at          | {stored.created_at}                    |
+      | updated_at          | null                                   |
+    And every payment collection and external call count is unchanged
 
   Scenario: PAY11-04 Missing payment
     The requested order has no stored payment. The API returns payment_not_found and both payment collections stay empty.
@@ -72,13 +122,23 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
     And a payable order
+    And I remember the payment and every collection
+    And Orders returns "outage"
     When I get the payment by order ID
     Then the response matches case "PAY11-04"
-      | Field        | Value                    |
-      | HTTPStatuses | 404                      |
-      | ContentType  | application/problem+json |
-      | Code         | payment_not_found        |
+      | Field                  | Value                                                  |
+      | HTTPStatuses           | 404                                                    |
+      | ContentType            | application/problem+json                               |
+      | Code                   | payment_not_found                                      |
+      | JSON.type              | "about:blank"                                          |
+      | JSON.title             | "Not Found"                                            |
+      | JSON.status            | 404                                                    |
+      | JSON.detail            | "Payment was not found."                               |
+      | JSON.instance          | "/payments/order/11111111-1111-4111-8111-111111111111" |
+      | JSON.errors            | []                                                     |
+      | JSON.missingProperties | []                                                     |
     And the database has 0 current payments and 0 history snapshots
+    And every payment collection and external call count is unchanged
 
   Scenario: PAY11-05 Missing order
     Orders returns a missing-order response to Pay. The API returns order_not_found without creating a payment or history.

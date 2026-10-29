@@ -2,6 +2,7 @@ import csv
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor
+from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
@@ -29,7 +30,11 @@ from tests.acceptance.evidence import table_values
 from tests.webhook_fixtures import encode, payload_for, signature
 
 scenarios(
-    "features/payments.feature", "features/health.feature", "features/checkout.feature", "features/webhooks.feature"
+    "features/payments.feature",
+    "features/health.feature",
+    "features/checkout.feature",
+    "features/webhooks.feature",
+    "features/payment_reads.feature",
 )
 
 MATRIX_PATH = Path(__file__).resolve().parents[2] / "docs" / "acceptance-matrix.tsv"
@@ -114,7 +119,7 @@ def terminal_payment(acceptance: AcceptanceContext, status: str) -> None:
 
 @given("Orders total has changed")
 def changed_total(acceptance: AcceptanceContext) -> None:
-    acceptance.orders.amount = 14.99
+    acceptance.orders.amount = Decimal("14.99")
 
 
 @given("the MongoDB readiness probe fails")

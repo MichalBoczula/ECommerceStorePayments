@@ -221,6 +221,10 @@ and downstream HTTP exchanges plus explicit fulfillment actions. The Acceptance
 runner validates the complete evidence before publication. See
 [ADR-0024](docs/adr/0024-shared-bdd-evidence.md).
 
+The [complete Pay/read scenarios](docs/bdd-03-pay-reads.md) verify exact money,
+all ten response fields, stored UTC/null/provider values, existing-state repeats
+and preservation of populated unrelated payment/history/receipt collections.
+
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated
 source projection. CI retains `payments-openapi` and supplies all four JSON files

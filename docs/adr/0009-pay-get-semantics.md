@@ -26,3 +26,13 @@ Payment ID stays stable across attempts; provider metadata is specific to the at
 - Create a second Payment per retry: conflicts with the unique order ID constraint and splits history across payment IDs.
 - Treat every Pay call as HTTP 201: falsely reports a new resource on reads and retries.
 - Retry without rechecking Orders: could resume an amount that no longer matches the order or retry a paid order.
+
+
+## PAY-BDD-03 evidence (2026-10-29)
+
+[Complete Pay/read evidence](../bdd-03-pay-reads.md) exercises every public response
+field, exact decimal money, Created/Pending/Succeeded repeat behavior, all five
+read states, safe missing reads and unchanged populated unrelated collections.
+Stored setup uses legal domain/repository transitions. Timestamp assertions state
+BSON millisecond precision explicitly. This test/documentation package changes no
+endpoint, state policy, persistence schema or dependency.
