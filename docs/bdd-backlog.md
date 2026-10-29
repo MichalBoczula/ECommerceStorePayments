@@ -11,9 +11,10 @@ selected LiveDocs refresh and Terraform deployment remain manual.
   inputs. Freeze scenario/runtime identities, guard operation/status/cause links,
   classify the sixteen current gaps and reject tracked verification output.
   See [baseline and verification](bdd-01-baseline.md).
-- [ ] **PAY-BDD-02 — Shared BDD structure and evidence.** Readable descriptions,
+- [x] **PAY-BDD-02 — Shared BDD structure and evidence.** Readable descriptions,
   stable IDs, meaningful input/expected Gherkin tables and centralized immutable
   JSON/HTTP/action evidence for setup, primary, concurrent and supporting work.
+  See [structure and evidence](bdd-02-evidence.md).
 - [ ] **PAY-BDD-03 — Pay and payment reads.** Complete responses, exact money,
   provider/null/date fields, existing-state repeats and unrelated-order isolation.
 - [ ] **PAY-BDD-04 — Retries and history.** Failed/Canceled retries, provider

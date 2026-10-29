@@ -29,3 +29,4 @@ Use repository-local sequential numbers. Each record has a title, `Status` and `
 | [0021](0021-verified-stripe-webhooks.md) | Accepted | Verify test checkout notifications, persist atomic receipts/payment history and durable fulfillment work, and preserve card/BLIK retry parameters. |
 | [0022](0022-durable-order-invoice-fulfillment.md) | Accepted | Fulfill verified payments with fenced MongoDB leases, downstream reconciliation and a scheduled recovery job. |
 | [0023](0023-livedocs-source-publication.md) | Accepted | Package real pytest-bdd sources and archive them for the shared LiveDocs portal. |
+| [0024](0024-shared-bdd-evidence.md) | Accepted | Capture immutable scenario HTTP/action evidence and enforce executable tables before publication. |

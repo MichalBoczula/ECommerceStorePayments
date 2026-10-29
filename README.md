@@ -214,6 +214,13 @@ Acceptance suite runs once and writes BDD-only Allure results to
 `allure-pytest-bdd` adapter records features, scenarios, examples and steps. The
 suite's JUnit, coverage, regular API tests and failure rules remain in the same run.
 
+The [shared BDD evidence](docs/bdd-02-evidence.md) gives every scenario an authored
+description, executable input/expected tables and stable service/scenario/instance
+labels. Immutable JSON attachments retain setup, asserted, concurrent, supporting
+and downstream HTTP exchanges plus explicit fulfillment actions. The Acceptance
+runner validates the complete evidence before publication. See
+[ADR-0024](docs/adr/0024-shared-bdd-evidence.md).
+
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated
 source projection. CI retains `payments-openapi` and supplies all four JSON files

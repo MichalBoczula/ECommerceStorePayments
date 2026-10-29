@@ -12,8 +12,8 @@ scenarios("features/fulfillment.feature")
 
 
 @then(parsers.parse('the response matches case "{case_id}"'))
-def matches_fulfillment_case(acceptance: AcceptanceContext, case_id: str) -> None:
-    matches_matrix(acceptance, case_id)
+def matches_fulfillment_case(acceptance: AcceptanceContext, case_id: str, datatable: list[list[str]]) -> None:
+    matches_matrix(acceptance, case_id, datatable)
 
 
 @given('a verified successful checkout with fulfillment mode "ok"')
@@ -70,7 +70,16 @@ def redeliver(acceptance: AcceptanceContext) -> None:
 
 @when("the durable fulfillment command runs")
 def fulfill(acceptance: AcceptanceContext) -> None:
-    asyncio.run(run(acceptance.settings, 100))
+    with acceptance.evidence.action("Run durable fulfillment command", {"limit": 100}) as output:
+        asyncio.run(run(acceptance.settings, 100))
+        work = acceptance.webhooks.find_one({"_id": "evt_fulfillment"})
+        output.update(
+            fulfillmentStatus=work["fulfillment_status"] if work else None,
+            orderStatus=acceptance.orders.status,
+            invoiceId=str(acceptance.orders.invoice_id) if acceptance.orders.invoice_id else None,
+            paidWrites=acceptance.orders.paid_writes,
+            invoiceCreates=acceptance.orders.invoice_creates,
+        )
 
 
 @then("one paid order and one completed invoice are recorded")
@@ -99,7 +108,7 @@ def retry(acceptance: AcceptanceContext) -> None:
 
 @when("the invoice retry becomes due and the durable fulfillment command runs")
 def retry_due(acceptance: AcceptanceContext) -> None:
-    acceptance.webhooks.update_one(
-        {"_id": "evt_fulfillment"}, {"$set": {"fulfillment_next_attempt": datetime.now(UTC)}}
-    )
+    due = datetime.now(UTC)
+    with acceptance.evidence.action("Make persisted invoice retry due", {"nextAttempt": due.isoformat()}):
+        acceptance.webhooks.update_one({"_id": "evt_fulfillment"}, {"$set": {"fulfillment_next_attempt": due}})
     fulfill(acceptance)
