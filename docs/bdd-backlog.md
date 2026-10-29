@@ -1,0 +1,48 @@
+# Payments BDD documentation backlog
+
+One scoped package per PR. Preserve the FastAPI layers, existing domain behavior,
+three MongoDB collections and transactional history/receipt/fulfillment semantics.
+`[x]` means implemented and verified; `[ ]` remains. Full applicable CI is required
+before merge. Source publication remains automatic after successful main CI;
+selected LiveDocs refresh and Terraform deployment remain manual.
+
+- [ ] **PAY-BDD-01 — Baseline and coverage guard.** Preserve the original 51 BDD
+  and 89 ordinary Acceptance cases, existing suites and reproducible dependency
+  inputs. Freeze scenario/runtime identities, guard operation/status/cause links,
+  classify the sixteen current gaps and reject tracked verification output.
+  See [baseline and verification](bdd-01-baseline.md).
+- [ ] **PAY-BDD-02 — Shared BDD structure and evidence.** Readable descriptions,
+  stable IDs, meaningful input/expected Gherkin tables and centralized immutable
+  JSON/HTTP/action evidence for setup, primary, concurrent and supporting work.
+- [ ] **PAY-BDD-03 — Pay and payment reads.** Complete responses, exact money,
+  provider/null/date fields, existing-state repeats and unrelated-order isolation.
+- [ ] **PAY-BDD-04 — Retries and history.** Failed/Canceled retries, provider
+  resets, versions, immutable snapshots, legacy records and rejected-state retention.
+- [ ] **PAY-BDD-05 — Checkout success.** Complete nested responses, provider
+  request/idempotency parameters, card/BLIK and repeated-session behavior.
+- [ ] **PAY-BDD-06 — Checkout failure and recovery.** Rejection, ambiguous
+  timeouts, interrupted persistence, legacy attempts, age and request-version limits.
+- [ ] **PAY-BDD-07 — Webhook verification.** Actual signed bytes/headers,
+  signature/payload/media/size boundaries and unchanged rejected state.
+- [ ] **PAY-BDD-08 — Webhook lifecycle and replay.** Full receipts/reasons,
+  transitions, async outcomes, stale attempts, collisions, duplicates and recovery.
+- [ ] **PAY-BDD-09 — Fulfillment and invoice recovery.** Explicit worker actions,
+  complete durable progress/retries and Paid/invoice/PDF acknowledgement recovery.
+- [ ] **PAY-BDD-10 — Business validation.** Isolated values, exact currency
+  conversion and accepted boundaries; distinguish HTTP inputs from standalone rules.
+- [ ] **PAY-BDD-11 — Framework failures.** Close reviewed status gaps, cover
+  routes/methods/bodies/media and complete safe problems with populated-state checks.
+- [ ] **PAY-BDD-12 — Concurrency and atomicity.** Deterministic races, full
+  winners, real rollback, competing claims, lease expiry and stale-worker fencing.
+- [ ] **PAY-BDD-13 — Technical scenarios.** Health/readiness, startup/index
+  failure, cancellation, isolation, command limits and documentation endpoints.
+- [ ] **PAY-BDD-14 — Request/response contracts.** Source-derived types,
+  presence/nullability/formats, descriptions/examples and captured-response checks.
+- [ ] **PAY-BDD-15 — Flows, rules and RAG links.** Stable identities and authored
+  meanings, observed versus declared knowledge and validated HTTP/worker evidence joins.
+- [ ] **PAY-BDD-16 — Final audit.** Full CI, original-case retention, every
+  rendered case/attachment, archive integrity and the manual LiveDocs refresh handoff.
+
+These packages improve tests and documentation. Existing STRIPE rollout and
+application-deployment tasks in [the technical backlog](../TECHNICAL_TODO.md)
+remain separate. No package claims runtime branch tracing or implemented RAG retrieval.

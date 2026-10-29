@@ -160,6 +160,11 @@ With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same s
 
 Each suite writes `junit.xml`, `coverage.xml`, `htmlcov/` and `summary.md` to `artifacts/verification/<suite>/`. The runner removes stale reports first, fails on zero tests or missing/invalid reports, and writes the Markdown summary into the CI job summary. The Invoice image integration test additionally needs Docker Hub access; `orders-client` needs the pinned Kiota binary or a download from GitHub. A focused unit suite can run without Docker, while the full `verify.sh` also runs container smoke and the network-backed dependency audit.
 
+The [BDD baseline guard](docs/bdd-01-baseline.md) preserves the original 51 BDD
+cases, 89 ordinary Acceptance checks and all original members of the other suites.
+Required suite reports reject skipped or replaced members, even when totals stay
+unchanged. The [BDD backlog](docs/bdd-backlog.md) tracks the remaining packages.
+
 In PowerShell, the equivalent individual commands are:
 
 ```powershell
@@ -188,6 +193,12 @@ MongoDB suites use Testcontainers, give each test or scenario a separate databas
 Generate the operation projection with `uv run --no-sync python scripts/generate_operation_links.py --output operation-links.json`. The JSON links each published operation ID to its source service flow (including called branches), reachable domain policies and acceptance scenario IDs. The generator reads routes, method bodies, policy docstrings, the acceptance matrix and feature scenarios; the `links` CI stage fails on missing, duplicate or stale links. The generated JSON is an on-demand artifact for documentation tooling and is not checked in. See [ADR-0012](docs/adr/0012-generated-operation-links.md).
 
 Run `bash scripts/ci.sh openapi` to export and lint the database-free OpenAPI at `artifacts/verification/openapi.json` (or `uv run --no-sync python -m scripts.export_openapi --output <path>`). OpenAPI 3.1 validation and operation/scenario status, media and schema checks use pinned development dependencies in `uv.lock`. Acceptance tests validate each observed HTTP body against its declared JSON Schema, with the unmatched-route response checked against the shared problem schema. CI uploads the generated JSON as `payments-openapi`. The API documents path validation as 400, matching runtime, instead of FastAPI's default 422. See [ADR-0013](docs/adr/0013-generated-openapi-contract.md).
+
+The operation-link projection reports 26/42 declared status pairs with scenario
+intent and sixteen [reviewed gaps](docs/acceptance-gaps.tsv). New uncovered or
+stale resolved gaps fail verification. The known-path wrong-method 405 is counted
+explicitly; unmatched routing cannot inflate named-operation coverage. These are
+source/matrix checks, not runtime branch telemetry or attached exchange evidence.
 
 After the full quality gate, container smoke and Trivy scan succeed on a `main` push, CI publishes the scanned image to [Docker Hub](https://hub.docker.com/r/mb0101/ecommerce-store-payments-api) as `mb0101/ecommerce-store-payments-api:<full commit SHA>` and `:latest`. It checks both tags reference the scanned local image and that Docker Hub reports the same digest for each push. Pull requests build and scan but never log in or publish. Configure repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` with Docker Hub push rights; an absent or invalid credential fails the main push. The image digest and tag are recorded in the job summary. See [ADR-0019](docs/adr/0019-ci-graph-and-dockerhub-publication.md).
 

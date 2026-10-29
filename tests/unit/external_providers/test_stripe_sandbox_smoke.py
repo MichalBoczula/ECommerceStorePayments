@@ -29,7 +29,7 @@ def test_sandbox_probe_accepts_test_key_without_displaying_it() -> None:
         ("payment_method_types", ["card"]),
         ("payment_status", "paid"),
         ("status", "expired"),
-        ("client_reference_id", str(uuid4())),
+        pytest.param("client_reference_id", str(uuid4()), id="wrong-client-reference"),
         ("metadata", None),
         ("metadata", {}),
         ("metadata", {"payment_id": str(uuid4()), "order_id": str(uuid4()), "attempt_id": str(uuid4())}),

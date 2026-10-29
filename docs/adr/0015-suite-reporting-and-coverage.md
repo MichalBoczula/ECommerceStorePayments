@@ -28,6 +28,14 @@ CI runs source/build checks first, then five independent suite jobs. Each upload
 
 ## Consequences
 
+PAY-BDD-01 freezes the original executed member identities for all five suites.
+The runner passes this baseline into report verification; a replacement test at
+the same total cannot hide a removed member. Skips fail and actual JUnit elements
+must agree with success counters. Additions are allowed. Two random UUID parameter
+names receive explicit stable IDs; the approved naming migrations are recorded.
+Suite selection, intentional external-provider overlap and coverage floors stay
+unchanged. See [the baseline](../bdd-01-baseline.md).
+
 Reviewers can inspect suite-specific failures and reports. New Infrastructure code, including adapters, contributes to its 70% denominator. Tests added under new directories must be assigned to a suite; a unit test guards that every existing test file is assigned. The Acceptance and ExternalProviders percentages are reported without new thresholds while provider capabilities evolve. Named suite jobs use separate runners and may start more than one MongoDB container across jobs.
 
 ## Alternatives considered

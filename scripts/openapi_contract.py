@@ -8,6 +8,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from openapi_spec_validator import validate
 
 from ecommerce_store_payments.api.app import create_app
+from scripts.bdd_baseline import coverage_report
 from scripts.generate_operation_links import generate
 
 METHODS = {"get", "post", "put", "patch", "delete"}
@@ -50,6 +51,8 @@ def check_contract(spec: dict[str, Any], links: dict[str, Any]) -> tuple[int, in
                 checked += 1
     if not links["unmatchedRouteScenarios"]:
         raise ValueError("Missing global unmatched-route acceptance scenario")
+    # Recheck this document, rather than trusting coverage from an earlier export.
+    coverage_report(spec, links["operations"])
     return len(published), checked
 
 

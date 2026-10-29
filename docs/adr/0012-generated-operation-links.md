@@ -18,6 +18,12 @@ Run `bash scripts/ci.sh links` to validate the projection or `uv run --no-sync p
 
 ## Consequences
 
+PAY-BDD-01 additionally freezes the original scenario/cause/outcome inventory,
+parses expanded source cases with pytest-bdd and reports bidirectional declared
+status coverage in the existing projection. Sixteen explicitly reviewed gaps
+remain; new or stale gaps fail. Wrong-method and unmatched-route evidence stays
+distinct from execution of a named handler. See [the baseline](../bdd-01-baseline.md).
+
 Documentation and later retrieval tooling can use a deterministic source-derived index without adding an API endpoint or connecting to MongoDB. The flow steps show possible call and raise sites with source guards, not a single runtime trace. The analyzer supports the service's explicit call forms and concrete composition bindings; new indirection or dependency wiring may require extending its resolver alongside the code. Acceptance coverage describes tested behavior but does not prove that every possible branch has a scenario.
 
 ## Alternatives considered

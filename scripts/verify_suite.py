@@ -5,6 +5,8 @@ from decimal import Decimal
 from pathlib import Path
 from xml.etree import ElementTree
 
+from scripts.bdd_baseline import check_runtime_baseline
+
 
 @dataclass(frozen=True)
 class SuiteReport:
@@ -31,7 +33,14 @@ class SuiteReport:
         )
 
 
-def verify(name: str, directory: Path, expected_sources: tuple[Path, ...], minimum: int | None) -> SuiteReport:
+def verify(
+    name: str,
+    directory: Path,
+    expected_sources: tuple[Path, ...],
+    minimum: int | None,
+    *,
+    baseline: Path | None = None,
+) -> SuiteReport:
     junit = directory / "junit.xml"
     coverage = directory / "coverage.xml"
     for file in (junit, coverage):
@@ -49,8 +58,17 @@ def verify(name: str, directory: Path, expected_sources: tuple[Path, ...], minim
     failed = sum(int(suite.get("failures", "0")) + int(suite.get("errors", "0")) for suite in suites)
     skipped = sum(int(suite.get("skipped", "0")) for suite in suites)
     passed = total - failed - skipped
-    if total <= 0 or passed <= 0 or failed != 0:
-        raise ValueError(f"Invalid JUnit results for {name}: total={total}, passed={passed}, failed={failed}")
+    if total <= 0 or passed <= 0 or failed != 0 or skipped != 0:
+        raise ValueError(
+            f"Invalid JUnit results for {name}: total={total}, passed={passed}, failed={failed}, skipped={skipped}"
+        )
+    if baseline is not None:
+        cases = result.findall(".//testcase")
+        if len(cases) != total or any(
+            case.find(tag) is not None for case in cases for tag in ("failure", "error", "skipped")
+        ):
+            raise ValueError(f"JUnit counters differ from executed cases: {name}")
+        check_runtime_baseline(name, [(case.get("classname", ""), case.get("name", "")) for case in cases], baseline)
 
     if report.tag != "coverage":
         raise ValueError(f"Invalid coverage report for {name}")
