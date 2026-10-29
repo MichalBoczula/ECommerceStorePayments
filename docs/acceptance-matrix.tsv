@@ -50,3 +50,12 @@ PAY23-01	POST /payments/webhooks/stripe	normal fulfillment	200	-	STRIPE/3
 PAY23-02	POST /payments/webhooks/stripe	lost Paid response reconciled	200	-	STRIPE/3
 PAY23-03	POST /payments/webhooks/stripe	lost invoice response reconciled	200	-	STRIPE/3
 PAY23-04	POST /payments/webhooks/stripe	PDF failure and durable retry	200	-	STRIPE/3
+PAY03-01	POST /payments/{order_id}/pay	create exact large money without changing an unrelated order	201	-	PAY/9
+PAY03-02	GET /payments/order/{order_id}	read pending provider and timestamp fields	200	-	PAY/9
+PAY03-03	GET /payments/order/{order_id}	read succeeded provider identifiers	200	-	PAY/9
+PAY03-04	GET /payments/order/{order_id}	read failed snapshot without retrying	200	-	PAY/9
+PAY03-05	GET /payments/order/{order_id}	read canceled snapshot without retrying	200	-	PAY/9
+PAY03-06	POST /payments/{order_id}/pay	repeat pay on pending without any effects	200	-	PAY/9
+PAY03-07	POST /payments/{order_id}/pay	repeat pay on succeeded without any effects	200	-	PAY/9
+PAY03-08	GET /payments/order/{order_id}	missing payment stays missing beside an unrelated order	404	payment_not_found	PAY/9
+PAY03-09	POST /payments/{order_id}/pay	created repeat with unrelated populated state	200	-	PAY/9

@@ -1,7 +1,10 @@
 import asyncio
+import json
 import re
 from collections.abc import Generator, Mapping
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any, cast
 from urllib.parse import parse_qs
 from uuid import UUID, uuid4
@@ -16,7 +19,7 @@ from httpx2 import Response
 from pydantic import SecretStr
 from pymongo import MongoClient
 from pymongo.collection import Collection
-from pytest_bdd import given, when
+from pytest_bdd import given, parsers, then, when
 from pytest_bdd.parser import Feature, Scenario, Step
 
 from ecommerce_store_payments.api.app import create_app
@@ -38,6 +41,7 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.pa
     MongoPaymentRepository,
 )
 from tests.acceptance.evidence import EvidenceClient, ScenarioEvidence, table_values
+from tests.acceptance.payment_checks import PaymentChecks
 from tests.unit.external_providers.test_stripe_checkout import StripeTransport
 from tests.webhook_fixtures import WEBHOOK_SECRET
 
@@ -52,11 +56,13 @@ class OrdersBoundary:
     invoice_creates: int = 0
     mode: str = "created"
     status: str = "Created"
-    amount: float = 12.99
+    amount: Decimal = Decimal("12.99")
     currency: str = "PLN"
     calls: int = 0
+    http_calls: list[tuple[str, str]] = field(default_factory=list[tuple[str, str]])
 
     def handle(self, request: Request) -> OrdersResponse:
+        self.http_calls.append((request.method, request.url.path))
         if request.url.path.startswith("/invoices/"):
             if request.method == "POST":
                 self.invoice_creates += 1
@@ -95,17 +101,28 @@ class OrdersBoundary:
             raise ReadTimeout("private Orders timeout", request=request)
         if self.mode == "outage":
             raise ConnectError("private Orders connection", request=request)
-        return OrdersResponse(
-            200,
-            json={
+        # Keep money as a JSON number token; a float would lose significant digits.
+        metadata = json.dumps(
+            {
                 "id": str(self.order_id),
                 "clientId": str(self.client_id),
                 "status": self.status,
-                "totalAmount": self.amount,
                 "totalCurrency": self.currency,
-                "lines": [{"lineTotalAmount": self.amount, "productVersion": {"priceCurrency": self.currency}}],
-            },
+            }
         )
+        assert self.amount.is_finite()
+        amount = format(self.amount, "f")
+        body = (
+            metadata[:-1]
+            + ',"totalAmount":'
+            + amount
+            + ',"lines":[{"lineTotalAmount":'
+            + amount
+            + ',"productVersion":'
+            + json.dumps({"priceCurrency": self.currency})
+            + "}]}"
+        )
+        return OrdersResponse(200, content=body.encode(), headers={"content-type": "application/json"})
 
 
 @dataclass
@@ -123,6 +140,7 @@ class AcceptanceContext:
     webhook_payload: bytes = b""
     webhook_delivery: str = "valid"
     health_path: str = ""
+    request_window: tuple[datetime, datetime] | None = None
 
     @property
     def payments(self) -> Collection[PaymentDocument]:
@@ -149,7 +167,9 @@ class AcceptanceContext:
     ) -> None:
         headers = {**(headers or {}), **({"content-type": content_type} if content_type else {})}
         self.last_operation = f"{method} {path.replace(str(self.orders.order_id), '{order_id}')}"
+        started = datetime.now(UTC)
         self.responses = [self.client.request(method, path, content=content, headers=headers)]
+        self.request_window = (started, datetime.now(UTC))
 
     def make_terminal(self, status: PaymentStatus) -> None:
         async def update() -> None:
@@ -357,7 +377,7 @@ def order_inputs(acceptance: AcceptanceContext, datatable: list[list[str]]) -> N
     assert values.keys() == {"OrderId", "ClientId", "TotalAmount", "TotalCurrency"}
     acceptance.orders.order_id = UUID(values["OrderId"])
     acceptance.orders.client_id = UUID(values["ClientId"])
-    acceptance.orders.amount = float(values["TotalAmount"])
+    acceptance.orders.amount = Decimal(values["TotalAmount"])
     acceptance.orders.currency = values["TotalCurrency"]
     acceptance.evidence.observation("Scenario inputs", values)
 
@@ -374,3 +394,38 @@ def health_inputs(acceptance: AcceptanceContext, datatable: list[list[str]]) -> 
 def request_health(acceptance: AcceptanceContext) -> None:
     assert acceptance.health_path
     acceptance.send("GET", acceptance.health_path)
+
+
+@pytest.fixture
+def payment_checks(acceptance: AcceptanceContext) -> PaymentChecks:
+    return PaymentChecks(acceptance)
+
+
+@given("an unrelated succeeded payment fills all collections")
+def unrelated_payment(payment_checks: PaymentChecks, datatable: list[list[str]]) -> None:
+    payment_checks.unrelated(table_values(datatable))
+
+
+@given(parsers.parse('a stored payment is prepared in state "{state}"'))
+def stored_payment(payment_checks: PaymentChecks, state: str, datatable: list[list[str]]) -> None:
+    payment_checks.prepare(state, table_values(datatable))
+
+
+@given("I remember the payment and every collection")
+def remember_payment(payment_checks: PaymentChecks) -> None:
+    payment_checks.remember()
+
+
+@then("the complete payment response is")
+def complete_payment(payment_checks: PaymentChecks, datatable: list[list[str]]) -> None:
+    payment_checks.complete(table_values(datatable))
+
+
+@then("every payment collection and external call count is unchanged")
+def unchanged_payment(payment_checks: PaymentChecks) -> None:
+    payment_checks.unchanged()
+
+
+@then("only the requested payment is inserted")
+def only_requested_payment(payment_checks: PaymentChecks) -> None:
+    payment_checks.only_created()
