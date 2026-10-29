@@ -234,6 +234,7 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
     And a "Failed" payment created through the API
+    And I remember the payment and every collection
     When I pay the order
     Then the response matches case "PAY11-10"
       | Field             | Value            |
@@ -246,6 +247,26 @@ Feature: Payment API with real persistence and a controlled Orders boundary
     And the response refers to the original payment
     And the current payment is "Created" at version 3
     And the history statuses are "Created,Pending,Failed"
+    And the complete retry response is
+      | Field               | Value                                  |
+      | id                  | {stored.id}                            |
+      | order_id            | "11111111-1111-4111-8111-111111111111" |
+      | amount_minor        | 1299                                   |
+      | currency            | "PLN"                                  |
+      | status              | "created"                              |
+      | provider_session_id | null                                   |
+      | provider_payment_id | null                                   |
+      | failure_code        | null                                   |
+      | created_at          | {stored.created_at}                    |
+      | updated_at          | {stored.updated_at}                    |
+    And the retry changes only this version and archive
+      | Field                  | Value                  |
+      | PreviousVersion        | 2                      |
+      | CurrentVersion         | 3                      |
+      | HistoryVersions        | 0,1,2                  |
+      | HistoryStatuses        | created,pending,failed |
+      | CheckoutRequestVersion | 1                      |
+    And repeating Pay preserves the completed retry
 
   Scenario: PAY11-11 Retry a canceled payment
     A canceled payment is retried for the same unchanged order. It returns to Created while preserving the canceled snapshot.
@@ -256,6 +277,7 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
     And a "Canceled" payment created through the API
+    And I remember the payment and every collection
     When I pay the order
     Then the response matches case "PAY11-11"
       | Field             | Value            |
@@ -268,6 +290,26 @@ Feature: Payment API with real persistence and a controlled Orders boundary
     And the response refers to the original payment
     And the current payment is "Created" at version 2
     And the history statuses are "Created,Canceled"
+    And the complete retry response is
+      | Field               | Value                                  |
+      | id                  | {stored.id}                            |
+      | order_id            | "11111111-1111-4111-8111-111111111111" |
+      | amount_minor        | 1299                                   |
+      | currency            | "PLN"                                  |
+      | status              | "created"                              |
+      | provider_session_id | null                                   |
+      | provider_payment_id | null                                   |
+      | failure_code        | null                                   |
+      | created_at          | {stored.created_at}                    |
+      | updated_at          | {stored.updated_at}                    |
+    And the retry changes only this version and archive
+      | Field                  | Value            |
+      | PreviousVersion        | 1                |
+      | CurrentVersion         | 2                |
+      | HistoryVersions        | 0,1              |
+      | HistoryStatuses        | created,canceled |
+      | CheckoutRequestVersion | 1                |
+    And repeating Pay preserves the completed retry
 
   Scenario: PAY11-12 Reject retry when the order total changed
     Orders changes its total after the payment has failed. Retry returns order_total_changed and retains the failed payment version.
@@ -279,14 +321,23 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | TotalCurrency | PLN                                  |
     And a "Failed" payment created through the API
     And Orders total has changed
+    And I remember the payment and every collection
     When I pay the order
     Then the response matches case "PAY11-12"
-      | Field        | Value                    |
-      | HTTPStatuses | 409                      |
-      | ContentType  | application/problem+json |
-      | Code         | order_total_changed      |
+      | Field                  | Value                                                |
+      | HTTPStatuses           | 409                                                  |
+      | ContentType            | application/problem+json                             |
+      | Code                   | order_total_changed                                  |
+      | JSON.type              | "about:blank"                                        |
+      | JSON.title             | "Conflict"                                           |
+      | JSON.status            | 409                                                  |
+      | JSON.detail            | "Order total has changed."                           |
+      | JSON.instance          | "/payments/11111111-1111-4111-8111-111111111111/pay" |
+      | JSON.errors            | []                                                   |
+      | JSON.missingProperties | []                                                   |
     And the current payment is "Failed" at version 2
     And the history statuses are "Created,Pending"
+    And the rejected retry preserves every document
 
   Scenario: PAY11-13 Concurrent Pay creates one current payment
     Two first Pay requests target one order concurrently. Both responses refer to one payment and only one current document exists.
