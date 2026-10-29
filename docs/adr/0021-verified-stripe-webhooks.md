@@ -46,5 +46,7 @@ References: [Stripe webhooks](https://docs.stripe.com/webhooks), [Checkout fulfi
 physical header multiplicity, the real SDK age rule, JSON/UTF-8/snapshot contracts
 and media/size boundaries with complete unchanged rejected state. The pinned SDK
 accepts future signed timestamps; these scenarios describe that policy accurately.
-Accepted boundary controls retain exact received-byte receipt digests. Complete
-receipt lifecycle/replay evidence remains PAY-BDD-08. No runtime policy changes.
+Accepted boundary controls retain exact received-byte receipt digests. [Complete lifecycle/replay evidence](../bdd-08-webhook-lifecycle.md) checks every
+receipt field/reason, one-version current/history changes, async/late/stale
+outcomes, duplicate/collision retention and fresh application/operator recovery.
+No runtime policy changes.

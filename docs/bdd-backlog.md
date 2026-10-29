@@ -30,8 +30,9 @@ selected LiveDocs refresh and Terraform deployment remain manual.
 - [x] **PAY-BDD-07 — Webhook verification.** Actual signed bytes/headers,
   signature/payload/media/size boundaries and unchanged rejected state.
   See [webhook verification](bdd-07-webhook-verification.md).
-- [ ] **PAY-BDD-08 — Webhook lifecycle and replay.** Full receipts/reasons,
+- [x] **PAY-BDD-08 — Webhook lifecycle and replay.** Full receipts/reasons,
   transitions, async outcomes, stale attempts, collisions, duplicates and recovery.
+  See [webhook lifecycle and replay](bdd-08-webhook-lifecycle.md).
 - [ ] **PAY-BDD-09 — Fulfillment and invoice recovery.** Explicit worker actions,
   complete durable progress/retries and Paid/invoice/PDF acknowledgement recovery.
 - [ ] **PAY-BDD-10 — Business validation.** Isolated values, exact currency

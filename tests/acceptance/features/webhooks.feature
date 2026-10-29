@@ -21,6 +21,7 @@ Feature: Verified checkout notifications and durable receipt
       | ContentType            | application/json           |
       | BodyBytes              | natural                    |
     And I remember webhook verification state
+    And I remember complete webhook lifecycle state
     When I deliver the prepared verification webhook
     Then the response matches case "PAY22-01"
       | Field         | Value            |
@@ -42,6 +43,47 @@ Feature: Verified checkout notifications and durable receipt
       | Field         | Value            |
       | ReceiptState  | applied          |
       | PayloadDigest | {request.sha256} |
+    And the complete lifecycle receipt is
+      | Field               | Value               |
+      | _id                 | {event.id}          |
+      | event_type          | {event.type}        |
+      | payload_digest      | {request.sha256}    |
+      | outcome             | "succeeded"         |
+      | payment_id          | {event.payment_id}  |
+      | order_id            | {event.order_id}    |
+      | attempt_id          | {event.attempt_id}  |
+      | amount_minor        | 1299                |
+      | currency            | "PLN"               |
+      | session_id          | {event.session_id}  |
+      | provider_payment_id | "pi_fixture"        |
+      | state               | "applied"           |
+      | reason              | "payment_succeeded" |
+      | received_at         | {request.window}    |
+      | completed_at        | {request.window}    |
+      | fulfillment_status  | "pending"           |
+    And webhook processing changes exactly this state
+      | Field                   | Value              |
+      | Status                  | succeeded          |
+      | Version                 | 3                  |
+      | SessionId               | {event.session_id} |
+      | ProviderPaymentId       | "pi_fixture"       |
+      | FailureCode             | null               |
+      | NewArchives             | 1                  |
+      | NewReceipts             | 1                  |
+      | ExternalCalls           | 0                  |
+      | ControlledInterruptions | 0                  |
+    And the complete payment read after webhook is
+      | Field               | Value               |
+      | id                  | {stored.id}         |
+      | order_id            | {order.id}          |
+      | amount_minor        | 1299                |
+      | currency            | "PLN"               |
+      | status              | "succeeded"         |
+      | provider_session_id | {stored.session_id} |
+      | provider_payment_id | "pi_fixture"        |
+      | failure_code        | null                |
+      | created_at          | {stored.created_at} |
+      | updated_at          | {stored.updated_at} |
 
   Scenario: PAY22-02 Redeliver the same event without another transition
     The same signed paid event was already applied once. Redelivery acknowledges it without another payment transition or history snapshot.
@@ -54,6 +96,7 @@ Feature: Verified checkout notifications and durable receipt
     And a checkout created through the API
     And a signed checkout event "paid"
     And the checkout webhook was delivered
+    And I remember complete webhook lifecycle state
     When I deliver the checkout webhook
     Then the response matches case "PAY22-02"
       | Field         | Value            |
@@ -63,6 +106,47 @@ Feature: Verified checkout notifications and durable receipt
       | JSON.received | true             |
     And the current payment is "Succeeded" at version 3
     And the database has 1 current payment and 3 history snapshots
+    And the complete lifecycle receipt is
+      | Field               | Value                 |
+      | _id                 | {event.id}            |
+      | event_type          | {event.type}          |
+      | payload_digest      | {request.sha256}      |
+      | outcome             | "succeeded"           |
+      | payment_id          | {event.payment_id}    |
+      | order_id            | {event.order_id}      |
+      | attempt_id          | {event.attempt_id}    |
+      | amount_minor        | 1299                  |
+      | currency            | "PLN"                 |
+      | session_id          | {event.session_id}    |
+      | provider_payment_id | "pi_fixture"          |
+      | state               | "applied"             |
+      | reason              | "payment_succeeded"   |
+      | received_at         | {before.received_at}  |
+      | completed_at        | {before.completed_at} |
+      | fulfillment_status  | "pending"             |
+    And webhook processing changes exactly this state
+      | Field                   | Value              |
+      | Status                  | succeeded          |
+      | Version                 | 3                  |
+      | SessionId               | {event.session_id} |
+      | ProviderPaymentId       | "pi_fixture"       |
+      | FailureCode             | null               |
+      | NewArchives             | 0                  |
+      | NewReceipts             | 0                  |
+      | ExternalCalls           | 0                  |
+      | ControlledInterruptions | 0                  |
+    And the complete payment read after webhook is
+      | Field               | Value               |
+      | id                  | {stored.id}         |
+      | order_id            | {order.id}          |
+      | amount_minor        | 1299                |
+      | currency            | "PLN"               |
+      | status              | "succeeded"         |
+      | provider_session_id | {stored.session_id} |
+      | provider_payment_id | "pi_fixture"        |
+      | failure_code        | null                |
+      | created_at          | {stored.created_at} |
+      | updated_at          | {stored.updated_at} |
 
   Scenario: PAY22-03 Reject a missing signature
     A checkout event is delivered without its signature header. Verification returns webhook_invalid and records no durable receipt.
@@ -175,6 +259,7 @@ Feature: Verified checkout notifications and durable receipt
       | TotalCurrency | PLN                                  |
     And a checkout created through the API
     And a signed checkout event "unknown"
+    And I remember complete webhook lifecycle state
     When I deliver the checkout webhook
     Then the response matches case "PAY22-05"
       | Field         | Value            |
@@ -183,6 +268,47 @@ Feature: Verified checkout notifications and durable receipt
       | Code          | -                |
       | JSON.received | true             |
     And the current payment is "Pending" at version 2
+    And the complete lifecycle receipt is
+      | Field               | Value               |
+      | _id                 | {event.id}          |
+      | event_type          | {event.type}        |
+      | payload_digest      | {request.sha256}    |
+      | outcome             | "unknown"           |
+      | payment_id          | null                |
+      | order_id            | null                |
+      | attempt_id          | null                |
+      | amount_minor        | null                |
+      | currency            | null                |
+      | session_id          | null                |
+      | provider_payment_id | null                |
+      | state               | "ignored"           |
+      | reason              | "unsupported_event" |
+      | received_at         | {request.window}    |
+      | completed_at        | {request.window}    |
+      | fulfillment_status  | null                |
+    And webhook processing changes exactly this state
+      | Field                   | Value              |
+      | Status                  | pending            |
+      | Version                 | 2                  |
+      | SessionId               | {event.session_id} |
+      | ProviderPaymentId       | null               |
+      | FailureCode             | null               |
+      | NewArchives             | 0                  |
+      | NewReceipts             | 1                  |
+      | ExternalCalls           | 0                  |
+      | ControlledInterruptions | 0                  |
+    And the complete payment read after webhook is
+      | Field               | Value               |
+      | id                  | {stored.id}         |
+      | order_id            | {order.id}          |
+      | amount_minor        | 1299                |
+      | currency            | "PLN"               |
+      | status              | "pending"           |
+      | provider_session_id | {stored.session_id} |
+      | provider_payment_id | null                |
+      | failure_code        | null                |
+      | created_at          | {stored.created_at} |
+      | updated_at          | {stored.updated_at} |
 
   Scenario: PAY22-06 Record mismatched money without confirming payment
     A signed checkout event carries an amount different from payment money. Processing rejects its receipt without confirming the Pending payment.
@@ -194,6 +320,7 @@ Feature: Verified checkout notifications and durable receipt
       | TotalCurrency | PLN                                  |
     And a checkout created through the API
     And a signed checkout event "mismatched"
+    And I remember complete webhook lifecycle state
     When I deliver the checkout webhook
     Then the response matches case "PAY22-06"
       | Field         | Value            |
@@ -203,6 +330,47 @@ Feature: Verified checkout notifications and durable receipt
       | JSON.received | true             |
     And the current payment is "Pending" at version 2
     And the webhook receipt is "rejected"
+    And the complete lifecycle receipt is
+      | Field               | Value              |
+      | _id                 | {event.id}         |
+      | event_type          | {event.type}       |
+      | payload_digest      | {request.sha256}   |
+      | outcome             | "succeeded"        |
+      | payment_id          | {event.payment_id} |
+      | order_id            | {event.order_id}   |
+      | attempt_id          | {event.attempt_id} |
+      | amount_minor        | 1300               |
+      | currency            | "PLN"              |
+      | session_id          | {event.session_id} |
+      | provider_payment_id | "pi_fixture"       |
+      | state               | "rejected"         |
+      | reason              | "payment_mismatch" |
+      | received_at         | {request.window}   |
+      | completed_at        | {request.window}   |
+      | fulfillment_status  | null               |
+    And webhook processing changes exactly this state
+      | Field                   | Value              |
+      | Status                  | pending            |
+      | Version                 | 2                  |
+      | SessionId               | {event.session_id} |
+      | ProviderPaymentId       | null               |
+      | FailureCode             | null               |
+      | NewArchives             | 0                  |
+      | NewReceipts             | 1                  |
+      | ExternalCalls           | 0                  |
+      | ControlledInterruptions | 0                  |
+    And the complete payment read after webhook is
+      | Field               | Value               |
+      | id                  | {stored.id}         |
+      | order_id            | {order.id}          |
+      | amount_minor        | 1299                |
+      | currency            | "PLN"               |
+      | status              | "pending"           |
+      | provider_session_id | {stored.session_id} |
+      | provider_payment_id | null                |
+      | failure_code        | null                |
+      | created_at          | {stored.created_at} |
+      | updated_at          | {stored.updated_at} |
 
   Scenario: PAY22-07 Expire payment without canceling the order
     A signed expiry event targets an existing checkout session. Payment becomes Failed without contacting Orders or canceling the order.
@@ -214,6 +382,7 @@ Feature: Verified checkout notifications and durable receipt
       | TotalCurrency | PLN                                  |
     And a checkout created through the API
     And a signed checkout event "expired"
+    And I remember complete webhook lifecycle state
     When I deliver the checkout webhook
     Then the response matches case "PAY22-07"
       | Field         | Value            |
@@ -223,6 +392,47 @@ Feature: Verified checkout notifications and durable receipt
       | JSON.received | true             |
     And the current payment is "Failed" at version 3
     And webhook processing did not contact external services
+    And the complete lifecycle receipt is
+      | Field               | Value              |
+      | _id                 | {event.id}         |
+      | event_type          | {event.type}       |
+      | payload_digest      | {request.sha256}   |
+      | outcome             | "expired"          |
+      | payment_id          | {event.payment_id} |
+      | order_id            | {event.order_id}   |
+      | attempt_id          | {event.attempt_id} |
+      | amount_minor        | 1299               |
+      | currency            | "PLN"              |
+      | session_id          | {event.session_id} |
+      | provider_payment_id | "pi_fixture"       |
+      | state               | "applied"          |
+      | reason              | "payment_failed"   |
+      | received_at         | {request.window}   |
+      | completed_at        | {request.window}   |
+      | fulfillment_status  | null               |
+    And webhook processing changes exactly this state
+      | Field                   | Value              |
+      | Status                  | failed             |
+      | Version                 | 3                  |
+      | SessionId               | {event.session_id} |
+      | ProviderPaymentId       | null               |
+      | FailureCode             | "checkout_expired" |
+      | NewArchives             | 1                  |
+      | NewReceipts             | 1                  |
+      | ExternalCalls           | 0                  |
+      | ControlledInterruptions | 0                  |
+    And the complete payment read after webhook is
+      | Field               | Value               |
+      | id                  | {stored.id}         |
+      | order_id            | {order.id}          |
+      | amount_minor        | 1299                |
+      | currency            | "PLN"               |
+      | status              | "failed"            |
+      | provider_session_id | {stored.session_id} |
+      | provider_payment_id | null                |
+      | failure_code        | "checkout_expired"  |
+      | created_at          | {stored.created_at} |
+      | updated_at          | {stored.updated_at} |
 
   Scenario: PAY22-08 Earlier expiry cannot downgrade success
     A successful checkout later receives an earlier expiry event. The acknowledgement succeeds while payment remains Succeeded at its current version.
@@ -236,6 +446,7 @@ Feature: Verified checkout notifications and durable receipt
     And a signed checkout event "paid"
     And the checkout webhook was delivered
     And a signed checkout event "expired"
+    And I remember complete webhook lifecycle state
     When I deliver the checkout webhook
     Then the response matches case "PAY22-08"
       | Field         | Value            |
@@ -244,6 +455,47 @@ Feature: Verified checkout notifications and durable receipt
       | Code          | -                |
       | JSON.received | true             |
     And the current payment is "Succeeded" at version 3
+    And the complete lifecycle receipt is
+      | Field               | Value               |
+      | _id                 | {event.id}          |
+      | event_type          | {event.type}        |
+      | payload_digest      | {request.sha256}    |
+      | outcome             | "expired"           |
+      | payment_id          | {event.payment_id}  |
+      | order_id            | {event.order_id}    |
+      | attempt_id          | {event.attempt_id}  |
+      | amount_minor        | 1299                |
+      | currency            | "PLN"               |
+      | session_id          | {event.session_id}  |
+      | provider_payment_id | "pi_fixture"        |
+      | state               | "ignored"           |
+      | reason              | "already_succeeded" |
+      | received_at         | {request.window}    |
+      | completed_at        | {request.window}    |
+      | fulfillment_status  | null                |
+    And webhook processing changes exactly this state
+      | Field                   | Value              |
+      | Status                  | succeeded          |
+      | Version                 | 3                  |
+      | SessionId               | {event.session_id} |
+      | ProviderPaymentId       | "pi_fixture"       |
+      | FailureCode             | null               |
+      | NewArchives             | 0                  |
+      | NewReceipts             | 1                  |
+      | ExternalCalls           | 0                  |
+      | ControlledInterruptions | 0                  |
+    And the complete payment read after webhook is
+      | Field               | Value               |
+      | id                  | {stored.id}         |
+      | order_id            | {order.id}          |
+      | amount_minor        | 1299                |
+      | currency            | "PLN"               |
+      | status              | "succeeded"         |
+      | provider_session_id | {stored.session_id} |
+      | provider_payment_id | "pi_fixture"        |
+      | failure_code        | null                |
+      | created_at          | {stored.created_at} |
+      | updated_at          | {stored.updated_at} |
 
   Scenario: PAY22-09 Concurrent duplicate delivery commits once
     Two identical signed webhook deliveries arrive concurrently. Both are acknowledged while payment and history record only one successful transition.
@@ -276,14 +528,63 @@ Feature: Verified checkout notifications and durable receipt
     And a checkout created through the API
     And a signed checkout event "paid"
     And webhook processing fails once after receipt
+    And I remember complete webhook lifecycle state
     When I deliver the checkout webhook
     Then the response matches case "PAY22-10"
-      | Field        | Value                    |
-      | HTTPStatuses | 503                      |
-      | ContentType  | application/problem+json |
-      | Code         | webhook_retry            |
+      | Field                  | Value                                 |
+      | HTTPStatuses           | 503                                   |
+      | ContentType            | application/problem+json              |
+      | Code                   | webhook_retry                         |
+      | JSON.type              | "about:blank"                         |
+      | JSON.title             | "Service Unavailable"                 |
+      | JSON.status            | 503                                   |
+      | JSON.detail            | "Webhook processing must be retried." |
+      | JSON.instance          | "/payments/webhooks/stripe"           |
+      | JSON.errors            | []                                    |
+      | JSON.missingProperties | []                                    |
     And the current payment is "Pending" at version 2
     And the webhook receipt is "pending"
+    And the complete lifecycle receipt is
+      | Field               | Value              |
+      | _id                 | {event.id}         |
+      | event_type          | {event.type}       |
+      | payload_digest      | {request.sha256}   |
+      | outcome             | "succeeded"        |
+      | payment_id          | {event.payment_id} |
+      | order_id            | {event.order_id}   |
+      | attempt_id          | {event.attempt_id} |
+      | amount_minor        | 1299               |
+      | currency            | "PLN"              |
+      | session_id          | {event.session_id} |
+      | provider_payment_id | "pi_fixture"       |
+      | state               | "pending"          |
+      | reason              | null               |
+      | received_at         | {request.window}   |
+      | completed_at        | null               |
+      | fulfillment_status  | null               |
+    And webhook processing changes exactly this state
+      | Field                   | Value              |
+      | Status                  | pending            |
+      | Version                 | 2                  |
+      | SessionId               | {event.session_id} |
+      | ProviderPaymentId       | null               |
+      | FailureCode             | null               |
+      | NewArchives             | 0                  |
+      | NewReceipts             | 1                  |
+      | ExternalCalls           | 0                  |
+      | ControlledInterruptions | 0                  |
+    And the complete payment read after webhook is
+      | Field               | Value               |
+      | id                  | {stored.id}         |
+      | order_id            | {order.id}          |
+      | amount_minor        | 1299                |
+      | currency            | "PLN"               |
+      | status              | "pending"           |
+      | provider_session_id | {stored.session_id} |
+      | provider_payment_id | null                |
+      | failure_code        | null                |
+      | created_at          | {stored.created_at} |
+      | updated_at          | {stored.updated_at} |
 
   Scenario: PAY22-11 Redelivery finishes an interrupted receipt
     A previous webhook attempt left a pending receipt after interruption. Redelivery finishes the payment transition and schedules durable fulfillment.
@@ -297,6 +598,7 @@ Feature: Verified checkout notifications and durable receipt
     And a signed checkout event "paid"
     And webhook processing fails once after receipt
     And the checkout webhook was delivered
+    And I remember complete webhook lifecycle state
     When I deliver the checkout webhook
     Then the response matches case "PAY22-11"
       | Field         | Value            |
@@ -306,6 +608,47 @@ Feature: Verified checkout notifications and durable receipt
       | JSON.received | true             |
     And the current payment is "Succeeded" at version 3
     And webhook work is persisted for fulfillment
+    And the complete lifecycle receipt is
+      | Field               | Value                |
+      | _id                 | {event.id}           |
+      | event_type          | {event.type}         |
+      | payload_digest      | {request.sha256}     |
+      | outcome             | "succeeded"          |
+      | payment_id          | {event.payment_id}   |
+      | order_id            | {event.order_id}     |
+      | attempt_id          | {event.attempt_id}   |
+      | amount_minor        | 1299                 |
+      | currency            | "PLN"                |
+      | session_id          | {event.session_id}   |
+      | provider_payment_id | "pi_fixture"         |
+      | state               | "applied"            |
+      | reason              | "payment_succeeded"  |
+      | received_at         | {before.received_at} |
+      | completed_at        | {request.window}     |
+      | fulfillment_status  | "pending"            |
+    And webhook processing changes exactly this state
+      | Field                   | Value              |
+      | Status                  | succeeded          |
+      | Version                 | 3                  |
+      | SessionId               | {event.session_id} |
+      | ProviderPaymentId       | "pi_fixture"       |
+      | FailureCode             | null               |
+      | NewArchives             | 1                  |
+      | NewReceipts             | 0                  |
+      | ExternalCalls           | 0                  |
+      | ControlledInterruptions | 0                  |
+    And the complete payment read after webhook is
+      | Field               | Value               |
+      | id                  | {stored.id}         |
+      | order_id            | {order.id}          |
+      | amount_minor        | 1299                |
+      | currency            | "PLN"               |
+      | status              | "succeeded"         |
+      | provider_session_id | {stored.session_id} |
+      | provider_payment_id | "pi_fixture"        |
+      | failure_code        | null                |
+      | created_at          | {stored.created_at} |
+      | updated_at          | {stored.updated_at} |
 
   Scenario: PAY22-12 Unconfigured webhook verification is unavailable
     Webhook verification has no configured signing secret. The API returns webhook_disabled without recording a receipt for the request.
@@ -466,6 +809,7 @@ Feature: Verified checkout notifications and durable receipt
       | TotalCurrency | PLN                                  |
     And a checkout created through the API
     And a signed checkout event "unpaid"
+    And I remember complete webhook lifecycle state
     When I deliver the checkout webhook
     Then the response matches case "PAY22-15"
       | Field         | Value            |
@@ -474,6 +818,47 @@ Feature: Verified checkout notifications and durable receipt
       | Code          | -                |
       | JSON.received | true             |
     And the current payment is "Pending" at version 2
+    And the complete lifecycle receipt is
+      | Field               | Value              |
+      | _id                 | {event.id}         |
+      | event_type          | {event.type}       |
+      | payload_digest      | {request.sha256}   |
+      | outcome             | "waiting"          |
+      | payment_id          | {event.payment_id} |
+      | order_id            | {event.order_id}   |
+      | attempt_id          | {event.attempt_id} |
+      | amount_minor        | 1299               |
+      | currency            | "PLN"              |
+      | session_id          | {event.session_id} |
+      | provider_payment_id | "pi_fixture"       |
+      | state               | "ignored"          |
+      | reason              | "awaiting_payment" |
+      | received_at         | {request.window}   |
+      | completed_at        | {request.window}   |
+      | fulfillment_status  | null               |
+    And webhook processing changes exactly this state
+      | Field                   | Value              |
+      | Status                  | pending            |
+      | Version                 | 2                  |
+      | SessionId               | {event.session_id} |
+      | ProviderPaymentId       | null               |
+      | FailureCode             | null               |
+      | NewArchives             | 0                  |
+      | NewReceipts             | 1                  |
+      | ExternalCalls           | 0                  |
+      | ControlledInterruptions | 0                  |
+    And the complete payment read after webhook is
+      | Field               | Value               |
+      | id                  | {stored.id}         |
+      | order_id            | {order.id}          |
+      | amount_minor        | 1299                |
+      | currency            | "PLN"               |
+      | status              | "pending"           |
+      | provider_session_id | {stored.session_id} |
+      | provider_payment_id | null                |
+      | failure_code        | null                |
+      | created_at          | {stored.created_at} |
+      | updated_at          | {stored.updated_at} |
 
   Scenario: PAY22-16 New checkout enables both card and BLIK
     A payable order starts a new hosted checkout. The actual Stripe SDK request enables both card and BLIK payment methods.
@@ -503,7 +888,7 @@ Feature: Verified checkout notifications and durable receipt
       | payment.amount_minor        | 1299                                   |
       | payment.currency            | "PLN"                                  |
       | payment.status              | "pending"                              |
-      | payment.provider_session_id | {stored.provider_session_id}                  |
+      | payment.provider_session_id | {stored.provider_session_id}           |
       | payment.provider_payment_id | null                                   |
       | payment.failure_code        | null                                   |
       | payment.created_at          | {stored.created_at}                    |

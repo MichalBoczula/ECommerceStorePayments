@@ -46,6 +46,7 @@ from tests.acceptance.checkout_recovery_checks import CheckoutRecoveryChecks
 from tests.acceptance.evidence import EvidenceClient, ScenarioEvidence, table_values
 from tests.acceptance.payment_checks import PaymentChecks
 from tests.acceptance.retry_checks import RetryChecks
+from tests.acceptance.webhook_lifecycle_checks import WebhookLifecycleChecks
 from tests.acceptance.webhook_verification_checks import WebhookVerificationChecks
 from tests.unit.external_providers.test_stripe_checkout import StripeTransport
 from tests.webhook_fixtures import WEBHOOK_SECRET
@@ -644,3 +645,56 @@ def unknown_verification_receipt(verification_checks: WebhookVerificationChecks,
 @then("the paid verification digest is")
 def paid_verification_digest(verification_checks: WebhookVerificationChecks, datatable: list[list[str]]) -> None:
     verification_checks.paid_control(table_values(datatable))
+
+
+@pytest.fixture
+def lifecycle_checks(payment_checks: PaymentChecks) -> WebhookLifecycleChecks:
+    return WebhookLifecycleChecks(payment_checks)
+
+
+@given("a lifecycle payment starts in")
+def lifecycle_start(lifecycle_checks: WebhookLifecycleChecks, datatable: list[list[str]]) -> None:
+    lifecycle_checks.start(table_values(datatable))
+
+
+@given("the lifecycle event is prepared")
+def lifecycle_event(lifecycle_checks: WebhookLifecycleChecks, datatable: list[list[str]]) -> None:
+    lifecycle_checks.prepare(table_values(datatable))
+
+
+@given("I remember complete webhook lifecycle state")
+def lifecycle_before(lifecycle_checks: WebhookLifecycleChecks) -> None:
+    lifecycle_checks.remember()
+
+
+@given("the lifecycle event was delivered")
+@when("I deliver the lifecycle event")
+def lifecycle_deliver(lifecycle_checks: WebhookLifecycleChecks) -> None:
+    lifecycle_checks.deliver()
+
+
+@then("the complete lifecycle receipt is")
+def lifecycle_receipt(lifecycle_checks: WebhookLifecycleChecks, datatable: list[list[str]]) -> None:
+    lifecycle_checks.receipt(table_values(datatable))
+
+
+@then("webhook processing changes exactly this state")
+def lifecycle_delta(lifecycle_checks: WebhookLifecycleChecks, datatable: list[list[str]]) -> None:
+    lifecycle_checks.delta(table_values(datatable))
+
+
+@then("the complete payment read after webhook is")
+def lifecycle_read(lifecycle_checks: WebhookLifecycleChecks, datatable: list[list[str]]) -> None:
+    lifecycle_checks.read(table_values(datatable))
+
+
+@given("lifecycle completion is interrupted")
+def lifecycle_interrupt(
+    lifecycle_checks: WebhookLifecycleChecks, datatable: list[list[str]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    lifecycle_checks.interrupt(table_values(datatable), monkeypatch)
+
+
+@then("durable webhook recovery runs with")
+def lifecycle_recover(lifecycle_checks: WebhookLifecycleChecks, datatable: list[list[str]]) -> None:
+    lifecycle_checks.recover(table_values(datatable))

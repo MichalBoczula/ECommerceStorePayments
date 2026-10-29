@@ -41,3 +41,12 @@ physical duplicate fields, including Stripe-Signature; each sensitive item is
 redacted. Publication validates shape, redaction and mapping agreement while
 preserving exchange/index association checks. The JSON remains an ordinary
 Allure attachment within the existing immutable bundle format.
+
+## Receipt and replay evidence
+
+[PAY-BDD-08](../bdd-08-webhook-lifecycle.md) uses native tables for complete
+normalized receipts, stored-state deltas and public reads. Explicit controlled
+completion/conflict actions distinguish injected failures from actual committed
+transactions. Operator replay records actual processed/repeated results and
+full before/after collections; every HTTP delivery and supporting read keeps its
+own captured exchange. No new collector or application behavior is introduced.
