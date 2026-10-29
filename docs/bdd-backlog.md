@@ -9,7 +9,7 @@ selected LiveDocs refresh and Terraform deployment remain manual.
 - [x] **PAY-BDD-01 — Baseline and coverage guard.** Preserve the original 51 BDD
   and 89 ordinary Acceptance cases, existing suites and reproducible dependency
   inputs. Freeze scenario/runtime identities, guard operation/status/cause links,
-  classify the sixteen current gaps and reject tracked verification output.
+  classify the initial sixteen gaps and reject tracked verification output.
   See [baseline and verification](bdd-01-baseline.md).
 - [x] **PAY-BDD-02 — Shared BDD structure and evidence.** Readable descriptions,
   stable IDs, meaningful input/expected Gherkin tables and centralized immutable
