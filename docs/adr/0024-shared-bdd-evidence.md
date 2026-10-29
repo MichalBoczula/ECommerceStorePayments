@@ -32,3 +32,12 @@ Preserving full oversized-webhook bytes is intentional. Stable identities suppor
 later source/evidence joins; source flows remain declared metadata, with richer
 RAG links deferred to Task 15. Later packages extend body/state assertions without
 replacing the shared collector or weakening the baseline.
+
+## Physical header evidence
+
+[PAY-BDD-07](../bdd-07-webhook-verification.md) adds ordered `headerItems` to the
+current capture alongside the header mapping. API requests/responses preserve
+physical duplicate fields, including Stripe-Signature; each sensitive item is
+redacted. Publication validates shape, redaction and mapping agreement while
+preserving exchange/index association checks. The JSON remains an ordinary
+Allure attachment within the existing immutable bundle format.

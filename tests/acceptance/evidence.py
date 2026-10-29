@@ -50,6 +50,10 @@ def safe_headers(headers: Mapping[str, str]) -> dict[str, str]:
     return {key.lower(): "[redacted]" if key.lower() in sensitive else value for key, value in headers.items()}
 
 
+def safe_header_items(headers: list[tuple[str, str]]) -> list[list[str]]:
+    return [[key.lower(), safe_headers({key: value})[key.lower()]] for key, value in headers]
+
+
 @dataclass(frozen=True)
 class Exchange:
     number: int
@@ -102,6 +106,7 @@ class ScenarioEvidence:
         role: str,
         controlled: bool = False,
         attempt: str | None = None,
+        header_items: list[tuple[str, str]] | None = None,
     ) -> Exchange:
         parsed = urlsplit(url)
         with self._lock:
@@ -130,12 +135,21 @@ class ScenarioEvidence:
                 **metadata,
                 "kind": "request",
                 "headers": safe_headers(headers),
+                "headerItems": safe_header_items(list(headers.items()) if header_items is None else header_items),
                 "content": content_evidence(body, headers.get("content-type")),
             },
         )
         return exchange
 
-    def response(self, exchange: Exchange, status: int, headers: Mapping[str, str], body: bytes) -> None:
+    def response(
+        self,
+        exchange: Exchange,
+        status: int,
+        headers: Mapping[str, str],
+        body: bytes,
+        *,
+        header_items: list[tuple[str, str]] | None = None,
+    ) -> None:
         self.record(
             f"HTTP {exchange.number:03} response",
             {
@@ -143,6 +157,7 @@ class ScenarioEvidence:
                 "kind": "response",
                 "status": status,
                 "headers": safe_headers(headers),
+                "headerItems": safe_header_items(list(headers.items()) if header_items is None else header_items),
                 "content": content_evidence(body, headers.get("content-type")),
             },
         )
@@ -216,7 +231,7 @@ class EvidenceClient:
         path: str,
         *,
         content: bytes | None = None,
-        headers: dict[str, str] | None = None,
+        headers: dict[str, str] | list[tuple[str, str]] | None = None,
         attempt: str | None = None,
     ) -> Response:
         request = self.client.build_request(method, path, content=content, headers=headers)
@@ -228,10 +243,17 @@ class EvidenceClient:
             target="payments",
             role="api-concurrent" if attempt else "api",
             attempt=attempt,
+            header_items=request.headers.multi_items(),
         )
         try:
             response = self.client.send(request)
-            self.evidence.response(exchange, response.status_code, response.headers, response.read())
+            self.evidence.response(
+                exchange,
+                response.status_code,
+                response.headers,
+                response.read(),
+                header_items=response.headers.multi_items(),
+            )
             response.extensions["payments.bdd.exchangeId"] = json.loads(exchange.metadata)["exchangeId"]
             return response
         except BaseException as error:
@@ -243,7 +265,7 @@ class EvidenceClient:
         path: str,
         *,
         content: bytes | None = None,
-        headers: dict[str, str] | None = None,
+        headers: dict[str, str] | list[tuple[str, str]] | None = None,
         attempt: str | None = None,
     ) -> Response:
         return self.request("POST", path, content=content, headers=headers, attempt=attempt)

@@ -98,3 +98,48 @@ PAY06-15	POST /payments/{order_id}/checkout	recover a provider response with mis
 PAY06-16	POST /payments/{order_id}/checkout	recover a provider connection failure before acceptance	502	checkout_provider_error	STRIPE/1
 PAY06-17	POST /payments/{order_id}/checkout	preserve an existing payment when checkout is disabled	503	checkout_disabled	STRIPE/1
 PAY06-18	POST /payments/{order_id}/checkout	reject checkout for a succeeded payment without changes	409	checkout_unavailable	STRIPE/1
+PAY07-01	POST /payments/webhooks/stripe	reject an empty physical signature header	400	webhook_invalid	STRIPE/2
+PAY07-02	POST /payments/webhooks/stripe	reject a signature from another endpoint secret	400	webhook_invalid	STRIPE/2
+PAY07-03	POST /payments/webhooks/stripe	reject a noninteger signature timestamp	400	webhook_invalid	STRIPE/2
+PAY07-04	POST /payments/webhooks/stripe	reject a signature without a version-one digest	400	webhook_invalid	STRIPE/2
+PAY07-05	POST /payments/webhooks/stripe	reject an incorrect version-one digest	400	webhook_invalid	STRIPE/2
+PAY07-06	POST /payments/webhooks/stripe	reject a correctly signed timestamp older than the tolerance	400	webhook_invalid	STRIPE/2
+PAY07-07	POST /payments/webhooks/stripe	accept the inclusive three-hundred-second timestamp boundary	200	-	STRIPE/2
+PAY07-08	POST /payments/webhooks/stripe	accept one valid rotated digest within a single header	200	-	STRIPE/2
+PAY07-09	POST /payments/webhooks/stripe	reject two physical signature headers even when both are valid	400	webhook_invalid	STRIPE/2
+PAY07-10	POST /payments/webhooks/stripe	record the sdk acceptance of a future signed timestamp	200	-	STRIPE/2
+PAY07-11	POST /payments/webhooks/stripe	reject semantically equal json reencoded after signing	400	webhook_invalid	STRIPE/2
+PAY07-12	POST /payments/webhooks/stripe	reject correctly signed malformed json	400	webhook_invalid	STRIPE/2
+PAY07-13	POST /payments/webhooks/stripe	reject duplicate top-level json keys	400	webhook_invalid	STRIPE/2
+PAY07-14	POST /payments/webhooks/stripe	reject duplicate nested metadata keys	400	webhook_invalid	STRIPE/2
+PAY07-15	POST /payments/webhooks/stripe	reject signed invalid utf-8 bytes	400	webhook_invalid	STRIPE/2
+PAY07-16	POST /payments/webhooks/stripe	reject a signed json array root	400	webhook_invalid	STRIPE/2
+PAY07-17	POST /payments/webhooks/stripe	reject a signed json null root	400	webhook_invalid	STRIPE/2
+PAY07-18	POST /payments/webhooks/stripe	reject a signed empty body	400	webhook_invalid	STRIPE/2
+PAY07-19	POST /payments/webhooks/stripe	reject a live-mode event envelope	400	webhook_invalid	STRIPE/2
+PAY07-20	POST /payments/webhooks/stripe	reject an event from a connected account	400	webhook_invalid	STRIPE/2
+PAY07-21	POST /payments/webhooks/stripe	reject an organization-context event	400	webhook_invalid	STRIPE/2
+PAY07-22	POST /payments/webhooks/stripe	reject an incorrect envelope object kind	400	webhook_invalid	STRIPE/2
+PAY07-23	POST /payments/webhooks/stripe	reject an event identifier with only its prefix	400	webhook_invalid	STRIPE/2
+PAY07-24	POST /payments/webhooks/stripe	reject a live-mode checkout session	400	webhook_invalid	STRIPE/2
+PAY07-25	POST /payments/webhooks/stripe	reject a boolean checkout amount	400	webhook_invalid	STRIPE/2
+PAY07-26	POST /payments/webhooks/stripe	reject a floating-point checkout amount	400	webhook_invalid	STRIPE/2
+PAY07-27	POST /payments/webhooks/stripe	reject missing checkout metadata	400	webhook_invalid	STRIPE/2
+PAY07-28	POST /payments/webhooks/stripe	reject malformed attempt metadata uuid	400	webhook_invalid	STRIPE/2
+PAY07-29	POST /payments/webhooks/stripe	reject a zero attempt metadata uuid	400	webhook_invalid	STRIPE/2
+PAY07-30	POST /payments/webhooks/stripe	reject a client reference that differs from payment metadata	400	webhook_invalid	STRIPE/2
+PAY07-31	POST /payments/webhooks/stripe	reject a live session identifier in a test event	400	webhook_invalid	STRIPE/2
+PAY07-32	POST /payments/webhooks/stripe	reject a paid completion without a payment intent	400	webhook_invalid	STRIPE/2
+PAY07-33	POST /payments/webhooks/stripe	reject a non-pln webhook session	400	webhook_invalid	STRIPE/2
+PAY07-34	POST /payments/webhooks/stripe	reject subscription mode in a checkout notification	400	webhook_invalid	STRIPE/2
+PAY07-35	POST /payments/webhooks/stripe	reject an open session reported as completed	400	webhook_invalid	STRIPE/2
+PAY07-36	POST /payments/webhooks/stripe	reject an unsupported completion payment status	400	webhook_invalid	STRIPE/2
+PAY07-37	POST /payments/webhooks/stripe	reject a missing webhook media type	415	unsupported_media_type	STRIPE/2
+PAY07-38	POST /payments/webhooks/stripe	reject a json suffix media type for this endpoint	415	unsupported_media_type	STRIPE/2
+PAY07-39	POST /payments/webhooks/stripe	accept application-json media with case and charset	200	-	STRIPE/2
+PAY07-40	POST /payments/webhooks/stripe	accept exactly one mebibyte of signed json bytes	200	-	STRIPE/2
+PAY07-41	POST /payments/webhooks/stripe	accept original multibyte utf-8 event bytes	200	-	STRIPE/2
+PAY07-42	POST /payments/webhooks/stripe	accept the maximum event identifier length	200	-	STRIPE/2
+PAY07-43	POST /payments/webhooks/stripe	reject an event identifier one character too long	400	webhook_invalid	STRIPE/2
+PAY07-44	POST /payments/webhooks/stripe	reject a webhook amount below the supported minimum	400	webhook_invalid	STRIPE/2
+PAY07-45	POST /payments/webhooks/stripe	reject a webhook amount above the supported maximum	400	webhook_invalid	STRIPE/2

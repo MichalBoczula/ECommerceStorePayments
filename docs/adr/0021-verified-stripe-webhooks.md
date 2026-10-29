@@ -39,3 +39,12 @@ The separate sandbox card workflow uses a checksum-pinned Stripe CLI and its Che
 - Reusing changed parameters under existing idempotency keys: rejected; request version preserves safe migration to card/BLIK.
 
 References: [Stripe webhooks](https://docs.stripe.com/webhooks), [Checkout fulfillment](https://docs.stripe.com/checkout/fulfillment), [BLIK](https://docs.stripe.com/payments/blik), [API idempotency](https://docs.stripe.com/api/idempotent_requests).
+
+## Verification boundary evidence
+
+[PAY-BDD-07](../bdd-07-webhook-verification.md) verifies original signed bytes,
+physical header multiplicity, the real SDK age rule, JSON/UTF-8/snapshot contracts
+and media/size boundaries with complete unchanged rejected state. The pinned SDK
+accepts future signed timestamps; these scenarios describe that policy accurately.
+Accepted boundary controls retain exact received-byte receipt digests. Complete
+receipt lifecycle/replay evidence remains PAY-BDD-08. No runtime policy changes.
