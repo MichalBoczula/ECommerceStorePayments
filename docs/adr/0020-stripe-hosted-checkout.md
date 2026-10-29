@@ -43,3 +43,11 @@ Keep return URLs, API version, SDK behavior and request parameters unchanged whi
 - Confirm payment from Checkout return/retrieval: skips the verified webhook state policy.
 
 References: [Checkout creation](https://docs.stripe.com/api/checkout/sessions/create), [idempotency](https://docs.stripe.com/api/idempotent_requests), [currency rules](https://docs.stripe.com/currencies), [Stripe Python](https://github.com/stripe/stripe-python).
+
+## Checkout success evidence
+
+[PAY-BDD-05](../bdd-05-checkout-success.md) verifies complete nested HTTP responses,
+actual SDK form/headers and persisted attempt idempotency, complete state/history
+effects and unchanged open/complete/expired session reads. New reservations keep
+request version 2 with card and BLIK. This adds controlled-boundary documentation
+evidence without changing provider policy or claiming real hosted payment execution.

@@ -40,6 +40,7 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database 
 from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.payment_repository import (
     MongoPaymentRepository,
 )
+from tests.acceptance.checkout_checks import CheckoutChecks
 from tests.acceptance.evidence import EvidenceClient, ScenarioEvidence, table_values
 from tests.acceptance.payment_checks import PaymentChecks
 from tests.acceptance.retry_checks import RetryChecks
@@ -197,7 +198,8 @@ class AcceptanceStripeTransport(StripeTransport):
     def __init__(self, evidence: ScenarioEvidence) -> None:
         self.evidence = evidence
         super().__init__(CheckoutRequest(uuid4(), uuid4(), uuid4(), Money(1299, "PLN")))
-        self.sessions: dict[str, dict[str, object]] = {}
+        self.sessions: dict[str, dict[str, Any]] = {}
+        self.exchange_ids: list[str] = []
         self.mode = "ok"
 
     async def request_async(
@@ -208,6 +210,7 @@ class AcceptanceStripeTransport(StripeTransport):
         exchange = self.evidence.begin(
             method, url, captured_headers, body, target="stripe", role="provider-boundary", controlled=True
         )
+        self.exchange_ids.append(json.loads(exchange.metadata)["exchangeId"])
         try:
             response = await self._respond(method, url, headers, post_data)
             payload, status, response_headers = response
@@ -231,6 +234,7 @@ class AcceptanceStripeTransport(StripeTransport):
             candidate = {
                 **self.payload,
                 "id": f"cs_test_{metadata['attempt_id']}",
+                "url": f"https://checkout.stripe.com/c/pay/cs_test_{metadata['attempt_id']}",
                 "amount_total": int(body["line_items[0][price_data][unit_amount]"][0]),
                 "client_reference_id": body["client_reference_id"][0],
                 "metadata": metadata,
@@ -470,3 +474,52 @@ def repeat_retry(retry_checks: RetryChecks) -> None:
 @then("a later failed attempt is retried without changing older snapshots")
 def later_retry(retry_checks: RetryChecks, datatable: list[list[str]]) -> None:
     retry_checks.later_cycle(table_values(datatable))
+
+
+@pytest.fixture
+def checkout_checks(payment_checks: PaymentChecks) -> CheckoutChecks:
+    return CheckoutChecks(payment_checks)
+
+
+@given("I remember checkout state and provider calls")
+def remember_checkout(checkout_checks: CheckoutChecks) -> None:
+    checkout_checks.remember()
+
+
+@given("the hosted checkout return URLs are")
+def checkout_return_urls(acceptance: AcceptanceContext, datatable: list[list[str]]) -> None:
+    values = table_values(datatable)
+    assert values.keys() == {"SuccessUrl", "CancelUrl"}
+    acceptance.settings.stripe_success_url = values["SuccessUrl"]
+    acceptance.settings.stripe_cancel_url = values["CancelUrl"]
+    acceptance.evidence.observation("Checkout return URLs", values)
+
+
+@given("the existing provider session returns")
+def provider_session_state(checkout_checks: CheckoutChecks, datatable: list[list[str]]) -> None:
+    values = table_values(datatable)
+    assert values.keys() == {"Status", "ExpiresAt"}
+    assert values["Status"] in {"open", "complete", "expired"}
+    provider = checkout_checks.provider()
+    provider.update(status=values["Status"], expires_at=int(values["ExpiresAt"]))
+    checkout_checks.context.evidence.observation("Controlled provider session", {"inputs": values, "session": provider})
+
+
+@then("the complete checkout response is")
+def complete_checkout(checkout_checks: CheckoutChecks, datatable: list[list[str]]) -> None:
+    checkout_checks.complete(table_values(datatable))
+
+
+@then("only this checkout is created with this provider request")
+def created_checkout(checkout_checks: CheckoutChecks, datatable: list[list[str]]) -> None:
+    checkout_checks.created(table_values(datatable))
+
+
+@then("checkout reads only the existing provider session without writes")
+def retrieved_checkout(checkout_checks: CheckoutChecks) -> None:
+    checkout_checks.retrieved()
+
+
+@then("repeated checkout keeps the complete response and durable state")
+def repeat_checkout(checkout_checks: CheckoutChecks, datatable: list[list[str]]) -> None:
+    checkout_checks.repeat(table_values(datatable))

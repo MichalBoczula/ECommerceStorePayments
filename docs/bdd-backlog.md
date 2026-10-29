@@ -21,8 +21,9 @@ selected LiveDocs refresh and Terraform deployment remain manual.
 - [x] **PAY-BDD-04 — Retries and history.** Failed/Canceled retries, provider
   resets, versions, immutable snapshots, legacy records and rejected-state retention.
   See [retries and history](bdd-04-retries-history.md).
-- [ ] **PAY-BDD-05 — Checkout success.** Complete nested responses, provider
+- [x] **PAY-BDD-05 — Checkout success.** Complete nested responses, provider
   request/idempotency parameters, card/BLIK and repeated-session behavior.
+  See [checkout success](bdd-05-checkout-success.md).
 - [ ] **PAY-BDD-06 — Checkout failure and recovery.** Rejection, ambiguous
   timeouts, interrupted persistence, legacy attempts, age and request-version limits.
 - [ ] **PAY-BDD-07 — Webhook verification.** Actual signed bytes/headers,
