@@ -132,8 +132,8 @@ class CheckoutRecoveryChecks:
         self.recovery_exchange: str | None = None
         self.comparison_now: datetime | None = None
 
-    def remember(self) -> None:
-        self.payments.remember()
+    def remember(self, observation_name: str = "Payment collections before") -> None:
+        self.payments.remember(observation_name)
         self.before_sessions = deepcopy(self.context.stripe.sessions)
 
     def earlier_problem(self, authored: dict[str, str]) -> None:

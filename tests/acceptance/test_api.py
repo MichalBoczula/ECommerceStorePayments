@@ -96,7 +96,7 @@ def existing_checkout(acceptance: AcceptanceContext) -> None:
 
 @given("an ambiguous checkout timeout")
 def checkout_timeout(acceptance: AcceptanceContext, recovery_checks: CheckoutRecoveryChecks) -> None:
-    recovery_checks.remember()
+    recovery_checks.remember("Initial checkout collections before")
     acceptance.stripe.mode = "timeout_once"
     acceptance.send("POST", f"/payments/{acceptance.orders.order_id}/checkout")
     assert acceptance.responses[0].status_code == 504

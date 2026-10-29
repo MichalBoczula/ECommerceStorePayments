@@ -204,7 +204,7 @@ class PaymentChecks:
             )
             output["payment"] = lossless(context.payments.find_one({"order_id": context.orders.order_id}))
 
-    def remember(self) -> None:
+    def remember(self, observation_name: str = "Payment collections before") -> None:
         context = self.context
         self.before = self.snapshot()
         target = self.target(self.before)
@@ -214,7 +214,7 @@ class PaymentChecks:
             assert response.status_code == 200
             self.before_body = response.json()
         context.evidence.observation(
-            "Payment collections before",
+            observation_name,
             {"collections": lossless(self.before), "body": self.before_body, "externalCallCounts": self.external_calls},
         )
 
