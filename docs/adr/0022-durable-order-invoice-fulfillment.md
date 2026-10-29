@@ -34,3 +34,17 @@ Local `file://` invoice storage and current authentication limitations remain. C
 - Add a broker now: the existing atomic ledger and independently scheduled worker meet the MVP's recovery needs.
 
 References: [Stripe fulfillment](https://docs.stripe.com/checkout/fulfillment), [Container Apps Jobs](https://learn.microsoft.com/azure/container-apps/jobs), [Invoice recovery ADR](https://github.com/MichalBoczula/ECommerceStoreInvoice/blob/master/docs/adr/0003-invoice-pdf-and-recovery.md).
+
+## Complete BDD evidence
+
+[PAY-BDD-09](../bdd-09-fulfillment-recovery.md) authors all optional work fields
+with explicit absence/null semantics, real due retries, complete isolation and
+exact HTTP operation sequences. Controlled completion-boundary faults and
+physical-versus-adapter exchange mappings make acknowledgement loss explicit.
+Four new cases use the separately pinned published Invoice revision
+`d28dd23c14dee519ac753da6fe2c32289581ca3e` / digest
+`sha256:6e9244804a2645f8aecaff89f60cff03337a94b70ca877195e585c678f2d996a`
+(Invoice CI 40908053521) for the newer PDF endpoint, real storage failure/repair,
+latest client-data selection and stored/downloaded PDF byte identity. Existing
+older-image compatibility verification and production selections are preserved.
+No runtime policy changes are introduced.

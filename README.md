@@ -251,6 +251,12 @@ outcomes, stale attempts, duplicates and signed event-ID collisions. Fresh app
 redelivery and credential-free operator replay recover durable work with complete
 payment reads and no downstream calls.
 
+The [fulfillment recovery scenarios](docs/bdd-09-fulfillment-recovery.md) verify
+complete durable progress, retry timing, Paid/invoice acknowledgement recovery,
+exact downstream operations and unchanged Payment/history state. Four scenarios
+also exercise the published Invoice service and download its actual stored PDFs,
+including recovery from a real PDF storage failure.
+
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated
 source projection. CI retains `payments-openapi` and supplies all four JSON files

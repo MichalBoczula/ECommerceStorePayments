@@ -178,3 +178,39 @@ PAY08-32	POST /payments/webhooks/stripe	an operator ignores pending work from an
 PAY08-33	POST /payments/webhooks/stripe	redelivery recovers an acknowledgement lost after commit	503	webhook_retry	STRIPE/2
 PAY08-34	POST /payments/webhooks/stripe	reload once after a controlled stale version	200	-	STRIPE/2
 PAY08-35	POST /payments/webhooks/stripe	leave durable work after exhausting conflict retries	503	webhook_retry	STRIPE/2
+PAY09-01	POST /payments/webhooks/stripe	use authoritative paid state without another paid write	200	-	STRIPE/3
+PAY09-02	POST /payments/webhooks/stripe	preserve the version of an existing completed invoice	200	-	STRIPE/3
+PAY09-03	POST /payments/webhooks/stripe	recover an unavailable order read when its retry becomes due	200	-	STRIPE/3
+PAY09-04	POST /payments/webhooks/stripe	keep a rejected paid write retryable until paid is confirmed	200	-	STRIPE/3
+PAY09-05	POST /payments/webhooks/stripe	reject a successful paid response without authoritative paid state	200	-	STRIPE/3
+PAY09-06	POST /payments/webhooks/stripe	reconcile a paid commit followed by a conflict acknowledgement	200	-	STRIPE/3
+PAY09-07	POST /payments/webhooks/stripe	recover an invoice reservation conflict after paid progress	200	-	STRIPE/3
+PAY09-08	POST /payments/webhooks/stripe	recover after missing client data is repaired upstream	200	-	STRIPE/3
+PAY09-09	POST /payments/webhooks/stripe	recover an unavailable invoice lookup without repeating paid	200	-	STRIPE/3
+PAY09-10	POST /payments/webhooks/stripe	block unauthorized invoice lookup with safe durable state	200	-	STRIPE/3
+PAY09-11	POST /payments/webhooks/stripe	block unauthorized invoice creation after completed-only reconciliation	200	-	STRIPE/3
+PAY09-12	POST /payments/webhooks/stripe	block an unauthorized order read before downstream writes	200	-	STRIPE/3
+PAY09-13	POST /payments/webhooks/stripe	block an authoritative order with different exact money	200	-	STRIPE/3
+PAY09-14	POST /payments/webhooks/stripe	block a canceled authoritative order without undoing payment	200	-	STRIPE/3
+PAY09-15	POST /payments/webhooks/stripe	reject completed invoice metadata for another order	200	-	STRIPE/3
+PAY09-16	POST /payments/webhooks/stripe	reject a zero client data version in completed metadata	200	-	STRIPE/3
+PAY09-17	POST /payments/webhooks/stripe	block historical work referring to a missing payment	200	-	STRIPE/3
+PAY09-18	POST /payments/webhooks/stripe	block historical work referring to another attempt	200	-	STRIPE/3
+PAY09-19	POST /payments/webhooks/stripe	block ownership changes after paid progress	200	-	STRIPE/3
+PAY09-20	POST /payments/webhooks/stripe	block regressed created state after paid progress	200	-	STRIPE/3
+PAY09-21	POST /payments/webhooks/stripe	do not claim invoice retry one millisecond before its deadline	200	-	STRIPE/3
+PAY09-22	POST /payments/webhooks/stripe	persist the third retry exponential delay	200	-	STRIPE/3
+PAY09-23	POST /payments/webhooks/stripe	cap the eighth retry delay at one hour	200	-	STRIPE/3
+PAY09-24	POST /payments/webhooks/stripe	exhaust the tenth real retry into failed work	200	-	STRIPE/3
+PAY09-25	POST /payments/webhooks/stripe	reject an over-limit historical attempt before downstream calls	200	-	STRIPE/3
+PAY09-26	POST /payments/webhooks/stripe	recover a local paid before persistence interruption	200	-	STRIPE/3
+PAY09-27	POST /payments/webhooks/stripe	recover a local paid after persistence interruption	200	-	STRIPE/3
+PAY09-28	POST /payments/webhooks/stripe	recover a local complete before persistence interruption	200	-	STRIPE/3
+PAY09-29	POST /payments/webhooks/stripe	keep committed completion after a lost local acknowledgement	200	-	STRIPE/3
+PAY09-30	POST /payments/webhooks/stripe	resume repaired failed work while preserving paid progress	200	-	STRIPE/3
+PAY09-31	POST /payments/webhooks/stripe	leave exhausted work untouched without explicit resume	200	-	STRIPE/3
+PAY09-32	POST /payments/webhooks/stripe	reconcile malformed create acknowledgement against a completed lookup	200	-	STRIPE/3
+PAY09-33	POST /payments/webhooks/stripe	complete a published invoice and download its real pdf	200	-	STRIPE/3
+PAY09-34	POST /payments/webhooks/stripe	recover a lost real paid acknowledgement	200	-	STRIPE/3
+PAY09-35	POST /payments/webhooks/stripe	recover a lost real invoice creation acknowledgement	200	-	STRIPE/3
+PAY09-36	POST /payments/webhooks/stripe	recover a real pdf storage failure after paid	200	-	STRIPE/3

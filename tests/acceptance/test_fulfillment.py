@@ -1,14 +1,17 @@
-import asyncio
-from datetime import UTC, datetime
-
+import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from ecommerce_store_payments.infrastructure.persistence.mongodb.fulfill_payments import run
 from tests.acceptance.conftest import AcceptanceContext
+from tests.acceptance.evidence import table_values
+from tests.acceptance.fulfillment_checks import FulfillmentChecks
+from tests.acceptance.real_invoice_fulfillment import RealInvoiceBoundary, prepare_real
+from tests.acceptance.real_invoice_fulfillment import real_invoice_boundary as real_invoice_boundary
 from tests.acceptance.test_api import matches_matrix
 from tests.webhook_fixtures import encode, signature
 
-scenarios("features/fulfillment.feature")
+scenarios(
+    "features/fulfillment.feature", "features/fulfillment_recovery.feature", "features/fulfillment_invoice.feature"
+)
 
 
 @then(parsers.parse('the response matches case "{case_id}"'))
@@ -69,17 +72,8 @@ def redeliver(acceptance: AcceptanceContext) -> None:
 
 
 @when("the durable fulfillment command runs")
-def fulfill(acceptance: AcceptanceContext) -> None:
-    with acceptance.evidence.action("Run durable fulfillment command", {"limit": 100}) as output:
-        asyncio.run(run(acceptance.settings, 100))
-        work = acceptance.webhooks.find_one({"_id": "evt_fulfillment"})
-        output.update(
-            fulfillmentStatus=work["fulfillment_status"] if work else None,
-            orderStatus=acceptance.orders.status,
-            invoiceId=str(acceptance.orders.invoice_id) if acceptance.orders.invoice_id else None,
-            paidWrites=acceptance.orders.paid_writes,
-            invoiceCreates=acceptance.orders.invoice_creates,
-        )
+def fulfill(fulfillment_checks: FulfillmentChecks, datatable: list[list[str]]) -> None:
+    fulfillment_checks.run_batch(table_values(datatable))
 
 
 @then("one paid order and one completed invoice are recorded")
@@ -107,8 +101,25 @@ def retry(acceptance: AcceptanceContext) -> None:
 
 
 @when("the invoice retry becomes due and the durable fulfillment command runs")
-def retry_due(acceptance: AcceptanceContext) -> None:
-    due = datetime.now(UTC)
-    with acceptance.evidence.action("Make persisted invoice retry due", {"nextAttempt": due.isoformat()}):
-        acceptance.webhooks.update_one({"_id": "evt_fulfillment"}, {"$set": {"fulfillment_next_attempt": due}})
-    fulfill(acceptance)
+def retry_due(fulfillment_checks: FulfillmentChecks, datatable: list[list[str]]) -> None:
+    fulfillment_checks.run_batch(table_values(datatable))
+
+
+@given("the published Invoice service is prepared")
+def published_invoice_setup(
+    fulfillment_checks: FulfillmentChecks,
+    real_invoice_boundary: RealInvoiceBoundary,
+    datatable: list[list[str]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    prepare_real(fulfillment_checks, real_invoice_boundary, table_values(datatable), monkeypatch)
+
+
+@then("the published PDF storage path is repaired")
+def published_storage_repair(real_invoice_boundary: RealInvoiceBoundary) -> None:
+    real_invoice_boundary.repair_storage()
+
+
+@then("the completed published invoice PDF is")
+def published_pdf(real_invoice_boundary: RealInvoiceBoundary, datatable: list[list[str]]) -> None:
+    real_invoice_boundary.pdf(table_values(datatable))
