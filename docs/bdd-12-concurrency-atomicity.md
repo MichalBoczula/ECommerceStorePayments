@@ -4,7 +4,7 @@ Task 12 adds **28 BDD cases** and strengthens the two original Pay/duplicate-web
 races while retaining all **342 previous scenario identities and matrix outcomes**.
 There are **370 BDD cases**, sixteen features, and 381 exported HTTP outcomes.
 All seven operations and **42/42 declared status pairs** retain scenario intent;
-there are no reviewed gaps. Forty-six negative evidence/source checks supplement
+there are no reviewed gaps. Fifty-four negative evidence/source checks supplement
 the ordinary suites. No application, API, persistence schema, dependency, image,
 workflow or security/coverage gate changes are required.
 
@@ -99,11 +99,13 @@ continue to supply that service-boundary evidence separately.
 
 ## Verification and scope
 
-The 46 new guards reject scope/header drift, blocking/unreleased coordination,
+The 54 new guards reject scope/header drift, blocking/unreleased coordination,
 missing arrivals, duplicate retry witnesses, changed participant/version/order,
 wrong conflict type/owner, incomplete winners, outside visibility and corruption
 of staged Payment/archive/receipt/unrelated state. Source checks require full
-native contracts and explicit actions for all 28 cases.
+native contracts and explicit actions for all 28 cases. Eight real-SDK regressions
+verify both participant labels and both success/expiry schedules cross payload
+validation before reaching the write gate.
 
 Full local/CI results and immutable archive/render evidence are recorded after
 verification. Docker is unavailable locally; actual MongoDB transaction/claim

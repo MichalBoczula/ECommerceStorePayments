@@ -16,7 +16,7 @@ from pytest_bdd.parser import FeatureParser
 from scripts.generate_operation_links import FEATURES
 
 from tests.acceptance.atomicity_checks import assert_staged_write
-from tests.acceptance.concurrency_checks import WriteGates, assert_schedule
+from tests.acceptance.concurrency_checks import WriteGates, assert_schedule, coordinated_payload
 from tests.acceptance.evidence import REQUEST_ATTEMPT, EvidenceClient, ScenarioEvidence, attempt_scope, table_values
 from tests.acceptance.payment_checks import Snapshot, lossless
 
@@ -383,3 +383,34 @@ def test_all_new_cases_author_full_contracts_and_explicit_real_actions() -> None
     assert kinds == dict(race=14, rollback=5, worker=9)
     source = (Path(__file__).parents[2] / "acceptance/concurrency_checks.py").read_text()
     assert "asyncio.sleep" not in source and "time.sleep" not in source
+
+
+@pytest.mark.parametrize("mode", ["webhook-success-first", "webhook-expiry-first"])
+@pytest.mark.parametrize("winner", ["first", "second"])
+@pytest.mark.parametrize("label", ["first", "second"])
+def test_race_events_cross_real_sdk_validation_before_any_write_gate(mode: str, winner: str, label: str) -> None:
+    from pydantic import SecretStr
+
+    from ecommerce_store_payments.application.payments.webhook import CheckoutOutcome
+    from ecommerce_store_payments.domain.aggregates.payments.payment import Payment
+    from ecommerce_store_payments.domain.aggregates.payments.value_objects.money import Money
+    from ecommerce_store_payments.infrastructure.clients.stripe.webhook_verifier import StripeWebhookVerifier
+    from ecommerce_store_payments.infrastructure.config.settings import Settings
+    from tests.webhook_fixtures import signature
+
+    payment = Payment.create(ORDER, Money(1299, "PLN"))
+    payment.begin_checkout(request_version=2)
+    payment.mark_as_pending("cs_test_coordinated")
+    body = coordinated_payload(payment, mode, label, winner)
+    expired = (mode == "webhook-expiry-first" and label == winner) or (
+        mode == "webhook-success-first" and label != winner
+    )
+    event = StripeWebhookVerifier(
+        Settings(environment="test", stripe_webhook_secret=SecretStr("whsec_fixture"))
+    ).verify(body, signature(body))
+    assert event.outcome is (CheckoutOutcome.EXPIRED if expired else CheckoutOutcome.SUCCEEDED)
+    assert event.checkout is not None and event.checkout.payment_id == payment.id
+    assert event.checkout.attempt_id == payment.checkout_attempt_id and event.checkout.money == payment.money
+    obj = json.loads(body)["data"]["object"]
+    assert obj["status"] == ("expired" if expired else "complete")
+    assert obj["payment_status"] == ("unpaid" if expired else "paid")

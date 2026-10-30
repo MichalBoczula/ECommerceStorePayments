@@ -159,6 +159,19 @@ def assert_schedule(
         assert lossless(stored) == {**proposed, "version": lossless(version if mode == "pay-create" else version + 1)}
 
 
+def coordinated_payload(payment: Payment, mode: str, label: str, winner: str) -> bytes:
+    assert mode in {"webhook-same", "webhook-distinct", "webhook-success-first", "webhook-expiry-first"}
+    assert label in {"first", "second"} and winner in {"first", "second"}
+    payload = payload_for(payment, event_id="evt_coordinated" if mode == "webhook-same" else f"evt_coordinated_{label}")
+    expires = (mode == "webhook-expiry-first" and label == winner) or (
+        mode == "webhook-success-first" and label != winner
+    )
+    if expires:
+        payload["type"] = "checkout.session.expired"
+        payload["data"]["object"].update(status="expired", payment_status="unpaid", payment_intent=None)
+    return encode(payload)
+
+
 class ConcurrencyChecks:
     def __init__(self, payments: PaymentChecks) -> None:
         self.payments, self.context = payments, payments.context
@@ -402,17 +415,9 @@ class ConcurrencyChecks:
             if existing:
                 body = self.context.webhook_payload
             else:
-                payload = payload_for(
-                    PaymentMapper.to_domain(cast(PaymentDocument, stored)),
-                    event_id="evt_coordinated" if self.mode == "webhook-same" else f"evt_coordinated_{label}",
+                body = coordinated_payload(
+                    PaymentMapper.to_domain(cast(PaymentDocument, stored)), self.mode, label, self.winner
                 )
-                expires = (self.mode == "webhook-expiry-first" and label == self.winner) or (
-                    self.mode == "webhook-success-first" and label == self.loser
-                )
-                if expires:
-                    payload["type"] = "checkout.session.expired"
-                    payload["data"]["object"].update(payment_status="unpaid", payment_intent=None)
-                body = encode(payload)
             self.payloads[label] = body
         if self.mode == "webhook-same":
             self.payloads["second"] = self.payloads["first"]
