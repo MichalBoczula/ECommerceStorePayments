@@ -32,9 +32,18 @@ def content_evidence(body: bytes, content_type: str | None) -> dict[str, Any]:
             value, body_format = raw, "text"
             if is_json:
                 try:
-                    value, body_format = json.loads(raw, parse_constant=reject_constant), "json"
+                    parsed = json.loads(raw, parse_constant=reject_constant)
                 except ValueError:
                     body_format = "invalid-json"
+                else:
+                    try:
+                        json.dumps(parsed, allow_nan=False)
+                    except ValueError:
+                        # A valid JSON exponent can exceed Python's finite float range.
+                        # Keep the original JSON text rather than emit Infinity in the envelope.
+                        value, body_format = raw, "json-number-text"
+                    else:
+                        value, body_format = parsed, "json"
         except UnicodeDecodeError:
             body_format = "invalid-text"
     return {

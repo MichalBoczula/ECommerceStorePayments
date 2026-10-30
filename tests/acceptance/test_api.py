@@ -42,6 +42,7 @@ scenarios(
     "features/webhook_verification.feature",
     "features/webhook_lifecycle.feature",
     "features/business_validation.feature",
+    "features/framework_failures.feature",
 )
 
 MATRIX_PATH = Path(__file__).resolve().parents[2] / "docs" / "acceptance-matrix.tsv"

@@ -270,3 +270,74 @@ PAY10-53	POST /payments/{order_id}/checkout	reject one pln minor unit below the 
 PAY10-54	POST /payments/{order_id}/checkout	accept the inclusive pln checkout minimum	200	-	PAY/22
 PAY10-55	POST /payments/{order_id}/checkout	accept the inclusive pln checkout maximum	200	-	PAY/22
 PAY10-56	POST /payments/{order_id}/checkout	reject one pln minor unit above the checkout maximum	409	checkout_money_unsupported	PAY/22
+PAY11-23	POST /health	reject post at the compatibility health alias	405	method_not_allowed	PAY/22
+PAY11-24	POST /health/ready	reject post at readiness	405	method_not_allowed	PAY/22
+PAY11-25	GET /payments/{order_id}/pay	reject get at pay	405	method_not_allowed	PAY/22
+PAY11-26	GET /payments/{order_id}/checkout	reject get at checkout	405	method_not_allowed	PAY/22
+PAY11-27	POST /payments/order/{order_id}	reject post at payment reads	405	method_not_allowed	PAY/22
+PAY11-28	GET /payments/webhooks/stripe	reject get at the stripe webhook	405	method_not_allowed	PAY/22
+PAY11-29	GET /health	hide an unexpected compatibility health failure	500	internal_error	PAY/22
+PAY11-30	GET /health/live	hide an unexpected liveness failure	500	internal_error	PAY/22
+PAY11-31	GET /health/ready	hide an unexpected failure after a real readiness probe	500	internal_error	PAY/22
+PAY11-32	POST /payments/{order_id}/pay	hide an unexpected pay delegation failure	500	internal_error	PAY/22
+PAY11-33	POST /payments/{order_id}/checkout	hide an unexpected checkout delegation failure	500	internal_error	PAY/22
+PAY11-34	GET /payments/order/{order_id}	hide an unexpected payment-read delegation failure	500	internal_error	PAY/22
+PAY11-35	POST /payments/webhooks/stripe	hide an unexpected failure after real webhook verification	500	internal_error	PAY/22
+PAY11-36	POST /payments/invalid-uuid/pay	reject a non-uuid route value at pay	400	invalid_request	PAY/22
+PAY11-37	POST /payments/11111111-1111-4111-8111-11111111111g/pay	reject an invalid hex uuid and private query at pay	400	invalid_request	PAY/22
+PAY11-38	POST /payments/invalid-uuid/checkout	reject a non-uuid route value at checkout	400	invalid_request	PAY/22
+PAY11-39	POST /payments/11111111-1111-4111-8111-11111111111g/checkout	reject an invalid hex uuid and private query at checkout	400	invalid_request	PAY/22
+PAY11-40	GET /payments/order/invalid-uuid	reject a non-uuid route value at payment reads	400	invalid_request	PAY/22
+PAY11-41	GET /payments/order/11111111-1111-4111-8111-11111111111g	reject an invalid hex uuid and private query at payment reads	400	invalid_request	PAY/22
+PAY11-42	POST /payments/{order_id}/pay	reject malformed json at pay	400	invalid_json	PAY/22
+PAY11-43	POST /payments/{order_id}/pay	reject json null at pay	400	invalid_request	PAY/22
+PAY11-44	POST /payments/{order_id}/pay	reject an object body at pay	400	invalid_request	PAY/22
+PAY11-45	POST /payments/{order_id}/pay	reject an array body at pay	400	invalid_request	PAY/22
+PAY11-46	POST /payments/{order_id}/pay	reject a string body at pay	400	invalid_request	PAY/22
+PAY11-47	POST /payments/{order_id}/pay	reject a numeric body at pay	400	invalid_request	PAY/22
+PAY11-48	POST /payments/{order_id}/pay	reject a boolean body at pay	400	invalid_request	PAY/22
+PAY11-49	POST /payments/{order_id}/pay	reject invalid utf-8 json bytes at pay	400	invalid_json	PAY/22
+PAY11-50	POST /payments/{order_id}/pay	reject a truncated json literal at pay	400	invalid_json	PAY/22
+PAY11-51	POST /payments/{order_id}/pay	reject trailing json garbage at pay	400	invalid_json	PAY/22
+PAY11-52	POST /payments/{order_id}/pay	reject a plain-text body at pay	415	unsupported_media_type	PAY/22
+PAY11-53	POST /payments/{order_id}/pay	reject a body without content type at pay	415	unsupported_media_type	PAY/22
+PAY11-54	POST /payments/{order_id}/pay	reject an xml body at pay	415	unsupported_media_type	PAY/22
+PAY11-55	POST /payments/{order_id}/pay	reject a vendor json body at pay	400	invalid_request	PAY/22
+PAY11-56	POST /payments/{order_id}/pay	reject mixed-case json with charset at pay	400	invalid_request	PAY/22
+PAY11-57	POST /payments/{order_id}/pay	reject a valid json exponent beyond float range at pay	400	invalid_request	PAY/22
+PAY11-58	POST /payments/{order_id}/pay	reject a unicode string body at pay	400	invalid_request	PAY/22
+PAY11-59	POST /payments/{order_id}/pay	reject malformed json at exactly 64 kib at pay	400	invalid_json	PAY/22
+PAY11-60	POST /payments/{order_id}/pay	reject one byte beyond 64 kib before parsing at pay	400	invalid_request	PAY/22
+PAY11-61	POST /payments/{order_id}/pay	reject a valid json string at exactly 64 kib at pay	400	invalid_request	PAY/22
+PAY11-62	POST /payments/{order_id}/checkout	reject malformed json at checkout	400	invalid_json	PAY/22
+PAY11-63	POST /payments/{order_id}/checkout	reject json null at checkout	400	invalid_request	PAY/22
+PAY11-64	POST /payments/{order_id}/checkout	reject an object body at checkout	400	invalid_request	PAY/22
+PAY11-65	POST /payments/{order_id}/checkout	reject an array body at checkout	400	invalid_request	PAY/22
+PAY11-66	POST /payments/{order_id}/checkout	reject a string body at checkout	400	invalid_request	PAY/22
+PAY11-67	POST /payments/{order_id}/checkout	reject a numeric body at checkout	400	invalid_request	PAY/22
+PAY11-68	POST /payments/{order_id}/checkout	reject a boolean body at checkout	400	invalid_request	PAY/22
+PAY11-69	POST /payments/{order_id}/checkout	reject invalid utf-8 json bytes at checkout	400	invalid_json	PAY/22
+PAY11-70	POST /payments/{order_id}/checkout	reject a truncated json literal at checkout	400	invalid_json	PAY/22
+PAY11-71	POST /payments/{order_id}/checkout	reject trailing json garbage at checkout	400	invalid_json	PAY/22
+PAY11-72	POST /payments/{order_id}/checkout	reject a plain-text body at checkout	415	unsupported_media_type	PAY/22
+PAY11-73	POST /payments/{order_id}/checkout	reject a body without content type at checkout	415	unsupported_media_type	PAY/22
+PAY11-74	POST /payments/{order_id}/checkout	reject an xml body at checkout	415	unsupported_media_type	PAY/22
+PAY11-75	POST /payments/{order_id}/checkout	reject a vendor json body at checkout	400	invalid_request	PAY/22
+PAY11-76	POST /payments/{order_id}/checkout	reject mixed-case json with charset at checkout	400	invalid_request	PAY/22
+PAY11-77	POST /payments/{order_id}/checkout	reject a valid json exponent beyond float range at checkout	400	invalid_request	PAY/22
+PAY11-78	POST /payments/{order_id}/checkout	reject a unicode string body at checkout	400	invalid_request	PAY/22
+PAY11-79	POST /payments/{order_id}/checkout	reject malformed json at exactly 64 kib at checkout	400	invalid_json	PAY/22
+PAY11-80	POST /payments/{order_id}/checkout	reject one byte beyond 64 kib before parsing at checkout	400	invalid_request	PAY/22
+PAY11-81	POST /payments/{order_id}/checkout	reject a valid json string at exactly 64 kib at checkout	400	invalid_request	PAY/22
+PAY11-82	POST /payments/webhooks/stripe	reject an empty signed webhook body	400	webhook_invalid	PAY/22
+PAY11-83	POST /payments/webhooks/stripe	reject a signed null webhook body	400	webhook_invalid	PAY/22
+PAY11-84	POST /payments/webhooks/stripe	reject a signed array webhook body	400	webhook_invalid	PAY/22
+PAY11-85	POST /payments/webhooks/stripe	reject malformed signed webhook json	400	webhook_invalid	PAY/22
+PAY11-86	POST /payments/webhooks/stripe	reject signed invalid utf-8 webhook bytes	400	webhook_invalid	PAY/22
+PAY11-87	POST /payments/webhooks/stripe	reject a webhook without content type	415	unsupported_media_type	PAY/22
+PAY11-88	POST /payments/webhooks/stripe	reject a vendor json webhook media type	415	unsupported_media_type	PAY/22
+PAY11-89	GET /framework-missing	hide the private query on an unknown route	404	route_not_found	PAY/22
+PAY11-90	POST /payments/{order_id}/pay/extra	reject an extra segment after a pay route	404	route_not_found	PAY/22
+PAY11-91	POST /payments/{order_id}/pay	accept pay without a request body	201	-	PAY/22
+PAY11-92	POST /payments/{order_id}/checkout	accept empty checkout before media validation	200	-	PAY/22
+PAY11-93	GET /payments/order/{order_id}	read a payment while ignoring an uncontracted null body	200	-	PAY/22

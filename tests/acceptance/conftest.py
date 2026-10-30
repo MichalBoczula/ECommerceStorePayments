@@ -48,6 +48,7 @@ from tests.acceptance.business_validation_checks import BusinessValidationChecks
 from tests.acceptance.checkout_checks import CheckoutChecks
 from tests.acceptance.checkout_recovery_checks import CheckoutRecoveryChecks
 from tests.acceptance.evidence import EvidenceClient, ScenarioEvidence, table_values
+from tests.acceptance.framework_checks import FrameworkChecks
 from tests.acceptance.fulfillment_checks import FulfillmentChecks
 from tests.acceptance.payment_checks import PaymentChecks
 from tests.acceptance.retry_checks import RetryChecks
@@ -791,3 +792,42 @@ def _business_profiles() -> dict[str, dict[str, Any]]:
 @then("the accepted business boundary remains stable")
 def business_repeat(business_checks: BusinessValidationChecks, datatable: list[list[str]]) -> None:
     business_checks.accepted_repeat(table_values(datatable))
+
+
+@pytest.fixture
+def framework_checks(payment_checks: PaymentChecks) -> FrameworkChecks:
+    return FrameworkChecks(payment_checks)
+
+
+@given("the framework request contains")
+def framework_request(framework_checks: FrameworkChecks, datatable: list[list[str]]) -> None:
+    framework_checks.prepare(table_values(datatable))
+
+
+@given("I remember populated framework state")
+def framework_remember(framework_checks: FrameworkChecks) -> None:
+    framework_checks.remember()
+
+
+@given("this framework failure is installed")
+def framework_fault(
+    framework_checks: FrameworkChecks, datatable: list[list[str]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    framework_checks.install_fault(table_values(datatable), monkeypatch)
+
+
+@when("I submit the prepared framework request")
+def framework_send(framework_checks: FrameworkChecks) -> None:
+    framework_checks.send()
+
+
+@then("framework rejection keeps this populated state and protocol")
+def framework_rejected(framework_checks: FrameworkChecks, datatable: list[list[str]]) -> None:
+    case_id = framework_checks.context.evidence.identity["scenarioId"]
+    assert isinstance(case_id, str)
+    framework_checks.rejected(_business_profiles()[case_id]["expected"], table_values(datatable))
+
+
+@then("the accepted framework input has these effects")
+def framework_accepted(framework_checks: FrameworkChecks, datatable: list[list[str]]) -> None:
+    framework_checks.accepted(table_values(datatable))
