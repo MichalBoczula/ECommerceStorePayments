@@ -498,7 +498,7 @@ Feature: Verified checkout notifications and durable receipt
       | updated_at          | {stored.updated_at} |
 
   Scenario: PAY22-09 Concurrent duplicate delivery commits once
-    Two identical signed webhook deliveries arrive concurrently. Both are acknowledged while payment and history record only one successful transition.
+    Both identical signed deliveries load the same Pending version and reach the real completion boundary before either transaction. The selected commit is fully retained; the repeated receipt adds no payment update, archive or fulfillment marker.
     Given the order fixture contains
       | Field         | Value                                |
       | OrderId       | 11111111-1111-4111-8111-111111111111 |
@@ -507,6 +507,10 @@ Feature: Verified checkout notifications and durable receipt
       | TotalCurrency | PLN                                  |
     And a checkout created through the API
     And a signed checkout event "paid"
+    And the real write schedule is
+      | Field  | Value        |
+      | Mode   | webhook-same |
+      | Winner | first        |
     When I deliver two checkout webhooks concurrently
     Then the response matches case "PAY22-09"
       | Field         | Value            |
@@ -516,6 +520,54 @@ Feature: Verified checkout notifications and durable receipt
       | JSON.received | true             |
     And the current payment is "Succeeded" at version 3
     And the database has 1 current payment and 3 history snapshots
+
+    And the coordinated database effects are
+      | Field         | Value     |
+      | Status        | succeeded |
+      | Version       | 3         |
+      | NewArchives   | 1         |
+      | NewReceipts   | 1         |
+      | OrdersCalls   | 0         |
+      | StripeCalls   | 0         |
+      | Conflicts     | 0         |
+      | SessionsAdded | 0         |
+    And the first coordinated receipt is
+      | Field               | Value                       |
+      | _id                 | {event.id}                  |
+      | event_type          | {event.type}                |
+      | payload_digest      | {request.sha256}            |
+      | outcome             | "succeeded"                 |
+      | payment_id          | {event.payment_id}          |
+      | order_id            | {event.order_id}            |
+      | attempt_id          | {event.attempt_id}          |
+      | amount_minor        | 1299                        |
+      | currency            | "PLN"                       |
+      | session_id          | {event.session_id}          |
+      | provider_payment_id | {event.provider_payment_id} |
+      | state               | "applied"                   |
+      | reason              | "payment_succeeded"         |
+      | received_at         | {request.window}            |
+      | completed_at        | {request.window}            |
+      | fulfillment_status  | "pending"                   |
+    And the second coordinated receipt is
+      | Field               | Value                       |
+      | _id                 | {event.id}                  |
+      | event_type          | {event.type}                |
+      | payload_digest      | {request.sha256}            |
+      | outcome             | "succeeded"                 |
+      | payment_id          | {event.payment_id}          |
+      | order_id            | {event.order_id}            |
+      | attempt_id          | {event.attempt_id}          |
+      | amount_minor        | 1299                        |
+      | currency            | "PLN"                       |
+      | session_id          | {event.session_id}          |
+      | provider_payment_id | {event.provider_payment_id} |
+      | state               | "applied"                   |
+      | reason              | "payment_succeeded"         |
+      | received_at         | {request.window}            |
+      | completed_at        | {request.window}            |
+      | fulfillment_status  | "pending"                   |
+    And supporting reads and repeats preserve the coordinated result
 
   Scenario: PAY22-10 Interrupted processing remains retryable
     Receipt completion fails once after accepting a signed checkout event. The API returns webhook_retry and leaves a pending durable receipt.

@@ -6,6 +6,7 @@ import json
 import re
 from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from threading import Lock
 from typing import Any, cast
@@ -15,6 +16,18 @@ import allure
 from fastapi.testclient import TestClient
 from httpx2 import Response
 from scripts.bdd_evidence import instance_id
+
+REQUEST_ATTEMPT: ContextVar[str | None] = ContextVar("bdd_request_attempt", default=None)
+
+
+@contextmanager
+def attempt_scope(attempt: str | None) -> Generator[None]:
+    """Propagate one actual request/worker identity through async provider calls."""
+    token = REQUEST_ATTEMPT.set(attempt)
+    try:
+        yield
+    finally:
+        REQUEST_ATTEMPT.reset(token)
 
 
 def content_evidence(body: bytes, content_type: str | None) -> dict[str, Any]:
@@ -134,7 +147,7 @@ class ScenarioEvidence:
                 "targetService": target,
                 "exchangeRole": role,
                 "controlledBoundary": controlled,
-                "requestAttempt": attempt,
+                "requestAttempt": attempt if attempt is not None else REQUEST_ATTEMPT.get(),
                 "method": method.upper(),
                 "path": parsed.path,
                 "query": parsed.query,
@@ -246,7 +259,22 @@ class EvidenceClient:
         headers: dict[str, str] | list[tuple[str, str]] | None = None,
         attempt: str | None = None,
     ) -> Response:
+        with attempt_scope(attempt if attempt is not None else REQUEST_ATTEMPT.get()):
+            return self._request(method, path, content=content, headers=headers, attempt=REQUEST_ATTEMPT.get())
+
+    def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        content: bytes | None,
+        headers: dict[str, str] | list[tuple[str, str]] | None,
+        attempt: str | None,
+    ) -> Response:
         request = self.client.build_request(method, path, content=content, headers=headers)
+        if attempt is not None:
+            assert request.headers.get("x-bdd-attempt", attempt) == attempt
+            request.headers["x-bdd-attempt"] = attempt
         exchange = self.evidence.begin(
             request.method,
             str(request.url),

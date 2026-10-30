@@ -341,3 +341,31 @@ PAY11-90	POST /payments/{order_id}/pay/extra	reject an extra segment after a pay
 PAY11-91	POST /payments/{order_id}/pay	accept pay without a request body	201	-	PAY/22
 PAY11-92	POST /payments/{order_id}/checkout	accept empty checkout before media validation	200	-	PAY/22
 PAY11-93	GET /payments/order/{order_id}	read a payment while ignoring an uncontracted null body	200	-	PAY/22
+PAY12-01	GET /payments/order/{order_id}	Keep the complete pending winner after a stale repository write	200	-	PAY/11
+PAY12-02	GET /payments/order/{order_id}	Keep the complete canceled winner after a stale repository write	200	-	PAY/11
+PAY12-03	POST /payments/{order_id}/pay x2	Let the first Pay insertion win after both reads were empty	200,201	-	PAY/9
+PAY12-04	POST /payments/{order_id}/pay x2	Let the second Pay insertion win after both reads were empty	200,201	-	PAY/9
+PAY12-05	POST /payments/{order_id}/pay x2	Retry one failed version once under competing Pay requests	200,200	-	PAY/9
+PAY12-06	POST /payments/{order_id}/pay x2	Retry one canceled version once under competing Pay requests	200,200	-	PAY/9
+PAY12-07	POST /payments/{order_id}/checkout x2	Keep the first Checkout reservation and one provider session	200,200	-	STRIPE/1
+PAY12-08	POST /payments/{order_id}/checkout x2	Keep the second Checkout reservation and one provider session	200,200	-	STRIPE/1
+PAY12-09	POST /payments/webhooks/stripe x2	Coordinate same deliveries with first first	200,200	-	STRIPE/2
+PAY12-10	POST /payments/webhooks/stripe x2	Coordinate same deliveries with second first	200,200	-	STRIPE/2
+PAY12-11	POST /payments/webhooks/stripe x2	Coordinate distinct deliveries with first first	200,200	-	STRIPE/2
+PAY12-12	POST /payments/webhooks/stripe x2	Coordinate distinct deliveries with second first	200,200	-	STRIPE/2
+PAY12-13	POST /payments/webhooks/stripe x2	Coordinate success-first deliveries with first first	200,200	-	STRIPE/2
+PAY12-14	POST /payments/webhooks/stripe x2	Coordinate expiry-first deliveries with second first	200,200	-	STRIPE/2
+PAY12-15	POST /payments/{order_id}/checkout	Abort checkout after the real payments.replace_one write	500	internal_error	STRIPE/1
+PAY12-16	POST /payments/{order_id}/checkout	Abort checkout after the real payment_history.insert_one write	500	internal_error	STRIPE/1
+PAY12-17	POST /payments/webhooks/stripe	Abort webhook after the real payments.replace_one write	503	webhook_retry	STRIPE/2
+PAY12-18	POST /payments/webhooks/stripe	Abort webhook after the real payment_history.insert_one write	503	webhook_retry	STRIPE/2
+PAY12-19	POST /payments/webhooks/stripe	Abort webhook after the real stripe_webhooks.replace_one write	503	webhook_retry	STRIPE/2
+PAY12-20	POST /payments/webhooks/stripe	Check claims at 0 milliseconds with worker-1	200	-	STRIPE/3
+PAY12-21	POST /payments/webhooks/stripe	Check claims at 0 milliseconds with worker-8	200	-	STRIPE/3
+PAY12-22	POST /payments/webhooks/stripe	Check lease-boundary at 299999 milliseconds with worker-1	200	-	STRIPE/3
+PAY12-23	POST /payments/webhooks/stripe	Check lease-boundary at 300000 milliseconds with worker-2	200	-	STRIPE/3
+PAY12-24	POST /payments/webhooks/stripe	Check lease-boundary at 300001 milliseconds with worker-2	200	-	STRIPE/3
+PAY12-25	POST /payments/webhooks/stripe	Check stale-save_order_paid at 300000 milliseconds with worker-2	200	-	STRIPE/3
+PAY12-26	POST /payments/webhooks/stripe	Check stale-complete at 300000 milliseconds with worker-2	200	-	STRIPE/3
+PAY12-27	POST /payments/webhooks/stripe	Check stale-fail at 300000 milliseconds with worker-2	200	-	STRIPE/3
+PAY12-28	POST /payments/webhooks/stripe	Check lease-expiry at 300000 milliseconds with worker-1	200	-	STRIPE/3
