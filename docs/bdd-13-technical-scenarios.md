@@ -40,5 +40,63 @@ first LiveDocs rollout stay open.
 
 ## Verification
 
-Implementation verification is in progress. The Task 13 backlog remains open
-until full CI and the complete raw/rendered artifact audit pass.
+[Implementation CI 41018107293](https://github.com/MichalBoczula/ECommerceStorePayments/actions/runs/41018107293)
+passes source/contract/wheel/security checks, all five suites, documentation and
+quality gates, real Mongo-backed container smoke, Trivy and the final gate.
+Frozen head: `74a9a103452d13aa82c83e37947d15fb92ca1b7d`;
+tested merge: `7cce68f438fb185429b04fdae3fe77d95b0c5f56`;
+exact tree: `422aed9dec71cba079e96e34091be0339b384ec1`.
+The tested merge has the merged Task 12 base and this source head as its parents,
+and its tree matches the source head exactly.
+
+- **1,717 passing executions, zero failures/skips:** Domain 134, Application 82,
+  Infrastructure 274, ExternalProviders 175, Acceptance 1,052 (**391 BDD + 661
+  ordinary**). All previous members remain; additions are 21 BDD and 57 ordinary
+  checks. There are **1,542 distinct members**, retaining the intentional
+  175-member provider overlap. All 370 previous Allure identities/descriptions
+  survive; four health cases gain steps and the other 366 retain their steps.
+- Domain/Application/Infrastructure coverage is 96.88% / 96.16% / 91.03%
+  with separate unchanged 70% floors. Provider/Acceptance coverage is
+  96.35% / 98.45%. Generated-client exclusions and all dependency,
+  image, workflow and security/coverage pins remain unchanged.
+- Seven official outer artifact digests and the complete archive inventory,
+  paths, sizes, hashes, sources, exports and JUnit checks pass. The frozen inner
+  bundle is **20,114,089 bytes**, SHA-256
+  `4a3dc527754478747ab353bc0466f50b49f83bf11446312b2c624caa87a3486b`,
+  with **16,609 entries** and **16,197 attachments**
+  (13,647 JSON, 2,533 native CSV tables,
+  four actual Invoice PDFs and thirteen expected-fault logs).
+- Allure 2.46.1 renders every case, authored description, ordered nested step and
+  attachment with bytes matching the raw evidence. Every rendered case,
+  attachment and entry asset passes local HTTP reads. All test identity fields
+  remain intact.
+- Independent native-table/wire/BSON audits verify all 21 new technical cases
+  and four strengthened health cases: exact HTML/schema/export bytes and headers,
+  real probe/ping counts, full populated state/indexes, owned same-container and
+  same-endpoint restart, actual standalone transaction failure, cancelled driver
+  and worker exchanges, complete active/recovered receipts, exact-expiry recovery,
+  one logical Paid mutation/invoice, actual resource closure, startup rejection
+  and targeted repair, two-database isolation, actual CLI limits/counts/stdout,
+  full batch changes and unchanged zero-work repeats. Commands/cancellations
+  retain actual outcomes without invented HTTP statuses.
+- All prior Task 3–12 semantic audits pass. Four Invoice PDFs match captured and
+  stored bytes; text extraction verifies invoice IDs, client/product and PLN
+  amounts. Thirteen expected-fault logs match real exception boundaries and
+  API trace IDs without fixture-key/auth leaks. Captures include
+  **4,654 HTTP pairs**, **4,638 completed responses**,
+  **16 intentional transport failures** and
+  **366 explicit action pairs**.
+- Locally, **1,116 unit tests pass**. Pinned sync/format/lint, strict Pyright,
+  architecture, links, seven-operation/381-outcome export, wheel build/install,
+  Markdown links and git checks pass. OpenAPI/flows/validation policies are
+  byte-identical to Task 12; named HTTP matrix rows are unchanged and operation
+  links add only the separate technical projection/current counts. Docker is
+  unavailable locally; CI supplies native Mongo/container/published Invoice proof.
+
+Task 13 is complete. The documentation-only completion head receives full CI and
+fresh archive/render/PDF audits before PR handoff. Frozen/final comparison requires
+identical JUnit/Allure identities, outcomes, descriptions, ordered steps, all
+seventeen features, four exports and every per-case attachment type count.
+PR image publication/Blob upload skip as designed. Main archival and the selected
+manual LiveDocs/Terraform refresh process remain unchanged. Tasks 14–16, overall
+PAY/22, hosted Stripe and the first LiveDocs rollout remain open.

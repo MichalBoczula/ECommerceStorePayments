@@ -45,8 +45,9 @@ selected LiveDocs refresh and Terraform deployment remain manual.
 - [x] **PAY-BDD-12 — Concurrency and atomicity.** Deterministic races, full
   winners, real rollback, competing claims, lease expiry and stale-worker fencing.
   See [concurrency and atomicity](bdd-12-concurrency-atomicity.md).
-- [ ] **PAY-BDD-13 — Technical scenarios.** Health/readiness, startup/index
+- [x] **PAY-BDD-13 — Technical scenarios.** Health/readiness, startup/index
   failure, cancellation, isolation, command limits and documentation endpoints.
+  See [technical scenarios](bdd-13-technical-scenarios.md).
 - [ ] **PAY-BDD-14 — Request/response contracts.** Source-derived types,
   presence/nullability/formats, descriptions/examples and captured-response checks.
 - [ ] **PAY-BDD-15 — Flows, rules and RAG links.** Stable identities and authored
