@@ -250,8 +250,8 @@ verify complete reservation/Pending archives and preserve unrelated orders.
 The [checkout recovery scenarios](docs/bdd-06-checkout-recovery.md) verify complete
 safe failures, durable reservations, exact request replay through a fresh app
 instance, interrupted persistence and lost commit acknowledgments, legacy request
-formats and the 23-hour age boundary. Actual checkout-500 evidence raises declared
-operation/status coverage to 27/42, with fifteen reviewed gaps remaining.
+formats and the 23-hour age boundary. Checkout-500 evidence is included; the later
+framework package closes all remaining declared status gaps.
 
 The [webhook verification scenarios](docs/bdd-07-webhook-verification.md) retain
 original signed bytes and physical header multiplicity, isolate signature/JSON/
@@ -322,6 +322,13 @@ snapshot; uploads alone do not update running reports. The existing reader secre
 and ECommerceStore.Terraform resources are sufficient. Payments needs no runtime
 Blob connection or Stripe configuration for documentation. See
 [ADR-0023](docs/adr/0023-livedocs-source-publication.md).
+
+The [final BDD audit](docs/bdd-16-final-audit.md) verifies all sixteen packages,
+original-case retention, 391 current BDD cases, complete captured evidence and
+every rendered attachment/resource. The
+[manual LiveDocs refresh handoff](docs/payments-livedocs-refresh.md) contains the
+exact archived main reference and separate manifest/image/Terraform steps.
+PAY/22 is complete; the selected LiveDocs rollout remains PAY/21.
 
 ## Generated API clients
 
