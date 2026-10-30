@@ -48,7 +48,7 @@ selected LiveDocs refresh and Terraform deployment remain manual.
 - [x] **PAY-BDD-13 — Technical scenarios.** Health/readiness, startup/index
   failure, cancellation, isolation, command limits and documentation endpoints.
   See [technical scenarios](bdd-13-technical-scenarios.md).
-- [ ] **PAY-BDD-14 — Request/response contracts.** Source-derived types,
+- [x] **PAY-BDD-14 — Request/response contracts.** Source-derived types,
   presence/nullability/formats, descriptions/examples and captured-response checks.
   See [request and response contracts](bdd-14-contracts.md).
 - [ ] **PAY-BDD-15 — Flows, rules and RAG links.** Stable identities and authored

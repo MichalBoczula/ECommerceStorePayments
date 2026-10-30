@@ -68,6 +68,50 @@ and manual LiveDocs refresh handoff.
 
 ## Verification
 
-Implementation validation is in progress. The Task 14 backlog remains open until
-full applicable CI and the raw/rendered evidence checks pass. Local Docker is
-unavailable; native Mongo/Invoice/container verification must come from CI.
+[Implementation CI 41039859462](https://github.com/MichalBoczula/ECommerceStorePayments/actions/runs/41039859462)
+passes all source, suite, security, packaging, real Mongo-backed container smoke,
+image scan and final gates. Frozen head: `d98df8925fc1df3522a0668b1ed4c8cd5fb11da4`;
+tested merge: `a8b3fb7d970ab5a5186dbbbe1545dba42147224e`;
+exact tree: `db3303c02821b034117845ecc80143fb9b9fe398`.
+
+- **1,793 passing suite executions, zero failures/skips:** Domain 134,
+  Application 82, Infrastructure 274, ExternalProviders 175 and Acceptance 1,128
+  (**391 BDD + 737 ordinary**). There are 1,618 distinct members with the
+  unchanged intentional 175-member provider overlap. Seventy-six new ordinary
+  contract regressions are added; all previous test sources/BDD features remain.
+- Domain/Application/Infrastructure line coverage remains 96.88% / 96.16% /
+  91.03%, each with the unchanged 70% floor. Provider/Acceptance coverage is
+  96.35% / 98.90%. No dependency, image, workflow, exclusion or limit changes.
+- **1,192 local unit tests pass** on the final implementation. Pinned sync,
+  format/lint, strict Pyright, architecture, operation links, OpenAPI and wheel
+  build/install checks pass. Local Docker is unavailable; actual Mongo/Invoice
+  and container evidence comes from CI. API handler bodies remain unchanged;
+  flow/policy exports byte-match Task 13. Ordinary warnings stay visible.
+- Eight downloaded official artifact digests match GitHub metadata. The complete
+  inner archive has **21,263 inventory entries**, **24,279,435 bytes** and SHA-256
+  `f0b1f92f9d913ef3d696d4b2cc3bbebcc3da9b71fe029cea89c3ca22a0596517`.
+  Every path, size, hash and attachment reference resolves with closed inventory.
+  All seventeen features match source and all four exports match the separate
+  generated-contract artifact. Source/run/time and all suite JUnit counts match.
+- **4,654 actual exchanges** have independently recomputed contract observations:
+  2,045 completed Payments responses, 2,608 external-boundary exchanges and one
+  Payments cancellation. The total retains 4,638 completed responses and sixteen
+  intentional transport failures. Payments request phases are 1,266 Given,
+  384 When and 396 Then, including the cancelled request. All applicable complete
+  JSON responses pass an additional JSON Schema 2020-12/format/protocol audit.
+  Independently recomputed HMACs match the original bytes of all 508 accepted
+  webhook deliveries; this is not a new live-provider or freshness claim.
+- All 391 previous Allure identities, names, descriptions, outcomes, history/test
+  IDs and ordered nested steps survive. Allure **2.46.1** official distribution
+  digest is verified. Every rendered case and all **20,851 attachments** match
+  raw bytes: 18,301 JSON, 2,533 native CSV tables, thirteen expected-fault logs
+  and four Invoice PDFs. All **21,276 generated report resources** pass actual
+  local HTTP reads; JSON resources parse. This is report-data/asset verification,
+  not a pixel-by-pixel browser or deployed Azure inspection.
+
+Task 14 implementation and its frozen evidence audit are complete. The completion
+update changes only Markdown; full CI and fresh evidence comparison are required
+before PR handoff. Preserve all JUnit/BDD identities, seventeen features, four
+exports, contract classifications and per-case attachment counts in that check.
+PR image publication/Blob archival skip as designed. Tasks 15–16, overall PAY/22,
+hosted Stripe and the manual LiveDocs/Terraform rollout remain open.
