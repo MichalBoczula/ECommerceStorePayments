@@ -80,9 +80,45 @@ cases and current counts. A temporary actual-FastAPI/Kiota/application/provider
 probe verifies all 56 authored outcomes using a memory repository. It does not
 substitute for real MongoDB evidence. Ordinary warnings remain visible.
 
-Full CI, immutable artifact digests and the rendered Allure audit are recorded
-after verification. Docker is unavailable locally; CI must supply actual
-database/container/PDF evidence.
+[Implementation CI 40978654005](https://github.com/MichalBoczula/ECommerceStorePayments/actions/runs/40978654005)
+passes source/contract/wheel/security checks, all five suites, documentation and
+quality gates, the real Mongo-backed container smoke, Trivy and final gate.
+Frozen head: `e0865482219afb5186f911ab5d0e198c01b42782`;
+tested merge: `d56ec76bcebaab10625d7c4a9273f384284ca26d`;
+exact tree: `629ca4cfbca7dff1f723ece22a2924dbfdf295dc`.
+Merge parents/tree exactly match the merged Task 9 base and this source head.
+
+- **1,431 passing executions, zero failures/skips:** Domain 134, Application 82,
+  Infrastructure 274, ExternalProviders 175, Acceptance 766 (**271 BDD + 495
+  ordinary**). All Task 9 members survive, adding 56 BDD and 97 ordinary checks.
+  There are **1,256 distinct members**, retaining the intentional 175-member
+  provider-suite overlap.
+- Domain/Application/Infrastructure coverage is 96.88% / 96.16% / 91.03%,
+  with separate unchanged 70% floors. Provider/Acceptance report 96.35% / 98.06%.
+  Generated-client exclusions and dependency/security gates remain enforced.
+- All seven official outer artifact digests and closed inventory/path/size/hash/
+  source/export/JUnit checks pass. Frozen inner bundle: **13,259,318 bytes**,
+  SHA-256 `0b33e35ec7dd1d613b4601d3bc2f05ef7db1e97d19f4b91ec4df418266c4d9df`,
+  **11,049 manifest entries** and **10,760 attachments**
+  (9,011 JSON, 1,742 native CSV tables, four retained
+  actual Invoice PDFs and three retained expected-fault logs).
+- Allure 2.46.1 renders every case, authored description, ordered nested step and
+  attachment matching raw bytes. Every case/attachment/entry asset passes local
+  HTTP reads. All previous full names/history/test IDs/title paths survive.
+- Independent raw HTTP/BSON joins verify **56 exact Orders contracts**, **42
+  repeated full safe rejections** (39 new and three originals), **15 exact Pay
+  insertions**, **two full checkout/provider/archive boundaries**, **17 no-op
+  read/repeat sets**, twelve currencies, exact typed/nonfinite/precision/status/
+  UUID inputs and complete populated-state/session preservation.
+- Earlier Task 3–9 audits all pass, including four actual Invoice PDF/stored-byte
+  checks and text extraction for invoice IDs, client/product and PLN amounts.
+  Three retained expected-fault logs match exact exceptions and API trace IDs
+  without fixture-key/auth leaks. Captures have **3,047 HTTP pairs**
+  (3,034 responses and thirteen intentional transport failures), plus
+  **219 explicit action start/result pairs**.
+
+Task 10 is complete. The documentation-only completion head receives full CI and
+fresh archive/render/PDF audits and a frozen/final comparison before PR handoff.
 
 There are no Payments application/API/persistence/package-dependency or image
 changes. The required [LiveDocs capacity dependency](https://github.com/MichalBoczula/ECommerceStore.LiveDocs/pull/13)
@@ -93,8 +129,9 @@ exceeded the former ceiling. Payments pins reusable workflow and tooling commit
 `93ce670ba4bcd56ed4c0ca0ec75bf82ffaef7098`; merge the LiveDocs dependency first
 and include it in build/import tooling before selecting the larger archive.
 No cases or attachments are removed to fit the old ceiling. Quality/security
-thresholds remain unchanged. Coverage intent remains 27/42 status pairs with fifteen reviewed gaps.
+thresholds remain unchanged. Coverage intent remains 27/42 status pairs with
+fifteen reviewed gaps.
 Task 11 owns remaining framework failures, and Task 12 owns deterministic
-concurrency/rollback. Tasks 10–16 and overall PAY/22 remain open until their
+concurrency/rollback. Tasks 11–16 and overall PAY/22 remain open until their
 respective verification completes. Automatic successful-main Blob publication
 and selected manual LiveDocs/Terraform refresh remain unchanged.
