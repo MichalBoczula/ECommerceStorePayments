@@ -53,6 +53,7 @@ from tests.acceptance.framework_checks import FrameworkChecks
 from tests.acceptance.fulfillment_checks import FulfillmentChecks
 from tests.acceptance.payment_checks import PaymentChecks
 from tests.acceptance.retry_checks import RetryChecks
+from tests.acceptance.technical_checks import HealthChecks
 from tests.acceptance.webhook_lifecycle_checks import WebhookLifecycleChecks
 from tests.acceptance.webhook_verification_checks import WebhookVerificationChecks
 from tests.unit.external_providers.test_stripe_checkout import StripeTransport
@@ -867,3 +868,23 @@ def first_coordinated_receipt(concurrency_checks: ConcurrencyChecks, datatable: 
 @then("the second coordinated receipt is")
 def second_coordinated_receipt(concurrency_checks: ConcurrencyChecks, datatable: list[list[str]]) -> None:
     concurrency_checks.receipts(concurrency_checks.authored["first"], table_values(datatable))
+
+
+@pytest.fixture
+def health_checks(acceptance: AcceptanceContext) -> HealthChecks:
+    return HealthChecks(acceptance)
+
+
+@given("populated health collections contain")
+def populated_health(health_checks: HealthChecks, datatable: list[list[str]]) -> None:
+    health_checks.populate(table_values(datatable))
+
+
+@given("I observe actual health probe calls")
+def observe_health(health_checks: HealthChecks, monkeypatch: pytest.MonkeyPatch) -> None:
+    health_checks.observe(monkeypatch)
+
+
+@then("health preserves complete populated state and protocol")
+def complete_health(health_checks: HealthChecks, datatable: list[list[str]]) -> None:
+    health_checks.verify(table_values(datatable))

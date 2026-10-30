@@ -14,6 +14,7 @@ from typing import Any
 from pytest_bdd.parser import FeatureParser
 
 from scripts.bdd_baseline import source_cases
+from scripts.technical_scenarios import TECHNICAL, check_technical_result, check_technical_source, technical_rows
 
 
 def instance_id(scenario_id: str, parameters: Mapping[str, str]) -> str:
@@ -50,7 +51,10 @@ def source_evidence(feature_dir: Path) -> dict[str, dict[str, Any]]:
                         if "inputs" in tables:
                             raise ValueError(f"Duplicate input table: {case_id}")
                         tables["inputs"] = values
-                    if step.name == f'the response matches case "{case_id}"':
+                    if step.name in {
+                        f'the response matches case "{case_id}"',
+                        f'the technical outcome matches case "{case_id}"',
+                    }:
                         tables["expected"] = values
                 description = (scenario.description or "").strip()
                 if len(description.split()) < 10 or "inputs" not in tables or "expected" not in tables:
@@ -63,11 +67,12 @@ def source_evidence(feature_dir: Path) -> dict[str, dict[str, Any]]:
                     "scenario": scenario.name,
                     "parameters": cases[case_id].example,
                     **tables,
+                    **({"technical": True} if "Outcome" in tables["expected"] else {}),
                 }
     return profiles
 
 
-def check_source_evidence(feature_dir: Path, matrix: Path) -> None:
+def check_source_evidence(feature_dir: Path, matrix: Path, technical_matrix: Path = TECHNICAL) -> None:
     profiles = source_evidence(feature_dir)
     with matrix.open(encoding="utf-8", newline="") as stream:
         for row in csv.DictReader(stream, delimiter="\t"):
@@ -79,6 +84,10 @@ def check_source_evidence(feature_dir: Path, matrix: Path) -> None:
                 or expected["ContentType"] != media
             ):
                 raise ValueError(f"Authored HTTP table and matrix differ: {row['id']}")
+
+    for row in technical_rows(technical_matrix):
+        if row["id"] in profiles:
+            check_technical_source(profiles[row["id"]], row)
 
 
 def attachments(value: Any) -> Iterator[dict[str, Any]]:
@@ -166,7 +175,7 @@ def check_result_evidence(result: dict[str, Any], profile: dict[str, Any], resul
         raise ValueError(f"Missing identity or rendered tables: {case_id}")
     if records.get("Scenario inputs", {}).get("value") != profile["inputs"]:
         raise ValueError(f"Missing or changed executed inputs: {case_id}")
-    expectation = records.get("Expected response", {})
+    expectation = records.get("Expected technical outcome" if profile.get("technical") else "Expected response", {})
     if expectation.get("value") != profile["expected"]:
         raise ValueError(f"Missing or changed executed expectations: {case_id}")
     pairs: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -216,6 +225,9 @@ def check_result_evidence(result: dict[str, Any], profile: dict[str, Any], resul
     selected = expectation.get("exchangeIds", [])
     if len(selected) != len(set(selected)) or any(key not in pairs for key in selected):
         raise ValueError(f"Invalid asserted response witnesses: {case_id}")
+    if profile.get("technical"):
+        check_technical_result(expectation, profile["expected"], pairs, records)
+        return
     outcomes = [record for key in selected for record in pairs[key] if record["kind"] == "response"]
     expected = profile["expected"]
     if sorted(record["status"] for record in outcomes) != sorted(map(int, expected["HTTPStatuses"].split(","))):

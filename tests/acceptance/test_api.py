@@ -15,6 +15,7 @@ from pymongo.errors import ServerSelectionTimeoutError
 from pytest_bdd import given, parsers, scenarios, then, when
 from scripts.generate_operation_links import generate
 from scripts.openapi_contract import check_case
+from scripts.technical_scenarios import technical_rows
 
 from ecommerce_store_payments.application.payments.webhook import WebhookReceipt, WebhookRetryError, WebhookState
 from ecommerce_store_payments.domain.aggregates.payments.enums.payment_status import PaymentStatus
@@ -67,9 +68,11 @@ def _matrix() -> dict[str, dict[str, str]]:
 def test_every_matrix_case_has_one_source_scenario_and_expected_result_step() -> None:
     sources = "\n".join(path.read_text(encoding="utf-8") for path in FEATURES_PATH.glob("*.feature"))
     scenario_ids = re.findall(r"^\s*Scenario:\s+(PAY\d+-\d+)\b", sources, re.MULTILINE)
-    step_ids = re.findall(r'^\s*Then the response matches case "(PAY\d+-\d+)"', sources, re.MULTILINE)
+    step_ids = re.findall(
+        r'^\s*Then the (?:response|technical outcome) matches case "(PAY\d+-\d+)"', sources, re.MULTILINE
+    )
     assert len(scenario_ids) == len(set(scenario_ids))
-    assert sorted(scenario_ids) == sorted(step_ids) == sorted(_matrix())
+    assert sorted(scenario_ids) == sorted(step_ids) == sorted(set(_matrix()) | {row["id"] for row in technical_rows()})
 
 
 @given("a payable order")

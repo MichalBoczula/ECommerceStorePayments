@@ -1,0 +1,22 @@
+id	kind	operation	cause	status	media	code	exception	result	requirement
+PAY13-01	response	GET /swagger	serve complete swagger ui html	200	text/html; charset=utf-8	-	<none>	rendered	PAY/22
+PAY13-02	response	GET /redoc	serve complete redoc html	200	text/html; charset=utf-8	-	<none>	rendered	PAY/22
+PAY13-03	response	GET /docs/oauth2-redirect	serve the actual oauth redirect document	200	text/html; charset=utf-8	-	<none>	rendered	PAY/22
+PAY13-04	response	GET /openapi.json	export documentation without a mongo connection	200	application/json	-	<none>	rendered	PAY/22
+PAY13-05	response	GET /health/ready	recover readiness after an owned mongo outage	503	application/problem+json	service_unavailable	<none>	observed	PAY/22
+PAY13-06	response	GET /health/ready	expose ping-only readiness on standalone mongo	200	application/json	-	<none>	observed	PAY/22
+PAY13-07	cancelled	GET /health/ready	cancel an in-flight real readiness ping	<none>	<none>	-	CancelledError	cancelled	PAY/22
+PAY13-08	cancelled	COMMAND fulfill	cancel fulfillment during the orders read	<none>	<none>	-	CancelledError	cancelled	PAY/22
+PAY13-09	cancelled	COMMAND fulfill	cancel fulfillment after paid mutation before acknowledgement	<none>	<none>	-	CancelledError	cancelled	PAY/22
+PAY13-10	action	COMMAND isolation	isolate two hosts sharing business identities	<none>	<none>	-	<none>	isolated	PAY/22
+PAY13-11	action	COMMAND startup	reject a conflicting unique index before serving	<none>	<none>	-	OperationFailure	rejected	PAY/22
+PAY13-12	action	COMMAND startup	reject duplicate order documents during startup	<none>	<none>	-	OperationFailure	rejected	PAY/22
+PAY13-13	action	COMMAND startup	bound failed startup and close allocated resources	<none>	<none>	-	TimeoutError,ServerSelectionTimeoutError	rejected	PAY/22
+PAY13-14	action	COMMAND fulfill	reject fulfill command limit 0	<none>	<none>	-	ValueError	rejected	PAY/22
+PAY13-15	action	COMMAND fulfill	reject fulfill command limit 1001	<none>	<none>	-	ValueError	rejected	PAY/22
+PAY13-16	action	COMMAND replay	reject replay command limit 0	<none>	<none>	-	SystemExit	rejected	PAY/22
+PAY13-17	action	COMMAND replay	reject replay command limit 1001	<none>	<none>	-	SystemExit	rejected	PAY/22
+PAY13-18	action	COMMAND fulfill	accept fulfill command limit 1 with a populated batch	<none>	<none>	-	<none>	processed	PAY/22
+PAY13-19	action	COMMAND fulfill	accept fulfill command limit 1000 with a populated batch	<none>	<none>	-	<none>	processed	PAY/22
+PAY13-20	action	COMMAND replay	accept replay command limit 1 with a populated batch	<none>	<none>	-	<none>	processed	PAY/22
+PAY13-21	action	COMMAND replay	accept replay command limit 1000 with a populated batch	<none>	<none>	-	<none>	processed	PAY/22

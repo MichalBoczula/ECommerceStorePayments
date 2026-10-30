@@ -81,3 +81,19 @@ outside snapshots distinguish actual MongoDB abort from pre-write injection;
 complete winners and real lease errors prove the observed boundaries, not runtime
 branch tracing or deployed Azure behavior. Native tables remain separate CSV
 attachments beside the immutable JSON observations and physical HTTP pairs.
+
+
+## Technical lifecycle evidence
+
+[PAY-BDD-13](../bdd-13-technical-scenarios.md) separates completed HTTP responses,
+cancelled exchanges and explicit command/startup actions. Native tables use
+`<none>` for absent HTTP status/media; cancellation retains the actual exception
+and owning action. The shared validator checks all physical pairs, bytes, header
+items, indexes and action witnesses before interpreting the outcome kind.
+
+`technical-scenarios.tsv` projects real source functions and framework routes into
+`operation-links.json.technicalScenarios`, independently from the seven named API
+operations and their 42 declared status pairs. Real owned containers and clients
+support lifecycle observations; controlled downstream replies remain identified
+as controlled. This does not change service behavior, published HTTP contracts,
+production topology or the manual LiveDocs refresh process.

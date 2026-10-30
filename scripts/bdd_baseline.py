@@ -69,7 +69,11 @@ def source_cases(feature_dir: Path) -> dict[str, SourceCase]:
                     match[1]
                     for step in scenario.steps
                     if step.type == "then"
-                    and (match := re.fullmatch(r'the response matches case "(PAY\d+-\d+)"', step.name))
+                    and (
+                        match := re.fullmatch(
+                            r'the (?:response|technical outcome) matches case "(PAY\d+-\d+)"', step.name
+                        )
+                    )
                 ]
                 if result_ids != [case_id]:
                     raise ValueError(f"Scenario and result steps differ: {case_id}")

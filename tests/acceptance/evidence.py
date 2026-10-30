@@ -14,6 +14,8 @@ from urllib.parse import urlsplit
 
 import allure
 from fastapi.testclient import TestClient
+from httpx import AsyncClient as HttpAsyncClient
+from httpx import Response as HttpAsyncResponse
 from httpx2 import Response
 from scripts.bdd_evidence import instance_id
 
@@ -228,6 +230,10 @@ class ScenarioEvidence:
         finally:
             self._action_id = previous
 
+    @property
+    def active_action_id(self) -> str | None:
+        return self._action_id
+
     def finish(self, attach: Callable[[str, str], None] | None = None) -> None:
         self.record("Scenario evidence index", {**self.identity, "exchanges": self._index})
         self.flush(attach)
@@ -321,3 +327,35 @@ def table_values(table: list[list[str]]) -> dict[str, str]:
     if len(values) != len(table) - 1 or not values or any(not key or not value for key, value in values.items()):
         raise ValueError("Empty or duplicate Gherkin table values")
     return values
+
+
+class AsyncEvidenceClient:
+    """Capture an actual ASGI request, retaining cancellation instead of inventing a status."""
+
+    def __init__(self, client: HttpAsyncClient, evidence: ScenarioEvidence) -> None:
+        self.client, self.evidence = client, evidence
+        self.cancelled_exchange_id: str | None = None
+
+    async def request(self, method: str, path: str) -> HttpAsyncResponse:
+        request = self.client.build_request(method, path, headers={"x-trace-id": "1" * 32})
+        exchange = self.evidence.begin(
+            request.method,
+            str(request.url),
+            request.headers,
+            request.read(),
+            target="payments",
+            role="api-technical",
+            header_items=request.headers.multi_items(),
+        )
+        try:
+            response = await self.client.send(request)
+            body = await response.aread()
+            self.evidence.response(
+                exchange, response.status_code, response.headers, body, header_items=response.headers.multi_items()
+            )
+            response.extensions["payments.bdd.exchangeId"] = json.loads(exchange.metadata)["exchangeId"]
+            return response
+        except BaseException as error:
+            self.cancelled_exchange_id = json.loads(exchange.metadata)["exchangeId"]
+            self.evidence.failure(exchange, error)
+            raise
