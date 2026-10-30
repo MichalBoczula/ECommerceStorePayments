@@ -39,8 +39,9 @@ selected LiveDocs refresh and Terraform deployment remain manual.
 - [x] **PAY-BDD-10 — Business validation.** Isolated values, exact currency
   conversion and accepted boundaries; distinguish HTTP inputs from standalone rules.
   See [business validation](bdd-10-business-validation.md).
-- [ ] **PAY-BDD-11 — Framework failures.** Close reviewed status gaps, cover
+- [x] **PAY-BDD-11 — Framework failures.** Close reviewed status gaps, cover
   routes/methods/bodies/media and complete safe problems with populated-state checks.
+  See [framework failures](bdd-11-framework-failures.md).
 - [ ] **PAY-BDD-12 — Concurrency and atomicity.** Deterministic races, full
   winners, real rollback, competing claims, lease expiry and stale-worker fencing.
 - [ ] **PAY-BDD-13 — Technical scenarios.** Health/readiness, startup/index

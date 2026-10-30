@@ -88,12 +88,54 @@ strict Pyright, architecture, operation links, the seven-operation/341-outcome
 export and wheel build/install pass. OpenAPI, flows and validation policies
 are byte-identical to Task 10. A temporary real-FastAPI/Kiota/Stripe-SDK probe
 passes all 71 new HTTP modes and seven explicit failure boundaries using a
-memory repository; it is not real MongoDB proof. CI results, archive identities
-and the rendered report audit are recorded after verification. Docker is unavailable locally; actual database,
-published Invoice/PDF, container and image evidence must come from full CI.
+memory repository; it is not real MongoDB proof. Docker is unavailable locally;
+full CI supplies actual database, published Invoice/PDF, container and image evidence.
+
+[Implementation CI 40985377284](https://github.com/MichalBoczula/ECommerceStorePayments/actions/runs/40985377284)
+passes source/contract/wheel/security checks, all five suites, documentation and
+quality gates, the real Mongo-backed container smoke, Trivy and final gate.
+Frozen head: `869e35dda1f3967290cac4875a853c0d7c86ecde`;
+tested merge: `49ac7eb9287d90031720e07987a8fee2c315e356`;
+exact tree: `4a563bb62e68843b001d7fd1dcbe7b90ce4e99c5`.
+Merge parents/tree exactly match the merged Task 10 base and this source head.
+
+- **1,557 passing executions, zero failures/skips:** Domain 134, Application 82,
+  Infrastructure 274, ExternalProviders 175, Acceptance 892 (**342 BDD + 550
+  ordinary**). All Task 10 members survive, adding 71 BDD and 55 ordinary checks.
+  There are **1,382 distinct members**, retaining the intentional 175-member
+  provider-suite overlap.
+- Domain/Application/Infrastructure coverage is 96.88% / 96.16% / 91.03%,
+  with separate unchanged 70% floors. Provider/Acceptance report 96.35% / 98.45%.
+  Generated-client exclusions and dependency/security/workflow pins remain.
+- All seven official outer artifact digests and closed inventory/path/size/hash/
+  source/export/JUnit checks pass. Frozen inner bundle: **16,455,732 bytes**,
+  SHA-256 `4ae499ff6658ee50caee4eef2a5ce1f6377763c48e954023ea432438fa398f1d`,
+  **13,861 manifest entries** and **13,500 attachments**
+  (11,286 JSON, 2,200 native CSV tables, four retained
+  actual Invoice PDFs and ten expected-fault logs).
+- Allure 2.46.1 renders every case, authored description, ordered nested step and
+  attachment matching raw bytes. Every case/attachment/entry asset passes local
+  HTTP reads. All 271 previous full names/history/test IDs/title paths survive.
+- Independent raw HTTP/BSON joins verify **76 exact authored request tables**
+  (71 new and five strengthened originals), **73 complete repeated safe
+  rejections** with all populated documents/provider sessions unchanged, **seven
+  explicit fault boundaries with fourteen hit witnesses**, **eight signed input
+  modes**, exact media/query/byte limits, nine-field problems, fresh trace IDs,
+  Allow/content-length and **three accepted full response/state/repeat sets**.
+  The accepted Checkout also joins the complete encoded provider request,
+  idempotency key and two exact archives to its physical exchanges.
+- Earlier Task 3–10 audits all pass. Four actual Invoice PDF/stored-byte checks
+  and text extraction verify invoice IDs, client/product and PLN amounts.
+  Ten expected-fault logs match exact exceptions and API trace IDs without
+  fixture-key/auth leaks. Captures have **3,804 HTTP pairs**
+  (3,791 responses and thirteen intentional transport failures), plus
+  **300 explicit action start/result pairs**.
+
+Task 11 is complete. The documentation-only completion head receives full CI and
+fresh archive/render/PDF audits and a frozen/final comparison before PR handoff.
 
 There are no application/API/schema/dependency/image/workflow changes or weakened
-gates. The 50,000-file LiveDocs tooling remains pinned. Tasks 11–16 and overall
+gates. The 50,000-file LiveDocs tooling remains pinned. Tasks 12–16 and overall
 PAY/22 remain open until their respective verification completes. Automatic
 successful-main Blob publication and selected manual LiveDocs/Terraform refresh
 remain unchanged.
