@@ -194,8 +194,14 @@ Generate the operation projection with `uv run --no-sync python scripts/generate
 
 Run `bash scripts/ci.sh openapi` to export and lint the database-free OpenAPI at `artifacts/verification/openapi.json` (or `uv run --no-sync python -m scripts.export_openapi --output <path>`). OpenAPI 3.1 validation and operation/scenario status, media and schema checks use pinned development dependencies in `uv.lock`. Acceptance tests validate each observed HTTP body against its declared JSON Schema, with the unmatched-route response checked against the shared problem schema. CI uploads the generated JSON as `payments-openapi`. The API documents path validation as 400, matching runtime, instead of FastAPI's default 422. See [ADR-0013](docs/adr/0013-generated-openapi-contract.md).
 
-The operation-link projection reports 27/42 declared status pairs with scenario
-intent and fifteen [reviewed gaps](docs/acceptance-gaps.tsv). New uncovered or
+The [Task 14 contract checks](docs/bdd-14-contracts.md) document complete typed
+examples, required nullable output members, domain status values, response headers
+and signed webhook variants. Acceptance recomputes one contract observation per
+captured exchange across setup, primary, concurrent and supporting traffic.
+External boundaries and cancellations retain their actual classifications.
+
+The operation-link projection reports 42/42 declared status pairs with scenario
+intent and no [reviewed gaps](docs/acceptance-gaps.tsv). New uncovered or
 stale resolved gaps fail verification. The known-path wrong-method 405 is counted
 explicitly; unmatched routing cannot inflate named-operation coverage. These are
 source/matrix checks, not runtime branch telemetry or attached exchange evidence.

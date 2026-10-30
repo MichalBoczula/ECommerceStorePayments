@@ -25,6 +25,16 @@ identifiers. Mark controlled downstream transports explicitly and preserve real
 FastAPI/MongoDB acceptance execution. No new package or application change is
 needed. See [the structure and verification contract](../bdd-02-evidence.md).
 
+## PAY-BDD-14 contract observations
+
+The recorder retains a frozen request on each exchange and appends one identified
+contract observation for every response/failure. It validates all phases and
+retains external-service classifications. Contract failures stay observations
+about the real response; they never replace it with a transport exception.
+The Acceptance post-suite gate independently recomputes observations from the
+actual attachments and generated OpenAPI. Commands and cancelled exchanges
+continue to have no invented HTTP response or status.
+
 ## Consequences
 
 LiveDocs receives larger archives containing actual per-scenario observations.

@@ -86,10 +86,19 @@ class Exchange:
     number: int
     # Serialized at request start: later fixture/phase/header mutations cannot alter it.
     metadata: str
+    request: str
 
 
 class ScenarioEvidence:
-    def __init__(self, scenario_id: str, feature: str, scenario: str, parameters: Mapping[str, str]) -> None:
+    def __init__(
+        self,
+        scenario_id: str,
+        feature: str,
+        scenario: str,
+        parameters: Mapping[str, str],
+        *,
+        contract_check: Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]] | None = None,
+    ) -> None:
         if re.fullmatch(r"PAY\d+-\d+", scenario_id) is None:
             raise ValueError("A stable Payments scenario ID is required")
         self.identity = {
@@ -107,6 +116,7 @@ class ScenarioEvidence:
         self._lock = Lock()
         self._pending: list[tuple[str, str]] = []
         self._index: list[dict[str, Any]] = []
+        self._contract_check = contract_check
 
     def publish_identity(self) -> None:
         for key in ("service", "scenarioId", "instanceId"):
@@ -155,17 +165,15 @@ class ScenarioEvidence:
                 "query": parsed.query,
             }
             self._index.append(metadata.copy())
-        exchange = Exchange(number, json.dumps(metadata, sort_keys=True))
-        self.record(
-            f"HTTP {number:03} request",
-            {
-                **metadata,
-                "kind": "request",
-                "headers": safe_headers(headers),
-                "headerItems": safe_header_items(list(headers.items()) if header_items is None else header_items),
-                "content": content_evidence(body, headers.get("content-type")),
-            },
-        )
+        request = {
+            **metadata,
+            "kind": "request",
+            "headers": safe_headers(headers),
+            "headerItems": safe_header_items(list(headers.items()) if header_items is None else header_items),
+            "content": content_evidence(body, headers.get("content-type")),
+        }
+        exchange = Exchange(number, json.dumps(metadata, sort_keys=True), json.dumps(request, sort_keys=True))
+        self.record(f"HTTP {number:03} request", request)
         return exchange
 
     def response(
@@ -177,29 +185,35 @@ class ScenarioEvidence:
         *,
         header_items: list[tuple[str, str]] | None = None,
     ) -> None:
-        self.record(
-            f"HTTP {exchange.number:03} response",
-            {
-                **json.loads(exchange.metadata),
-                "kind": "response",
-                "status": status,
-                "headers": safe_headers(headers),
-                "headerItems": safe_header_items(list(headers.items()) if header_items is None else header_items),
-                "content": content_evidence(body, headers.get("content-type")),
-            },
-        )
+        response = {
+            **json.loads(exchange.metadata),
+            "kind": "response",
+            "status": status,
+            "headers": safe_headers(headers),
+            "headerItems": safe_header_items(list(headers.items()) if header_items is None else header_items),
+            "content": content_evidence(body, headers.get("content-type")),
+        }
+        self.record(f"HTTP {exchange.number:03} response", response)
+        self._contract(exchange, response)
 
     def failure(self, exchange: Exchange, error: BaseException) -> None:
         # Exception messages may contain credentials or private transport details.
-        self.record(
-            f"HTTP {exchange.number:03} failure",
-            {
-                **json.loads(exchange.metadata),
-                "kind": "failure",
-                "exceptionType": type(error).__name__,
-                "cancelled": type(error).__name__ == "CancelledError",
-            },
-        )
+        failure = {
+            **json.loads(exchange.metadata),
+            "kind": "failure",
+            "exceptionType": type(error).__name__,
+            "cancelled": type(error).__name__ == "CancelledError",
+        }
+        self.record(f"HTTP {exchange.number:03} failure", failure)
+        self._contract(exchange, failure)
+
+    def _contract(self, exchange: Exchange, outcome: dict[str, Any]) -> None:
+        if self._contract_check is not None:
+            value = self._contract_check(json.loads(exchange.request), outcome)
+            self.record(
+                f"HTTP {exchange.number:03} contract",
+                {**json.loads(exchange.metadata), "kind": "contract", "value": value},
+            )
 
     @contextmanager
     def action(self, name: str, inputs: object) -> Generator[dict[str, Any]]:

@@ -19,6 +19,12 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
 async def create_order_checkout(
     order_id: UUID, payment_service: PaymentServiceDependency, request: Request
 ) -> CheckoutResponse:
+    """Create or recover hosted checkout using authoritative Orders money and an existing attempt.
+
+    This command has no request body. It returns the complete current payment and
+    selected session; repeated calls recover/reuse that session rather than taking
+    client-supplied payment or provider fields.
+    """
     await reject_pay_body(request)
     result = await payment_service.checkout(order_id)
     return CheckoutResponse.from_result(result)
@@ -37,6 +43,12 @@ async def create_order_checkout(
 async def pay_order(
     order_id: UUID, payment_service: PaymentServiceDependency, response: Response, request: Request
 ) -> PaymentResponse:
+    """Create a payment (201), return an existing payment or retry a failed/canceled attempt (200).
+
+    This command has no request body. The order UUID comes from the path; amount
+    and currency come from Orders. Responses always include nullable provider and
+    timestamp members. A retry retains identity and archives the previous state.
+    """
     await reject_pay_body(request)
     result = await payment_service.pay(order_id)
 
@@ -51,5 +63,6 @@ async def pay_order(
     responses=problem_responses(400, 404, 405, 500),
 )
 async def get_payment_by_order_id(order_id: UUID, payment_service: PaymentServiceDependency) -> PaymentResponse:
+    """Read the complete current payment for an order; a missing payment returns a safe 404 problem."""
     payment = await payment_service.get_by_order_id(order_id)
     return PaymentResponse.from_domain(payment)

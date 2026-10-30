@@ -25,6 +25,8 @@ from pymongo.collection import Collection
 from pytest_bdd import given, parsers, then, when
 from pytest_bdd.parser import Feature, Scenario, Step
 from scripts.bdd_evidence import source_evidence
+from scripts.captured_contracts import CapturedContracts
+from scripts.openapi_contract import document
 
 from ecommerce_store_payments.api.app import create_app
 from ecommerce_store_payments.application.payments.checkout_provider import CheckoutRequest
@@ -356,6 +358,11 @@ def acceptance(
 EVIDENCE_KEY = pytest.StashKey[ScenarioEvidence]()
 
 
+@lru_cache
+def captured_contracts() -> CapturedContracts:
+    return CapturedContracts(document())
+
+
 def _node(request: pytest.FixtureRequest) -> pytest.Function:
     # pytest exposes FixtureRequest.node without a concrete Item annotation.
     return cast(pytest.Function, cast(Any, request).node)
@@ -370,7 +377,9 @@ def pytest_bdd_before_scenario(request: pytest.FixtureRequest, feature: Feature,
     parameters = {
         str(key): str(value) for key, value in getattr(callspec, "params", {}).get("_pytest_bdd_example", {}).items()
     }
-    captured = ScenarioEvidence(identity[1], feature.name, scenario.name, parameters)
+    captured = ScenarioEvidence(
+        identity[1], feature.name, scenario.name, parameters, contract_check=captured_contracts().observe
+    )
     _node(request).stash[EVIDENCE_KEY] = captured
     cast(Any, allure.dynamic).description(scenario.description.strip())
     captured.publish_identity()

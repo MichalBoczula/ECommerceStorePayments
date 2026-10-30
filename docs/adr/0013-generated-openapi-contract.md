@@ -23,6 +23,24 @@ and its runtime generation remain unchanged; the coverage projection is additive
 
 The API contract and its CI artifact reflect public status, media type and schema behavior without adding a runtime dependency. `jsonschema` and `openapi-spec-validator` are pinned development dependencies. New routes and acceptance cases need matching operation declarations and schema-valid responses. The acceptance suite validates the exercised cases; it does not claim exhaustive coverage of untested branches. A future intentional 422 response would require revisiting the OpenAPI wrapper and public validation policy.
 
+## PAY-BDD-14 contract and evidence hardening
+
+[Task 14](../bdd-14-contracts.md) adds source-authored descriptions, typed/full
+examples, output enums, required nullable members and actual response headers.
+The generated document remains the only OpenAPI source. Null-valued example
+members are restored from model metadata after FastAPI's metadata serialization;
+unreferenced automatic 422 models are removed. Serialized defaults are required
+in output schemas without changing existing Python defaults or request binding.
+
+Webhook documentation describes supported snapshot variants and ignored envelopes
+without binding a request model before original-byte signature verification.
+The source gate checks serialized schema shapes and every authored example.
+Acceptance independently validates every captured Payments response, not only
+selected primary outcomes. Explicit contract observations preserve external
+boundaries and transport failures; the post-suite gate recomputes them from
+actual paired bytes. This does not claim cryptographic or branch proof from
+JSON Schema, or validate controlled external responses as Payments output.
+
 ## Alternatives considered
 
 Committing a generated document would create a second source that can drift. Running the service or MongoDB during export would couple contract verification to infrastructure. Validating only HTTP status and media type would miss response body schema drift.

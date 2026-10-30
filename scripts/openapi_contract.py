@@ -9,6 +9,7 @@ from openapi_spec_validator import validate
 
 from ecommerce_store_payments.api.app import create_app
 from scripts.bdd_baseline import coverage_report
+from scripts.contract_metadata import check_metadata
 from scripts.generate_operation_links import generate
 
 METHODS = {"get", "post", "put", "patch", "delete"}
@@ -53,6 +54,7 @@ def check_contract(spec: dict[str, Any], links: dict[str, Any]) -> tuple[int, in
         raise ValueError("Missing global unmatched-route acceptance scenario")
     # Recheck this document, rather than trusting coverage from an earlier export.
     coverage_report(spec, links["operations"])
+    check_metadata(spec)
     return len(published), checked
 
 
