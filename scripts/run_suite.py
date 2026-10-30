@@ -12,7 +12,9 @@ from pathlib import Path
 from scripts.bdd_baseline import BASELINE, check_bdd_results
 from scripts.bdd_evidence import check_evidence_results
 from scripts.captured_contracts import check_captured_contracts
+from scripts.generate_operation_links import FEATURES, generate
 from scripts.openapi_contract import document
+from scripts.source_links import check_source_links
 from scripts.verify_suite import verify
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,6 +80,8 @@ def run(name: str) -> int:
             check_evidence_results(ROOT / "tests/acceptance/features", ROOT / "artifacts/allure-results/acceptance")
             contracts = check_captured_contracts(document(), ROOT / "artifacts/allure-results/acceptance")
             print(f"Captured contracts: {contracts}")
+            sources = check_source_links(generate(), document(), FEATURES, ROOT / "artifacts/allure-results/acceptance")
+            print(f"Source/evidence links: {sources}")
     except (OSError, ValueError) as error:
         print(f"Suite report error: {error}", file=sys.stderr)
         return outcome.returncode or 1

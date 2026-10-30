@@ -53,6 +53,7 @@ selected LiveDocs refresh and Terraform deployment remain manual.
   See [request and response contracts](bdd-14-contracts.md).
 - [ ] **PAY-BDD-15 — Flows, rules and RAG links.** Stable identities and authored
   meanings, observed versus declared knowledge and validated HTTP/worker evidence joins.
+  See [flows, rules and RAG links](bdd-15-flows-rules-rag-links.md).
 - [ ] **PAY-BDD-16 — Final audit.** Full CI, original-case retention, every
   rendered case/attachment, archive integrity and the manual LiveDocs refresh handoff.
 

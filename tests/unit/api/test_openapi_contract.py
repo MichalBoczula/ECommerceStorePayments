@@ -23,8 +23,12 @@ def test_export_lints_generated_openapi_without_mongodb(tmp_path: Path, monkeypa
     assert export(output) == (7, 381)
     assert output.read_text(encoding="utf-8").endswith("\n")
     flows = json.loads(output.with_name("flows.json").read_text(encoding="utf-8"))["flows"]
-    assert {flow["operationId"] for flow in flows} == {
+    assert {flow["operationId"] for flow in flows if flow["operationId"] is not None} == {
         operation["operationId"] for operation in generate()["operations"]
+    }
+    assert {flow["id"] for flow in flows if flow["kind"] == "command"} == {
+        "payments.flow.fulfill",
+        "payments.flow.replay",
     }
     policies = json.loads(output.with_name("validation-policies.json").read_text(encoding="utf-8"))["policies"]
     assert any(policy["source"].endswith("PaymentPolicy.require_checkout_confirmation") for policy in policies)

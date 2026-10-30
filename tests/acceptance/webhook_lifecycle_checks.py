@@ -502,6 +502,7 @@ class WebhookLifecycleChecks:
         with self.context.evidence.action(
             "Replay durable normalized receipts in a fresh operator invocation",
             {**values, "providerCredentials": False},
+            source_id="payments.command.replay",
         ) as output:
             processed = asyncio.run(replay(settings, 100))
             upper = datetime.now(UTC)

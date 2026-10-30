@@ -424,13 +424,16 @@ def generate(
         unmatchedRouteCases=len(unmatched),
         technicalCases=len(technical),
     )
-    return {
+    result = {
         "service": "ECommerceStorePayments",
         "operations": operations,
         "unmatchedRouteScenarios": unmatched,
         "technicalScenarios": technical,
         "coverage": coverage,
     }
+    from scripts.source_knowledge import enrich
+
+    return enrich(result, feature_dir)
 
 
 def main() -> None:

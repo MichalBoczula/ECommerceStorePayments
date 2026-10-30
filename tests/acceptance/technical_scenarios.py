@@ -77,7 +77,11 @@ class TechnicalChecks:
         )
 
     def run(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, owned: Any = None) -> None:
-        with self.context.evidence.action("Run explicit technical scenario", self.inputs) as output:
+        target = self.inputs.get("Target")
+        source_id = "payments.command." + target if target is not None and target in {"fulfill", "replay"} else None
+        with self.context.evidence.action(
+            "Run explicit technical scenario", self.inputs, source_id=source_id
+        ) as output:
             self.action_id = self.context.evidence.active_action_id
             mode = self.inputs["Mode"]
             if mode == "docs":

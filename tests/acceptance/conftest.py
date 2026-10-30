@@ -363,6 +363,14 @@ def captured_contracts() -> CapturedContracts:
     return CapturedContracts(document())
 
 
+@lru_cache
+def source_links() -> Any:
+    from scripts.generate_operation_links import FEATURES, generate
+    from scripts.source_links import SourceLinks
+
+    return SourceLinks(generate(), captured_contracts().spec, FEATURES)
+
+
 def _node(request: pytest.FixtureRequest) -> pytest.Function:
     # pytest exposes FixtureRequest.node without a concrete Item annotation.
     return cast(pytest.Function, cast(Any, request).node)
@@ -378,7 +386,12 @@ def pytest_bdd_before_scenario(request: pytest.FixtureRequest, feature: Feature,
         str(key): str(value) for key, value in getattr(callspec, "params", {}).get("_pytest_bdd_example", {}).items()
     }
     captured = ScenarioEvidence(
-        identity[1], feature.name, scenario.name, parameters, contract_check=captured_contracts().observe
+        identity[1],
+        feature.name,
+        scenario.name,
+        parameters,
+        contract_check=captured_contracts().observe,
+        source_check=source_links().observe,
     )
     _node(request).stash[EVIDENCE_KEY] = captured
     cast(Any, allure.dynamic).description(scenario.description.strip())

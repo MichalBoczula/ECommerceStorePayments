@@ -103,11 +103,14 @@ def export(path: Path) -> tuple[int, int]:
         path: spec,
         path.with_name("operation-links.json"): links,
         path.with_name("flows.json"): {
-            "flows": [
-                {"operationId": operation["operationId"], **operation["flow"]} for operation in links["operations"]
-            ]
+            "flows": links["knowledge"]["flows"],
+            "executionClaim": links["knowledge"]["executionClaim"],
         },
-        path.with_name("validation-policies.json"): {"policies": [policies[source] for source in sorted(policies)]},
+        path.with_name("validation-policies.json"): {
+            "policies": [policies[source] for source in sorted(policies)],
+            "rules": links["knowledge"]["rules"],
+            "receiptReasons": links["knowledge"]["receiptReasons"],
+        },
     }
     path.parent.mkdir(parents=True, exist_ok=True)
     for destination, value in outputs.items():

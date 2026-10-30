@@ -200,6 +200,13 @@ and signed webhook variants. Acceptance recomputes one contract observation per
 captured exchange across setup, primary, concurrent and supporting traffic.
 External boundaries and cancellations retain their actual classifications.
 
+The [Task 15 source/evidence contract](docs/source-description-contract.md) adds
+stable semantic flow/step/policy/rule IDs, readable conditions/effects/failures,
+fulfillment/replay roots and checked per-scenario HTTP/action attachment joins.
+Setup responses cannot replace primary worker actions. Declared source intent,
+observed problems and receipt facts stay distinct; no branch execution or RAG
+ingestion/retrieval is inferred. See [Task 15](docs/bdd-15-flows-rules-rag-links.md).
+
 The operation-link projection reports 42/42 declared status pairs with scenario
 intent and no [reviewed gaps](docs/acceptance-gaps.tsv). New uncovered or
 stale resolved gaps fail verification. The known-path wrong-method 405 is counted
