@@ -257,6 +257,11 @@ exact downstream operations and unchanged Payment/history state. Four scenarios
 also exercise the published Invoice service and download its actual stored PDFs,
 including recovery from a real PDF storage failure.
 
+The [business validation scenarios](docs/bdd-10-business-validation.md) author
+exact Orders money tokens, all supported currency conversions and inclusive
+checkout boundaries. Rejected requests preserve populated collections on repeat;
+standalone domain rules remain explicitly separate from HTTP inputs.
+
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated
 source projection. CI retains `payments-openapi` and supplies all four JSON files

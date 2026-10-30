@@ -214,3 +214,59 @@ PAY09-33	POST /payments/webhooks/stripe	complete a published invoice and downloa
 PAY09-34	POST /payments/webhooks/stripe	recover a lost real paid acknowledgement	200	-	STRIPE/3
 PAY09-35	POST /payments/webhooks/stripe	recover a lost real invoice creation acknowledgement	200	-	STRIPE/3
 PAY09-36	POST /payments/webhooks/stripe	recover a real pdf storage failure after paid	200	-	STRIPE/3
+PAY10-01	POST /payments/{order_id}/pay	accept the smallest pln unit	201	-	PAY/22
+PAY10-02	POST /payments/{order_id}/pay	convert eur without binary float drift	201	-	PAY/22
+PAY10-03	POST /payments/{order_id}/pay	sum decimal usd lines exactly	201	-	PAY/22
+PAY10-04	POST /payments/{order_id}/pay	accept trailing zeros for gbp	201	-	PAY/22
+PAY10-05	POST /payments/{order_id}/pay	convert a scientific chf token exactly	201	-	PAY/22
+PAY10-06	POST /payments/{order_id}/pay	accept the smallest jpy unit	201	-	PAY/22
+PAY10-07	POST /payments/{order_id}/pay	keep zero-decimal krw money exact	201	-	PAY/22
+PAY10-08	POST /payments/{order_id}/pay	accept the smallest bhd unit	201	-	PAY/22
+PAY10-09	POST /payments/{order_id}/pay	convert jod at three decimals	201	-	PAY/22
+PAY10-10	POST /payments/{order_id}/pay	convert kwd at three decimals	201	-	PAY/22
+PAY10-11	POST /payments/{order_id}/pay	convert omr at three decimals	201	-	PAY/22
+PAY10-12	POST /payments/{order_id}/pay	convert tnd at three decimals	201	-	PAY/22
+PAY10-13	POST /payments/{order_id}/pay	store the exact bson signed-int64 upper boundary	201	-	PAY/22
+PAY10-14	POST /payments/{order_id}/pay	preserve a usd integer beyond binary-float precision	201	-	PAY/22
+PAY10-15	POST /payments/{order_id}/pay	accept a case-insensitive created order status	201	-	PAY/22
+PAY10-16	POST /payments/{order_id}/pay	reject a zero order total	502	order_invalid_response	PAY/22
+PAY10-17	POST /payments/{order_id}/pay	reject a negative order total	502	order_invalid_response	PAY/22
+PAY10-18	POST /payments/{order_id}/pay	reject a fractional pln minor unit	502	order_invalid_response	PAY/22
+PAY10-19	POST /payments/{order_id}/pay	reject a fractional jpy unit	502	order_invalid_response	PAY/22
+PAY10-20	POST /payments/{order_id}/pay	reject a fourth decimal for kwd	502	order_invalid_response	PAY/22
+PAY10-21	POST /payments/{order_id}/pay	reject an unknown orders currency	502	order_invalid_response	PAY/22
+PAY10-22	POST /payments/{order_id}/pay	reject lowercase orders currency	502	order_invalid_response	PAY/22
+PAY10-23	POST /payments/{order_id}/pay	reject padded orders currency	502	order_invalid_response	PAY/22
+PAY10-24	POST /payments/{order_id}/pay	reject non-ascii orders currency	502	order_invalid_response	PAY/22
+PAY10-25	POST /payments/{order_id}/pay	reject a short orders currency	502	order_invalid_response	PAY/22
+PAY10-26	POST /payments/{order_id}/pay	reject a long orders currency	502	order_invalid_response	PAY/22
+PAY10-27	POST /payments/{order_id}/pay	reject an empty orders currency	502	order_invalid_response	PAY/22
+PAY10-28	POST /payments/{order_id}/pay	reject a string orders total	502	order_invalid_response	PAY/22
+PAY10-29	POST /payments/{order_id}/pay	reject a null orders total	502	order_invalid_response	PAY/22
+PAY10-30	POST /payments/{order_id}/pay	reject a true orders total	502	order_invalid_response	PAY/22
+PAY10-31	POST /payments/{order_id}/pay	reject a false orders total	502	order_invalid_response	PAY/22
+PAY10-32	POST /payments/{order_id}/pay	reject a nonfinite nan token	502	order_invalid_response	PAY/22
+PAY10-33	POST /payments/{order_id}/pay	reject a nonfinite infinity token	502	order_invalid_response	PAY/22
+PAY10-34	POST /payments/{order_id}/pay	reject an amount beyond the conversion exponent bound	502	order_invalid_response	PAY/22
+PAY10-35	POST /payments/{order_id}/pay	reject a mismatch in the exact line sum	502	order_invalid_response	PAY/22
+PAY10-36	POST /payments/{order_id}/pay	reject an empty collection of order lines	502	order_invalid_response	PAY/22
+PAY10-37	POST /payments/{order_id}/pay	reject an absent orders total	502	order_invalid_response	PAY/22
+PAY10-38	POST /payments/{order_id}/pay	reject a numeric orders currency	502	order_invalid_response	PAY/22
+PAY10-39	POST /payments/{order_id}/pay	reject a null orders currency	502	order_invalid_response	PAY/22
+PAY10-40	POST /payments/{order_id}/pay	reject a boolean orders currency	502	order_invalid_response	PAY/22
+PAY10-41	POST /payments/{order_id}/pay	reject an absent orders currency	502	order_invalid_response	PAY/22
+PAY10-42	POST /payments/{order_id}/pay	reject an inconsistent product currency	502	order_invalid_response	PAY/22
+PAY10-43	POST /payments/{order_id}/pay	reject an empty order status	502	order_invalid_response	PAY/22
+PAY10-44	POST /payments/{order_id}/pay	reject a whitespace-only order status	502	order_invalid_response	PAY/22
+PAY10-45	POST /payments/{order_id}/pay	reject a response for a different order	502	order_invalid_response	PAY/22
+PAY10-46	POST /payments/{order_id}/pay	reject a paid order without creating payment	409	order_not_payable	PAY/22
+PAY10-47	POST /payments/{order_id}/pay	reject a canceled order without creating payment	409	order_not_payable	PAY/22
+PAY10-48	POST /payments/{order_id}/pay	reject a zero uuid through the real pay route	400	validation_failed	PAY/22
+PAY10-49	POST /payments/{order_id}/checkout	reject zero at checkout before preparing payment	502	order_invalid_response	PAY/22
+PAY10-50	POST /payments/{order_id}/checkout	reject a fractional minor unit at checkout	502	order_invalid_response	PAY/22
+PAY10-51	POST /payments/{order_id}/checkout	reject valid eur only at the checkout provider policy	409	checkout_money_unsupported	PAY/22
+PAY10-52	POST /payments/{order_id}/checkout	reject valid jpy only at the checkout provider policy	409	checkout_money_unsupported	PAY/22
+PAY10-53	POST /payments/{order_id}/checkout	reject one pln minor unit below the checkout minimum	409	checkout_money_unsupported	PAY/22
+PAY10-54	POST /payments/{order_id}/checkout	accept the inclusive pln checkout minimum	200	-	PAY/22
+PAY10-55	POST /payments/{order_id}/checkout	accept the inclusive pln checkout maximum	200	-	PAY/22
+PAY10-56	POST /payments/{order_id}/checkout	reject one pln minor unit above the checkout maximum	409	checkout_money_unsupported	PAY/22
