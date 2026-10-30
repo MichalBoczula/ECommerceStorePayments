@@ -121,7 +121,9 @@ class FulfillmentChecks:
             orders.order_id, orders.client_id = document["order_id"], UUID("77777777-7777-4777-8777-777777777777")
             orders.amount, orders.currency, orders.status, orders.invoice_id = Decimal("31.73"), "PLN", "Created", None
             with context.evidence.action(
-                "Settle unrelated work through the real worker", {"orderId": str(orders.order_id)}
+                "Settle unrelated work through the real worker",
+                {"orderId": str(orders.order_id)},
+                source_id="payments.command.fulfill",
             ) as output:
                 assert asyncio.run(run(context.settings, 100)) == 1
                 assert context.webhooks.count_documents({"fulfillment_status": "completed"}) == 1
@@ -211,7 +213,9 @@ class FulfillmentChecks:
         )
         lower = datetime.now(UTC)
         with context.evidence.action(
-            "Run durable fulfillment command", {**values, "providerCredentials": False}
+            "Run durable fulfillment command",
+            {**values, "providerCredentials": False},
+            source_id="payments.command.fulfill",
         ) as output:
             with pytest.MonkeyPatch.context() as patch:
                 patch.setattr(
@@ -364,7 +368,9 @@ class FulfillmentChecks:
         before = self.payments.snapshot()
         old = self.target(before)
         assert old["fulfillment_status"] == "failed"
-        with self.context.evidence.action("Resume repaired failed work through the operator command", values) as output:
+        with self.context.evidence.action(
+            "Resume repaired failed work through the operator command", values, source_id="payments.command.fulfill"
+        ) as output:
             lower = datetime.now(UTC)
             assert asyncio.run(run(self.context.settings, 100, resume=self.event_id)) == 1
             upper = datetime.now(UTC)

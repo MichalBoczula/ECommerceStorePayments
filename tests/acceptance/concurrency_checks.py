@@ -396,7 +396,9 @@ class ConcurrencyChecks:
                 await database.close()
 
         with self.context.evidence.action(
-            "Run two stale repository commands", {"mode": self.mode, "winner": self.winner}
+            "Run two stale repository commands",
+            {"mode": self.mode, "winner": self.winner},
+            source_id="payments.method.payment-update",
         ) as output:
             asyncio.run(run())
             output["results"] = lossless(self.results)

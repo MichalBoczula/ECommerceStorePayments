@@ -107,3 +107,18 @@ operations and their 42 declared status pairs. Real owned containers and clients
 support lifecycle observations; controlled downstream replies remain identified
 as controlled. This does not change service behavior, published HTTP contracts,
 production topology or the manual LiveDocs refresh process.
+
+## PAY-BDD-15 source/evidence groups
+
+The recorder retains immutable serialized records across step flushes and adds
+one [source/evidence group](../source-description-contract.md) per scenario.
+Explicit command/repository source tags belong to actual action wrappers.
+Logical attachment names, exact exchange/action identities, phases and ownership
+join observed outcomes to declared source context. Setup/supporting traffic and
+external/cancelled calls retain their roles. Canonical receipt snapshot pointers
+record facts without assigning causality or executed source rules.
+
+The Acceptance gate recomputes every group from the physical records and current
+source exports. A failed join remains an observation while original pairs survive;
+missing/forged groups and absent primary When actions fail the suite. No new
+runtime dependency or RAG service is introduced.

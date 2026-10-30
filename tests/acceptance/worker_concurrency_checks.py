@@ -240,7 +240,9 @@ class WorkerConcurrencyChecks:
                 self.gates.open_all()
                 await asyncio.gather(old, return_exceptions=True)
 
-        with self.context.evidence.action("Run real coordinated fulfillment commands", self.inputs) as output:
+        with self.context.evidence.action(
+            "Run real coordinated fulfillment commands", self.inputs, source_id="payments.command.fulfill"
+        ) as output:
             with monkeypatch.context() as patch:
                 patch.setattr(module, "FulfillmentService", service)
                 if not mode.startswith("lease-"):

@@ -29,3 +29,19 @@ Documentation and later retrieval tooling can use a deterministic source-derived
 ## Alternatives considered
 
 A manually maintained operation catalog was rejected because the links would duplicate source and drift. Runtime tracing was rejected because exporting documentation should not require startup, MongoDB or live Orders. The generated OpenAPI contract alone supplies endpoint metadata but not service calls, domain rules or scenario IDs.
+
+## PAY-BDD-15 semantic source contract
+
+[Task 15](../bdd-15-flows-rules-rag-links.md) extends the existing projection with
+stable authored aliases checked against executable predicates/sites, human
+conditions/effects/failures, canonical method/site references and flow-qualified
+steps. Concrete command composition adds fulfillment/replay roots. Typed source
+references distinguish policies, rejection sites, declared outcomes and receipt
+reasons. The [description contract](../source-description-contract.md) defines
+supported source forms and limits; possible sites are not runtime branch telemetry.
+
+The existing four generated exports carry the catalogue, without an extra
+application endpoint or committed generated index. Expanded Gherkin When bindings
+join each scenario to actual HTTP or explicitly tagged worker/repository actions.
+References prepare future retrieval tooling without claiming RAG ingestion or
+retrieval. Source, runtime API, dependency and persistence boundaries stay intact.

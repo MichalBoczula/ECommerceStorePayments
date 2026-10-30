@@ -66,7 +66,10 @@ This tracks the Payments work compared with the reference practices in ECommerce
   host isolation, CLI limits/batches and documentation evidence; plus source-derived
   serialized contracts, typed examples with required nulls, signed webhook metadata
   and independently recomputed contract observations for every captured exchange.
-  Remaining flows/rules/RAG and final-report packages stay open. This item does not close
+  Plus stable source identities and readable flow/policy/rule/outcome meanings,
+  production worker roots and validated joins to every actual HTTP/action pair
+  and recorded receipt fact; see [Task 15](docs/bdd-15-flows-rules-rag-links.md).
+  The final-report package stays open. This item does not close
   the separate STRIPE rollout or LiveDocs deployment tasks.
 
 ## Later functional stage

@@ -98,6 +98,7 @@ class ScenarioEvidence:
         parameters: Mapping[str, str],
         *,
         contract_check: Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]] | None = None,
+        source_check: Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]] | None = None,
     ) -> None:
         if re.fullmatch(r"PAY\d+-\d+", scenario_id) is None:
             raise ValueError("A stable Payments scenario ID is required")
@@ -117,6 +118,8 @@ class ScenarioEvidence:
         self._pending: list[tuple[str, str]] = []
         self._index: list[dict[str, Any]] = []
         self._contract_check = contract_check
+        self._source_check = source_check
+        self._records: dict[str, Any] = {}
 
     def publish_identity(self) -> None:
         for key in ("service", "scenarioId", "instanceId"):
@@ -127,6 +130,10 @@ class ScenarioEvidence:
     def record(self, name: str, value: object) -> None:
         snapshot = json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False)
         with self._lock:
+            if self._source_check is not None:
+                if name in self._records:
+                    raise ValueError("Duplicate scenario evidence name")
+                self._records[name] = json.loads(snapshot)
             self._pending.append((name, snapshot))
 
     def observation(self, name: str, value: object) -> None:
@@ -216,7 +223,7 @@ class ScenarioEvidence:
             )
 
     @contextmanager
-    def action(self, name: str, inputs: object) -> Generator[dict[str, Any]]:
+    def action(self, name: str, inputs: object, *, source_id: str | None = None) -> Generator[dict[str, Any]]:
         with self._lock:
             self._sequence += 1
             number = self._sequence
@@ -227,6 +234,8 @@ class ScenarioEvidence:
             "step": self.step,
             "action": name,
         }
+        if source_id is not None:
+            metadata["sourceId"] = source_id
         previous = self._action_id
         self._action_id = metadata["actionId"]
         self.record(f"Action {number:03} start", {**metadata, "kind": "action-start", "inputs": inputs})
@@ -250,6 +259,14 @@ class ScenarioEvidence:
 
     def finish(self, attach: Callable[[str, str], None] | None = None) -> None:
         self.record("Scenario evidence index", {**self.identity, "exchanges": self._index})
+        if self._source_check is not None:
+            self.record(
+                "Scenario source links",
+                {
+                    **self.identity,
+                    "value": self._source_check(self.identity, self._records),
+                },
+            )
         self.flush(attach)
 
     def flush(self, attach: Callable[[str, str], None] | None = None) -> None:
