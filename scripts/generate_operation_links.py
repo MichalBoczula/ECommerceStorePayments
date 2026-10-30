@@ -47,6 +47,7 @@ from scripts.bdd_baseline import (
     source_cases,
 )
 from scripts.bdd_evidence import check_source_evidence
+from scripts.technical_scenarios import TECHNICAL, technical_links, technical_rows
 
 ROOT = Path(__file__).resolve().parents[1]
 MATRIX = ROOT / "docs/acceptance-matrix.tsv"
@@ -298,7 +299,7 @@ def source_scenarios(feature_dir: Path) -> set[str]:
 
 
 def scenario_links(
-    routes: list[APIRoute], matrix: Path, feature_dir: Path
+    routes: list[APIRoute], matrix: Path, feature_dir: Path, technical_matrix: Path = TECHNICAL
 ) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]]]:
     with matrix.open(newline="", encoding="utf-8") as stream:
         rows = list(csv.DictReader(stream, delimiter="\t"))
@@ -308,7 +309,10 @@ def scenario_links(
     ids = [row["id"] for row in rows]
     require(len(ids) == len(set(ids)), "Duplicate matrix scenario ID")
     cases = source_cases(feature_dir)
-    require(set(ids) == set(cases), "Matrix and source scenarios differ")
+    technical = technical_rows(technical_matrix)
+    technical_ids = {row["id"] for row in technical}
+    require(not (set(ids) & technical_ids), "HTTP and technical matrix IDs overlap")
+    require(set(ids) | technical_ids == set(cases), "Matrix and source scenarios differ")
     requirements = set(
         re.findall(r"\*\*((?:PAY|STRIPE)/\d+)\s+—", (ROOT / "TECHNICAL_TODO.md").read_text(encoding="utf-8"))
     )
@@ -339,11 +343,17 @@ def scenario_links(
             }
         )
     check_source_baseline(cases, rows)
-    check_source_evidence(feature_dir, matrix)
+    check_source_evidence(feature_dir, matrix, technical_matrix)
     return links, unmatched
 
 
-def generate(matrix: Path = MATRIX, feature_dir: Path = FEATURES, app: Any = None, gaps: Path = GAPS) -> dict[str, Any]:
+def generate(
+    matrix: Path = MATRIX,
+    feature_dir: Path = FEATURES,
+    app: Any = None,
+    gaps: Path = GAPS,
+    technical_matrix: Path = TECHNICAL,
+) -> dict[str, Any]:
     check_repository_sources()
     app = app or create_app()
     routes = [route for router in ROUTERS for route in router.routes if isinstance(route, APIRoute)]
@@ -357,7 +367,11 @@ def generate(matrix: Path = MATRIX, feature_dir: Path = FEATURES, app: Any = Non
         if method.lower() in {"get", "post", "put", "patch", "delete"}
     }
     require(declared == published, f"Router and generated OpenAPI operations differ: {declared ^ published}")
-    links, unmatched = scenario_links(routes, matrix, feature_dir)
+    links, unmatched = scenario_links(routes, matrix, feature_dir, technical_matrix)
+    requirements = set(
+        re.findall(r"\*\*((?:PAY|STRIPE)/\d+)\s+—", (ROOT / "TECHNICAL_TODO.md").read_text(encoding="utf-8"))
+    )
+    technical = technical_links(technical_rows(technical_matrix), requirements)
     operations = []
     for route in routes:
         assert route.operation_id is not None
@@ -408,11 +422,13 @@ def generate(matrix: Path = MATRIX, feature_dir: Path = FEATURES, app: Any = Non
         expandedBddCases=len(source_scenarios(feature_dir)),
         matchedRouteCases=sum(len(operation["scenarios"]) for operation in operations),
         unmatchedRouteCases=len(unmatched),
+        technicalCases=len(technical),
     )
     return {
         "service": "ECommerceStorePayments",
         "operations": operations,
         "unmatchedRouteScenarios": unmatched,
+        "technicalScenarios": technical,
         "coverage": coverage,
     }
 

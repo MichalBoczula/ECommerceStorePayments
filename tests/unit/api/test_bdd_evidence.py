@@ -235,7 +235,7 @@ def bundle(tmp_path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
 
 def test_current_source_and_complete_captured_evidence_are_publishable(tmp_path: Path) -> None:
     check_source_evidence(FEATURES, MATRIX)
-    assert len(source_evidence(FEATURES)) == 370
+    assert len(source_evidence(FEATURES)) == 391
     result, profile = bundle(tmp_path)
     check_result_evidence(result, profile, tmp_path)
 
@@ -331,7 +331,17 @@ def test_actual_allure_hooks_render_health_descriptions_tables_and_supporting_ca
 ) -> None:
     features = tmp_path / "features"
     features.mkdir()
-    shutil.copyfile(FEATURES / "health.feature", features / "health.feature")
+    # This hook regression uses the database-free unit host. Real populated health
+    # state/probe assertions run in the acceptance suite, not through fake storage.
+    hook_feature = (FEATURES / "health.feature").read_text()
+    hook_feature = re.sub(
+        r"    And (?:populated health collections contain|health preserves complete populated state and protocol)\n"
+        r"(?:      \|[^\n]*\n)+",
+        "",
+        hook_feature,
+    )
+    hook_feature = hook_feature.replace("    And I observe actual health probe calls\n", "")
+    (features / "health.feature").write_text(hook_feature)
     probe = tmp_path / "test_probe.py"
     probe.write_text("""from typing import cast
 import pytest

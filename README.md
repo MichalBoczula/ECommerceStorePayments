@@ -274,6 +274,12 @@ worker claims. Session-visible writes and independent outside reads prove real
 transaction rollback; complete winners, expiry boundaries and old-worker fencing
 have native tables and linked HTTP/action evidence.
 
+The [technical scenarios](docs/bdd-13-technical-scenarios.md) check populated
+health probes, owned Mongo outages and topology, failed startup cleanup, actual
+cancellation and worker recovery, host/database isolation, CLI batch boundaries
+and served documentation. Explicit actions and cancelled exchanges retain their
+actual outcomes in a separate technical projection.
+
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated
 source projection. CI retains `payments-openapi` and supplies all four JSON files
