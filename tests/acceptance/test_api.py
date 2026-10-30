@@ -1,7 +1,6 @@
 import csv
 import json
 import re
-from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
@@ -26,6 +25,7 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.we
     MongoWebhookRepository,
 )
 from tests.acceptance.checkout_recovery_checks import CheckoutRecoveryChecks
+from tests.acceptance.concurrency_checks import ConcurrencyChecks
 from tests.acceptance.conftest import AcceptanceContext
 from tests.acceptance.evidence import table_values
 from tests.webhook_fixtures import encode, payload_for, signature
@@ -168,13 +168,8 @@ def get_by_order(acceptance: AcceptanceContext) -> None:
 
 
 @when("I submit two Pay requests concurrently")
-def concurrent_pay(acceptance: AcceptanceContext) -> None:
-    path = f"/payments/{acceptance.orders.order_id}/pay"
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        first = executor.submit(acceptance.client.post, path, attempt="pay-1")
-        second = executor.submit(acceptance.client.post, path, attempt="pay-2")
-        acceptance.responses = [first.result(), second.result()]
-    acceptance.last_operation = f"{OPERATION_PAY} x2"
+def concurrent_pay(concurrency_checks: ConcurrencyChecks, monkeypatch: pytest.MonkeyPatch) -> None:
+    concurrency_checks.pay(monkeypatch)
 
 
 @when("I pay with an invalid order ID")
@@ -393,17 +388,8 @@ def deliver_webhook(acceptance: AcceptanceContext) -> None:
 
 
 @when("I deliver two checkout webhooks concurrently")
-def concurrent_webhooks(acceptance: AcceptanceContext) -> None:
-    body = acceptance.webhook_payload
-    headers = {"stripe-signature": signature(body), "content-type": "application/json"}
-
-    def send(attempt: str) -> Response:
-        return acceptance.client.post("/payments/webhooks/stripe", content=body, headers=headers, attempt=attempt)
-
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        first, second = executor.submit(send, "webhook-1"), executor.submit(send, "webhook-2")
-        acceptance.responses = [first.result(), second.result()]
-    acceptance.last_operation = "POST /payments/webhooks/stripe x2"
+def concurrent_webhooks(concurrency_checks: ConcurrencyChecks, monkeypatch: pytest.MonkeyPatch) -> None:
+    concurrency_checks.webhook(monkeypatch, existing=True)
 
 
 @then(parsers.parse('the webhook receipt is "{state}"'))

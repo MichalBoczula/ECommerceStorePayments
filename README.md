@@ -268,6 +268,12 @@ HTTP status pairs with complete safe problems, exact methods/body/media/size
 boundaries and unchanged populated state. Explicit failure actions distinguish
 unexpected-error fallback tests from natural infrastructure outages.
 
+The [concurrency and atomicity scenarios](docs/bdd-12-concurrency-atomicity.md)
+coordinate actual stale writes, Checkout reservations, signed deliveries and
+worker claims. Session-visible writes and independent outside reads prove real
+transaction rollback; complete winners, expiry boundaries and old-worker fencing
+have native tables and linked HTTP/action evidence.
+
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated
 source projection. CI retains `payments-openapi` and supplies all four JSON files

@@ -69,3 +69,15 @@ boundaries; they do not claim natural dependency failures or branch tracing.
 Valid JSON exponents outside the finite float range use a `json-number-text`
 convenience view with unchanged original bytes, preserving a valid evidence
 envelope. Non-JSON numeric constants remain `invalid-json`.
+
+## Coordinated transaction and worker evidence
+
+[PAY-BDD-12](../bdd-12-concurrency-atomicity.md) uses finite test-only gates around
+real persistence/adapter calls. An actual X-Bdd-Attempt header and scoped async
+identity join concurrent API and outgoing exchanges. Workers use scoped action/
+exchange identities without inventing inbound HTTP. The collector restores the
+parent scope after exceptions. Session-visible staged writes and independent
+outside snapshots distinguish actual MongoDB abort from pre-write injection;
+complete winners and real lease errors prove the observed boundaries, not runtime
+branch tracing or deployed Azure behavior. Native tables remain separate CSV
+attachments beside the immutable JSON observations and physical HTTP pairs.

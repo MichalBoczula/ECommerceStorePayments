@@ -42,8 +42,9 @@ selected LiveDocs refresh and Terraform deployment remain manual.
 - [x] **PAY-BDD-11 — Framework failures.** Close reviewed status gaps, cover
   routes/methods/bodies/media and complete safe problems with populated-state checks.
   See [framework failures](bdd-11-framework-failures.md).
-- [ ] **PAY-BDD-12 — Concurrency and atomicity.** Deterministic races, full
+- [x] **PAY-BDD-12 — Concurrency and atomicity.** Deterministic races, full
   winners, real rollback, competing claims, lease expiry and stale-worker fencing.
+  See [concurrency and atomicity](bdd-12-concurrency-atomicity.md).
 - [ ] **PAY-BDD-13 — Technical scenarios.** Health/readiness, startup/index
   failure, cancellation, isolation, command limits and documentation endpoints.
 - [ ] **PAY-BDD-14 — Request/response contracts.** Source-derived types,

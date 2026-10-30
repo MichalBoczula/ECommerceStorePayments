@@ -47,6 +47,7 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.pa
 from tests.acceptance.business_validation_checks import BusinessValidationChecks
 from tests.acceptance.checkout_checks import CheckoutChecks
 from tests.acceptance.checkout_recovery_checks import CheckoutRecoveryChecks
+from tests.acceptance.concurrency_checks import ConcurrencyChecks
 from tests.acceptance.evidence import EvidenceClient, ScenarioEvidence, table_values
 from tests.acceptance.framework_checks import FrameworkChecks
 from tests.acceptance.fulfillment_checks import FulfillmentChecks
@@ -799,6 +800,31 @@ def framework_checks(payment_checks: PaymentChecks) -> FrameworkChecks:
     return FrameworkChecks(payment_checks)
 
 
+@pytest.fixture
+def concurrency_checks(payment_checks: PaymentChecks) -> ConcurrencyChecks:
+    return ConcurrencyChecks(payment_checks)
+
+
+@given("the real write schedule is")
+def coordinate_writes(concurrency_checks: ConcurrencyChecks, datatable: list[list[str]]) -> None:
+    concurrency_checks.configure(table_values(datatable))
+
+
+@then("the coordinated payment responses are")
+def coordinated_payments(concurrency_checks: ConcurrencyChecks, datatable: list[list[str]]) -> None:
+    concurrency_checks.payment_responses(table_values(datatable))
+
+
+@then("the coordinated database effects are")
+def coordinated_effects(concurrency_checks: ConcurrencyChecks, datatable: list[list[str]]) -> None:
+    concurrency_checks.effects(table_values(datatable))
+
+
+@then("supporting reads and repeats preserve the coordinated result")
+def coordinated_supporting(concurrency_checks: ConcurrencyChecks) -> None:
+    concurrency_checks.supporting()
+
+
 @given("the framework request contains")
 def framework_request(framework_checks: FrameworkChecks, datatable: list[list[str]]) -> None:
     framework_checks.prepare(table_values(datatable))
@@ -831,3 +857,13 @@ def framework_rejected(framework_checks: FrameworkChecks, datatable: list[list[s
 @then("the accepted framework input has these effects")
 def framework_accepted(framework_checks: FrameworkChecks, datatable: list[list[str]]) -> None:
     framework_checks.accepted(table_values(datatable))
+
+
+@then("the first coordinated receipt is")
+def first_coordinated_receipt(concurrency_checks: ConcurrencyChecks, datatable: list[list[str]]) -> None:
+    concurrency_checks.authored["first"] = table_values(datatable)
+
+
+@then("the second coordinated receipt is")
+def second_coordinated_receipt(concurrency_checks: ConcurrencyChecks, datatable: list[list[str]]) -> None:
+    concurrency_checks.receipts(concurrency_checks.authored["first"], table_values(datatable))

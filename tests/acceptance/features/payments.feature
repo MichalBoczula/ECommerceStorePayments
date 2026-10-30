@@ -382,7 +382,7 @@ Feature: Payment API with real persistence and a controlled Orders boundary
     And the rejected retry preserves every document
 
   Scenario: PAY11-13 Concurrent Pay creates one current payment
-    Two first Pay requests target one order concurrently. Both responses refer to one payment and only one current document exists.
+    Both first Pay requests reach the real insert boundary with distinct candidates after empty reads. The selected insert commits and the other hits the actual unique order index; complete responses and all stored fields identify the surviving payment.
     Given the order fixture contains
       | Field         | Value                                |
       | OrderId       | 11111111-1111-4111-8111-111111111111 |
@@ -390,6 +390,10 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
     And a payable order
+    And the real write schedule is
+      | Field  | Value      |
+      | Mode   | pay-create |
+      | Winner | first      |
     When I submit two Pay requests concurrently
     Then the response matches case "PAY11-13"
       | Field             | Value            |
@@ -401,6 +405,30 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | JSON.currency     | "PLN"            |
     And both responses refer to one payment
     And the database has 1 current payment and 0 history snapshots
+
+    And the coordinated payment responses are
+      | Field               | Value                                  |
+      | id                  | {stored.id}                            |
+      | order_id            | "11111111-1111-4111-8111-111111111111" |
+      | amount_minor        | 1299                                   |
+      | currency            | "PLN"                                  |
+      | status              | "created"                              |
+      | provider_session_id | null                                   |
+      | provider_payment_id | null                                   |
+      | failure_code        | null                                   |
+      | created_at          | {stored.created_at}                    |
+      | updated_at          | null                                   |
+    And the coordinated database effects are
+      | Field         | Value   |
+      | Status        | created |
+      | Version       | 0       |
+      | NewArchives   | 0       |
+      | NewReceipts   | 0       |
+      | OrdersCalls   | 2       |
+      | StripeCalls   | 0       |
+      | Conflicts     | 1       |
+      | SessionsAdded | 0       |
+    And supporting reads and repeats preserve the coordinated result
 
   Scenario: PAY11-14 Invalid order ID
     Pay receives a path segment that is not a UUID while two payments and their history already exist. Both requests return a complete invalid_request problem and preserve every populated collection.
