@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import socket
 from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
@@ -47,6 +48,13 @@ class OwnedMongo:
         self.stopped = False
 
     def __enter__(self) -> OwnedMongo:
+        # Docker can assign a new random host port when the same container restarts.
+        # Bind an explicit available port before creation so existing clients recover
+        # through the same real endpoint; Docker still owns the binding afterwards.
+        with socket.socket() as reservation:
+            reservation.bind(("127.0.0.1", 0))
+            port = reservation.getsockname()[1]
+            self.container.with_bind_ports(27017, port)
         self.container.start()
         wrapped = self.container.get_wrapped_container()
         assert wrapped.client is not None

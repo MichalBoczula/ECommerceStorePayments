@@ -202,7 +202,7 @@ def test_new_case_closes_gap_only_when_reviewed_gap_is_removed(tmp_path: Path) -
         + "\n"
     )
     coverage = generate(matrix=matrix, feature_dir=features, gaps=gaps, app=app)["coverage"]
-    assert coverage["expandedBddCases"] == 371 and coverage["guaranteedScenarioStatusPairs"] == 43
+    assert coverage["expandedBddCases"] == 392 and coverage["guaranteedScenarioStatusPairs"] == 43
     assert coverage["gaps"] == []
 
 

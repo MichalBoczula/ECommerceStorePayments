@@ -266,6 +266,34 @@ Feature: Technical operations with actual lifecycle and command evidence
       | Code          | -              |
       | ExceptionType | CancelledError |
       | Result        | cancelled      |
+    And technical work has this complete receipt
+      | Field                              | Value             |
+      | _id                                | {before}          |
+      | event_type                         | {before}          |
+      | payload_digest                     | {before}          |
+      | outcome                            | {before}          |
+      | payment_id                         | {before}          |
+      | order_id                           | {before}          |
+      | attempt_id                         | {before}          |
+      | amount_minor                       | {before}          |
+      | currency                           | {before}          |
+      | session_id                         | {before}          |
+      | provider_payment_id                | {before}          |
+      | state                              | {before}          |
+      | reason                             | {before}          |
+      | received_at                        | {before}          |
+      | completed_at                       | {before}          |
+      | fulfillment_status                 | "completed"       |
+      | fulfillment_attempts               | 2                 |
+      | fulfillment_lease_id               | null              |
+      | fulfillment_lease_until            | null              |
+      | fulfillment_next_attempt           | null              |
+      | fulfillment_error                  | null              |
+      | fulfillment_order_paid             | true              |
+      | fulfillment_client_id              | {client.id}       |
+      | fulfillment_invoice_id             | {invoice.id}      |
+      | fulfillment_client_data_version_id | {invoice.version} |
+      | fulfillment_completed_at           | {clock}           |
     And technical supporting reads preserve final state
       | Field       | Value     |
       | Collections | unchanged |
@@ -299,6 +327,34 @@ Feature: Technical operations with actual lifecycle and command evidence
       | Code          | -              |
       | ExceptionType | CancelledError |
       | Result        | cancelled      |
+    And technical work has this complete receipt
+      | Field                              | Value             |
+      | _id                                | {before}          |
+      | event_type                         | {before}          |
+      | payload_digest                     | {before}          |
+      | outcome                            | {before}          |
+      | payment_id                         | {before}          |
+      | order_id                           | {before}          |
+      | attempt_id                         | {before}          |
+      | amount_minor                       | {before}          |
+      | currency                           | {before}          |
+      | session_id                         | {before}          |
+      | provider_payment_id                | {before}          |
+      | state                              | {before}          |
+      | reason                             | {before}          |
+      | received_at                        | {before}          |
+      | completed_at                       | {before}          |
+      | fulfillment_status                 | "completed"       |
+      | fulfillment_attempts               | 2                 |
+      | fulfillment_lease_id               | null              |
+      | fulfillment_lease_until            | null              |
+      | fulfillment_next_attempt           | null              |
+      | fulfillment_error                  | null              |
+      | fulfillment_order_paid             | true              |
+      | fulfillment_client_id              | {client.id}       |
+      | fulfillment_invoice_id             | {invoice.id}      |
+      | fulfillment_client_data_version_id | {invoice.version} |
+      | fulfillment_completed_at           | {clock}           |
     And technical supporting reads preserve final state
       | Field       | Value     |
       | Collections | unchanged |
@@ -396,7 +452,7 @@ Feature: Technical operations with actual lifecycle and command evidence
       | HTTPStatuses  | <none>           |
       | ContentType   | <none>           |
       | Code          | -                |
-      | ExceptionType | OperationFailure |
+      | ExceptionType | DuplicateKeyError |
       | Result        | rejected         |
     And technical supporting reads preserve final state
       | Field       | Value     |
@@ -464,6 +520,11 @@ Feature: Technical operations with actual lifecycle and command evidence
       | Code          | -          |
       | ExceptionType | ValueError |
       | Result        | rejected   |
+    And the technical command has these exact effects
+      | Field             | Value     |
+      | CLIExitCode       | 2         |
+      | ClientAllocations | 0         |
+      | Collections       | unchanged |
     And technical supporting reads preserve final state
       | Field       | Value     |
       | Collections | unchanged |
@@ -497,6 +558,11 @@ Feature: Technical operations with actual lifecycle and command evidence
       | Code          | -          |
       | ExceptionType | ValueError |
       | Result        | rejected   |
+    And the technical command has these exact effects
+      | Field             | Value     |
+      | CLIExitCode       | 2         |
+      | ClientAllocations | 0         |
+      | Collections       | unchanged |
     And technical supporting reads preserve final state
       | Field       | Value     |
       | Collections | unchanged |
@@ -530,6 +596,11 @@ Feature: Technical operations with actual lifecycle and command evidence
       | Code          | -          |
       | ExceptionType | SystemExit |
       | Result        | rejected   |
+    And the technical command has these exact effects
+      | Field             | Value     |
+      | CLIExitCode       | 2         |
+      | ClientAllocations | 0         |
+      | Collections       | unchanged |
     And technical supporting reads preserve final state
       | Field       | Value     |
       | Collections | unchanged |
@@ -563,6 +634,11 @@ Feature: Technical operations with actual lifecycle and command evidence
       | Code          | -          |
       | ExceptionType | SystemExit |
       | Result        | rejected   |
+    And the technical command has these exact effects
+      | Field             | Value     |
+      | CLIExitCode       | 2         |
+      | ClientAllocations | 0         |
+      | Collections       | unchanged |
     And technical supporting reads preserve final state
       | Field       | Value     |
       | Collections | unchanged |
@@ -596,6 +672,41 @@ Feature: Technical operations with actual lifecycle and command evidence
       | Code          | -         |
       | ExceptionType | <none>    |
       | Result        | processed |
+    And technical work has this complete receipt
+      | Field                              | Value             |
+      | _id                                | {before}          |
+      | event_type                         | {before}          |
+      | payload_digest                     | {before}          |
+      | outcome                            | {before}          |
+      | payment_id                         | {before}          |
+      | order_id                           | {before}          |
+      | attempt_id                         | {before}          |
+      | amount_minor                       | {before}          |
+      | currency                           | {before}          |
+      | session_id                         | {before}          |
+      | provider_payment_id                | {before}          |
+      | state                              | {before}          |
+      | reason                             | {before}          |
+      | received_at                        | {before}          |
+      | completed_at                       | {before}          |
+      | fulfillment_status                 | "completed"       |
+      | fulfillment_attempts               | 1                 |
+      | fulfillment_lease_id               | null              |
+      | fulfillment_lease_until            | null              |
+      | fulfillment_next_attempt           | null              |
+      | fulfillment_error                  | null              |
+      | fulfillment_order_paid             | true              |
+      | fulfillment_client_id              | {client.id}       |
+      | fulfillment_invoice_id             | {invoice.id}      |
+      | fulfillment_client_data_version_id | {invoice.version} |
+      | fulfillment_completed_at           | {clock}           |
+    And the technical command has these exact effects
+      | Field              | Value  |
+      | PrimaryLimit       | 1      |
+      | PrimaryProcessed   | 1      |
+      | RemainingProcessed | 1      |
+      | RepeatedProcessed  | 0      |
+      | Clients            | closed |
     And technical supporting reads preserve final state
       | Field       | Value     |
       | Collections | unchanged |
@@ -629,6 +740,41 @@ Feature: Technical operations with actual lifecycle and command evidence
       | Code          | -         |
       | ExceptionType | <none>    |
       | Result        | processed |
+    And technical work has this complete receipt
+      | Field                              | Value             |
+      | _id                                | {before}          |
+      | event_type                         | {before}          |
+      | payload_digest                     | {before}          |
+      | outcome                            | {before}          |
+      | payment_id                         | {before}          |
+      | order_id                           | {before}          |
+      | attempt_id                         | {before}          |
+      | amount_minor                       | {before}          |
+      | currency                           | {before}          |
+      | session_id                         | {before}          |
+      | provider_payment_id                | {before}          |
+      | state                              | {before}          |
+      | reason                             | {before}          |
+      | received_at                        | {before}          |
+      | completed_at                       | {before}          |
+      | fulfillment_status                 | "completed"       |
+      | fulfillment_attempts               | 1                 |
+      | fulfillment_lease_id               | null              |
+      | fulfillment_lease_until            | null              |
+      | fulfillment_next_attempt           | null              |
+      | fulfillment_error                  | null              |
+      | fulfillment_order_paid             | true              |
+      | fulfillment_client_id              | {client.id}       |
+      | fulfillment_invoice_id             | {invoice.id}      |
+      | fulfillment_client_data_version_id | {invoice.version} |
+      | fulfillment_completed_at           | {clock}           |
+    And the technical command has these exact effects
+      | Field              | Value  |
+      | PrimaryLimit       | 1000   |
+      | PrimaryProcessed   | 2      |
+      | RemainingProcessed | 0      |
+      | RepeatedProcessed  | 0      |
+      | Clients            | closed |
     And technical supporting reads preserve final state
       | Field       | Value     |
       | Collections | unchanged |
@@ -662,6 +808,41 @@ Feature: Technical operations with actual lifecycle and command evidence
       | Code          | -         |
       | ExceptionType | <none>    |
       | Result        | processed |
+    And technical work has this complete receipt
+      | Field                              | Value               |
+      | _id                                | {before}            |
+      | event_type                         | {before}            |
+      | payload_digest                     | {before}            |
+      | outcome                            | {before}            |
+      | payment_id                         | {before}            |
+      | order_id                           | {before}            |
+      | attempt_id                         | {before}            |
+      | amount_minor                       | {before}            |
+      | currency                           | {before}            |
+      | session_id                         | {before}            |
+      | provider_payment_id                | {before}            |
+      | state                              | "applied"           |
+      | reason                             | "payment_succeeded" |
+      | received_at                        | {before}            |
+      | completed_at                       | {operation.window}  |
+      | fulfillment_status                 | "pending"           |
+      | fulfillment_attempts               | <absent>            |
+      | fulfillment_lease_id               | <absent>            |
+      | fulfillment_lease_until            | <absent>            |
+      | fulfillment_next_attempt           | <absent>            |
+      | fulfillment_error                  | <absent>            |
+      | fulfillment_order_paid             | <absent>            |
+      | fulfillment_client_id              | <absent>            |
+      | fulfillment_invoice_id             | <absent>            |
+      | fulfillment_client_data_version_id | <absent>            |
+      | fulfillment_completed_at           | <absent>            |
+    And the technical command has these exact effects
+      | Field              | Value  |
+      | PrimaryLimit       | 1      |
+      | PrimaryProcessed   | 1      |
+      | RemainingProcessed | 1      |
+      | RepeatedProcessed  | 0      |
+      | Clients            | closed |
     And technical supporting reads preserve final state
       | Field       | Value     |
       | Collections | unchanged |
@@ -695,6 +876,41 @@ Feature: Technical operations with actual lifecycle and command evidence
       | Code          | -         |
       | ExceptionType | <none>    |
       | Result        | processed |
+    And technical work has this complete receipt
+      | Field                              | Value               |
+      | _id                                | {before}            |
+      | event_type                         | {before}            |
+      | payload_digest                     | {before}            |
+      | outcome                            | {before}            |
+      | payment_id                         | {before}            |
+      | order_id                           | {before}            |
+      | attempt_id                         | {before}            |
+      | amount_minor                       | {before}            |
+      | currency                           | {before}            |
+      | session_id                         | {before}            |
+      | provider_payment_id                | {before}            |
+      | state                              | "applied"           |
+      | reason                             | "payment_succeeded" |
+      | received_at                        | {before}            |
+      | completed_at                       | {operation.window}  |
+      | fulfillment_status                 | "pending"           |
+      | fulfillment_attempts               | <absent>            |
+      | fulfillment_lease_id               | <absent>            |
+      | fulfillment_lease_until            | <absent>            |
+      | fulfillment_next_attempt           | <absent>            |
+      | fulfillment_error                  | <absent>            |
+      | fulfillment_order_paid             | <absent>            |
+      | fulfillment_client_id              | <absent>            |
+      | fulfillment_invoice_id             | <absent>            |
+      | fulfillment_client_data_version_id | <absent>            |
+      | fulfillment_completed_at           | <absent>            |
+    And the technical command has these exact effects
+      | Field              | Value  |
+      | PrimaryLimit       | 1000   |
+      | PrimaryProcessed   | 2      |
+      | RemainingProcessed | 0      |
+      | RepeatedProcessed  | 0      |
+      | Clients            | closed |
     And technical supporting reads preserve final state
       | Field       | Value     |
       | Collections | unchanged |

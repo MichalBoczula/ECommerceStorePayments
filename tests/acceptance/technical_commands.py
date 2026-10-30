@@ -298,8 +298,10 @@ class TechnicalCommands:
         patch.setattr(sys, "argv", ["technical-command", "--limit", str(limit)])
         before = self.payments.snapshot()
         start = len(self.counts)
+        started = datetime.now(UTC)
         with attempt_scope(label), redirect_stdout(output):
             module.main()
+        ended = datetime.now(UTC)
         assert len(self.counts) == start + 1
         count = self.counts[-1]
         expected = f"Processed {count} " + (
@@ -308,6 +310,7 @@ class TechnicalCommands:
         assert output.getvalue() == expected
         return {
             "scope": label,
+            "window": [started.isoformat(), ended.isoformat()],
             "limit": limit,
             "processed": count,
             "stdout": output.getvalue(),
@@ -530,3 +533,62 @@ class TechnicalCommands:
             "resources": self.resources(),
             "providerCredentials": False,
         }
+
+    def native_work(self, values: dict[str, str]) -> None:
+        from tests.acceptance.fulfillment_checks import complete_work
+
+        before = {d["_id"]: d for d in self.checks.before["stripe_webhooks"]}
+        event_ids = {"evt_fulfillment"} if self.checks.inputs["Mode"] == "cancel-worker" else set(self.payloads)
+        rows: list[dict[str, Any]] = []
+        for actual in self.checks.after["stripe_webhooks"]:
+            if actual["_id"] not in event_ids:
+                continue
+            boundary = self.boundaries[actual["order_id"]]
+            expected = dict(values)
+            clock = self.clock
+            if self.checks.inputs["Target"] == "replay":
+                assert expected["completed_at"] == "{operation.window}"
+                clock = actual["completed_at"]
+                frames = [self.checks.details[k] for k in ("primary", "remaining")]
+                assert any(
+                    milliseconds(datetime.fromisoformat(f["window"][0]))
+                    <= clock
+                    <= milliseconds(datetime.fromisoformat(f["window"][1]))
+                    for f in frames
+                )
+                expected["completed_at"] = "{clock}"
+            complete_work(before[actual["_id"]], actual, expected, clock, boundary.orders.client_id, boundary.invoice)
+            rows.append(
+                {"before": lossless(before[actual["_id"]]), "after": lossless(actual), "clock": clock.isoformat()}
+            )
+        assert len(rows) == len(event_ids)
+        self.context.evidence.observation(
+            "Technical complete receipt contracts", {"expected": values, "receipts": rows}
+        )
+
+    def native_effects(self, values: dict[str, str]) -> None:
+        d = self.checks.details
+        if self.checks.inputs["Mode"] == "limits":
+            assert values == {"CLIExitCode": "2", "ClientAllocations": "0", "Collections": "unchanged"}
+            assert d["cliExitCode"] == int(values["CLIExitCode"]) and len(d["allocations"]) == int(
+                values["ClientAllocations"]
+            )
+            assert self.checks.before == self.checks.after
+        else:
+            assert set(values) == {
+                "PrimaryLimit",
+                "PrimaryProcessed",
+                "RemainingProcessed",
+                "RepeatedProcessed",
+                "Clients",
+            }
+            assert int(values["PrimaryLimit"]) == d["primary"]["limit"]
+            for key, field in [
+                ("primary", "PrimaryProcessed"),
+                ("remaining", "RemainingProcessed"),
+                ("repeated", "RepeatedProcessed"),
+            ]:
+                assert d[key]["processed"] == int(values[field])
+            assert values["Clients"] == "closed"
+            self.resources()
+        self.context.evidence.observation("Technical command exact effects", {"expected": values, "actual": d})

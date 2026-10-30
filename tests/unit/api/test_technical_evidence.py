@@ -259,9 +259,12 @@ async def test_actual_asgi_cancellation_records_failure_without_response_and_res
                 await task
         assert evidence.active_action_id is None
     records = drain(evidence)
-    assert raw.is_closed and "HTTP 001 response" not in records
-    assert records["HTTP 001 request"]["actionId"] == owner
-    failure = records["HTTP 001 failure"]
+    assert raw.is_closed and not any(v.get("kind") == "response" for v in records.values())
+    requests = [v for v in records.values() if v.get("kind") == "request"]
+    assert len(requests) == 1 and requests[0]["actionId"] == owner
+    failures = [v for v in records.values() if v.get("kind") == "failure"]
+    assert len(failures) == 1
+    failure = failures[0]
     assert failure["exceptionType"] == "CancelledError" and failure["cancelled"] is True
     assert "status" not in failure
     assert client.cancelled_exchange_id == failure["exchangeId"]

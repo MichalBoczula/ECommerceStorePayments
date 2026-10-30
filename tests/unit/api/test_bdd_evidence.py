@@ -331,7 +331,17 @@ def test_actual_allure_hooks_render_health_descriptions_tables_and_supporting_ca
 ) -> None:
     features = tmp_path / "features"
     features.mkdir()
-    shutil.copyfile(FEATURES / "health.feature", features / "health.feature")
+    # This hook regression uses the database-free unit host. Real populated health
+    # state/probe assertions run in the acceptance suite, not through fake storage.
+    hook_feature = (FEATURES / "health.feature").read_text()
+    hook_feature = re.sub(
+        r"    And (?:populated health collections contain|health preserves complete populated state and protocol)\n"
+        r"(?:      \|[^\n]*\n)+",
+        "",
+        hook_feature,
+    )
+    hook_feature = hook_feature.replace("    And I observe actual health probe calls\n", "")
+    (features / "health.feature").write_text(hook_feature)
     probe = tmp_path / "test_probe.py"
     probe.write_text("""from typing import cast
 import pytest

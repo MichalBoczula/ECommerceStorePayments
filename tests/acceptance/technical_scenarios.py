@@ -358,6 +358,8 @@ class TechnicalChecks:
                     repaired,
                     recovery_resources,
                 ):
+                    repaired.orders.order_id = self.context.orders.order_id
+                    repaired.orders.client_id = self.context.orders.client_id
                     repaired_snapshot = PaymentChecks(repaired).snapshot()
                     assert repaired_snapshot == self.before
                     response = repaired.client.get("/health/ready")

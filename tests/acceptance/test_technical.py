@@ -45,3 +45,13 @@ def expected_technical(technical_checks: TechnicalChecks, case_id: str, datatabl
 @then("technical supporting reads preserve final state")
 def support_technical(technical_checks: TechnicalChecks, datatable: list[list[str]]) -> None:
     technical_checks.support(table_values(datatable))
+
+
+@then("technical work has this complete receipt")
+def native_work(technical_checks: TechnicalChecks, datatable: list[list[str]]) -> None:
+    technical_checks.command.native_work(table_values(datatable))
+
+
+@then("the technical command has these exact effects")
+def native_effects(technical_checks: TechnicalChecks, datatable: list[list[str]]) -> None:
+    technical_checks.command.native_effects(table_values(datatable))
