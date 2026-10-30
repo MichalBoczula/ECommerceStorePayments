@@ -45,32 +45,21 @@ This tracks the Payments work compared with the reference practices in ECommerce
 - [x] **PAY/18 — Security and quality gate.** Locked dependency audit, PR dependency review, secret scan, Trivy image scan and explicit severity policy all passed the full PR gate; see ADR-0018.
 - [x] **PAY/19 — CI graph and Docker Hub publication.** Five named suite jobs, quality gate and image scan passed on `main`; commit `4818fab380506b9b88eb2e154bdd4eee276960be` published both full-SHA and `latest` tags with matching digest `sha256:a5d3f5709a7332fb9d351d0ab4e1c17be9ae4d8a67eee2523d229acdb4e53b54`. See ADR-0019.
 - [x] **PAY/20 — Operational docs review.** README startup, API/health, MongoDB indexes/transactions, verification, suites and CI match the code; historical ADRs identify later changes. Local documentation/source checks and full PR CI passed.
-- [ ] **PAY/21 — First LiveDocs report rollout.** CI packages actual BDD results and generated sources and archives them after successful main image publication. Verify the first upload, select its exact LiveDocs reference, publish the report image and verify the Terraform rollout. See ADR-0023; source publication alone does not complete deployment.
-- [ ] **PAY/22 — BDD documentation hardening.** Implement the scoped
-  [BDD backlog](docs/bdd-backlog.md), preserving all 51 original BDD and 89
-  ordinary Acceptance cases. PAY-BDD-01–14 provide the frozen source/runtime
-  baseline, reviewed gaps, shared executable-table/HTTP/action evidence, complete
-  Pay/read checks, retry/history/legacy state and complete checkout/provider/session
-  evidence, plus safe checkout failures, exact recovery, persistence interruptions
-  and legacy/age boundaries, plus signed webhook/header/payload verification and
-  unchanged rejected state, plus complete webhook receipts, async/late/stale
-  outcomes, duplicate/collision retention and fresh application/operator replay;
-  plus complete durable fulfillment, exact retries/resume, acknowledgement recovery
-  and actual published-service PDF failure/download evidence; plus isolated business
-  validation, exact currency conversion and checkout boundaries; plus complete safe
-  framework failures, exact body/media/route/method boundaries and populated-state
-  preservation. All 42/42 declared status pairs have scenario intent with no
-  reviewed gaps; plus deterministic real writes, complete winners, actual
-  transaction abort/retry and worker claim/lease fencing; plus populated health,
-  owned Mongo lifecycle/topology, failed startup cleanup, actual cancellation/recovery,
-  host isolation, CLI limits/batches and documentation evidence; plus source-derived
-  serialized contracts, typed examples with required nulls, signed webhook metadata
-  and independently recomputed contract observations for every captured exchange.
-  Plus stable source identities and readable flow/policy/rule/outcome meanings,
-  production worker roots and validated joins to every actual HTTP/action pair
-  and recorded receipt fact; see [Task 15](docs/bdd-15-flows-rules-rag-links.md).
-  The final-report package stays open. This item does not close
-  the separate STRIPE rollout or LiveDocs deployment tasks.
+- [ ] **PAY/21 — First LiveDocs report rollout.** CI packages actual BDD results
+  and generated sources and archives them after successful main image publication.
+  The [final BDD audit and exact refresh handoff](docs/payments-livedocs-refresh.md)
+  verify source archival. Select the audited reference, publish the LiveDocs image
+  and verify the manual Terraform rollout before closure. See ADR-0023.
+- [x] **PAY/22 — BDD documentation hardening.** All sixteen scoped
+  [BDD packages](docs/bdd-backlog.md) are implemented and verified. The
+  [final audit](docs/bdd-16-final-audit.md) retains the original 51 BDD and 89
+  ordinary Acceptance checks, with 391 current BDD cases, 781 ordinary checks,
+  42/42 declared status pairs and no reviewed gaps. Complete source/table/HTTP/
+  action/contract evidence, stable source identities and truthful evidence joins
+  pass full CI, frozen archive checks and every raw/rendered case/attachment audit.
+  Main publication supplies the exact archived reference for the
+  [manual LiveDocs refresh](docs/payments-livedocs-refresh.md). PAY/21 and the
+  separate STRIPE and deployment work remain open.
 
 ## Later functional stage
 
