@@ -38,8 +38,12 @@ def test_generated_links_follow_executed_flows_and_domain_policies() -> None:
         policy["source"].endswith("PaymentPolicy.validate_snapshot")
         for policy in operations["getPaymentByOrderId"]["policies"]
     )
-    assert {scenario["id"] for scenario in operations["get_health"]["scenarios"]} == {"PAY11-22"}
-    assert [row["id"] for row in result["unmatchedRouteScenarios"]] == ["PAY11-17"]
+    assert {scenario["id"] for scenario in operations["get_health"]["scenarios"]} == {
+        "PAY11-22",
+        "PAY11-23",
+        "PAY11-29",
+    }
+    assert [row["id"] for row in result["unmatchedRouteScenarios"]] == ["PAY11-17", "PAY11-89", "PAY11-90"]
 
 
 @pytest.mark.parametrize(

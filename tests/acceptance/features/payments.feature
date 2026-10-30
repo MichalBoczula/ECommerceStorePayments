@@ -403,7 +403,7 @@ Feature: Payment API with real persistence and a controlled Orders boundary
     And the database has 1 current payment and 0 history snapshots
 
   Scenario: PAY11-14 Invalid order ID
-    Pay receives a path segment that is not a UUID. Request validation returns invalid_request without creating payment state.
+    Pay receives a path segment that is not a UUID while two payments and their history already exist. Both requests return a complete invalid_request problem and preserve every populated collection.
     Given the order fixture contains
       | Field         | Value                                |
       | OrderId       | 11111111-1111-4111-8111-111111111111 |
@@ -411,16 +411,56 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
     And a payable order
+    And an unrelated succeeded payment fills all collections
+      | Field         | Value                                |
+      | OrderId       | 66666666-6666-4666-8666-666666666666 |
+      | ClientId      | 77777777-7777-4777-8777-777777777777 |
+      | TotalAmount   | 31.73                                |
+      | TotalCurrency | PLN                                  |
+    And a stored payment is prepared in state "pending"
+      | Field               | Value                |
+      | provider_session_id | "cs_framework_guard" |
+      | provider_payment_id | null                 |
+      | failure_code        | null                 |
+    And the framework request contains
+      | Field       | Value                      |
+      | Method      | POST                       |
+      | Path        | /payments/invalid-uuid/pay |
+      | BodyKind    | none                       |
+      | BodyValue   | <empty>                    |
+      | ContentType | <absent>                   |
+      | TraceHeader | <absent>                   |
+      | Signature   | absent                     |
+    And I remember populated framework state
     When I pay with an invalid order ID
     Then the response matches case "PAY11-14"
-      | Field        | Value                    |
-      | HTTPStatuses | 400                      |
-      | ContentType  | application/problem+json |
-      | Code         | invalid_request          |
-    And the database has 0 current payments and 0 history snapshots
+      | Field                  | Value                        |
+      | HTTPStatuses           | 400                          |
+      | ContentType            | application/problem+json     |
+      | Code                   | invalid_request              |
+      | JSON.type              | "about:blank"                |
+      | JSON.title             | "Bad Request"                |
+      | JSON.status            | 400                          |
+      | JSON.detail            | "Request validation failed." |
+      | JSON.instance          | "/payments/invalid-uuid/pay" |
+      | JSON.errors            | []                           |
+      | JSON.missingProperties | []                           |
+    And framework rejection keeps this populated state and protocol
+      | Field            | Value     |
+      | Payments         | 2         |
+      | History          | 5         |
+      | Receipts         | 1         |
+      | TargetStatus     | pending   |
+      | OrdersCalls      | 0         |
+      | StripeCalls      | 0         |
+      | ProviderSessions | unchanged |
+      | Repeat           | true      |
+      | Allow            | <absent>  |
+      | FaultHits        | 0         |
+
 
   Scenario: PAY11-15 Malformed JSON body
-    Pay receives an incomplete JSON object with JSON media type. Parsing returns invalid_json before any payment is stored.
+    Pay receives an incomplete JSON object with JSON media type against populated state. Both deliveries return complete invalid_json problems before any additional payment, history or receipt write.
     Given the order fixture contains
       | Field         | Value                                |
       | OrderId       | 11111111-1111-4111-8111-111111111111 |
@@ -428,16 +468,56 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
     And a payable order
+    And an unrelated succeeded payment fills all collections
+      | Field         | Value                                |
+      | OrderId       | 66666666-6666-4666-8666-666666666666 |
+      | ClientId      | 77777777-7777-4777-8777-777777777777 |
+      | TotalAmount   | 31.73                                |
+      | TotalCurrency | PLN                                  |
+    And a stored payment is prepared in state "pending"
+      | Field               | Value                |
+      | provider_session_id | "cs_framework_guard" |
+      | provider_payment_id | null                 |
+      | failure_code        | null                 |
+    And the framework request contains
+      | Field       | Value                    |
+      | Method      | POST                     |
+      | Path        | /payments/{order_id}/pay |
+      | BodyKind    | text                     |
+      | BodyValue   | {"private":              |
+      | ContentType | application/json         |
+      | TraceHeader | <absent>                 |
+      | Signature   | absent                   |
+    And I remember populated framework state
     When I pay with malformed JSON
     Then the response matches case "PAY11-15"
-      | Field        | Value                    |
-      | HTTPStatuses | 400                      |
-      | ContentType  | application/problem+json |
-      | Code         | invalid_json             |
-    And the database has 0 current payments and 0 history snapshots
+      | Field                  | Value                                                |
+      | HTTPStatuses           | 400                                                  |
+      | ContentType            | application/problem+json                             |
+      | Code                   | invalid_json                                         |
+      | JSON.type              | "about:blank"                                        |
+      | JSON.title             | "Bad Request"                                        |
+      | JSON.status            | 400                                                  |
+      | JSON.detail            | "The request body is not valid JSON."                |
+      | JSON.instance          | "/payments/11111111-1111-4111-8111-111111111111/pay" |
+      | JSON.errors            | []                                                   |
+      | JSON.missingProperties | []                                                   |
+    And framework rejection keeps this populated state and protocol
+      | Field            | Value     |
+      | Payments         | 2         |
+      | History          | 5         |
+      | Receipts         | 1         |
+      | TargetStatus     | pending   |
+      | OrdersCalls      | 0         |
+      | StripeCalls      | 0         |
+      | ProviderSessions | unchanged |
+      | Repeat           | true      |
+      | Allow            | <absent>  |
+      | FaultHits        | 0         |
+
 
   Scenario: PAY11-16 Unsupported request media
-    Pay receives a plain-text body instead of JSON. The API returns unsupported_media_type and leaves payment storage empty.
+    Pay receives a plain-text body while current payments, history and receipts are populated. Both deliveries return unsupported_media_type and preserve every document without contacting dependencies.
     Given the order fixture contains
       | Field         | Value                                |
       | OrderId       | 11111111-1111-4111-8111-111111111111 |
@@ -445,16 +525,56 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
     And a payable order
+    And an unrelated succeeded payment fills all collections
+      | Field         | Value                                |
+      | OrderId       | 66666666-6666-4666-8666-666666666666 |
+      | ClientId      | 77777777-7777-4777-8777-777777777777 |
+      | TotalAmount   | 31.73                                |
+      | TotalCurrency | PLN                                  |
+    And a stored payment is prepared in state "pending"
+      | Field               | Value                |
+      | provider_session_id | "cs_framework_guard" |
+      | provider_payment_id | null                 |
+      | failure_code        | null                 |
+    And the framework request contains
+      | Field       | Value                    |
+      | Method      | POST                     |
+      | Path        | /payments/{order_id}/pay |
+      | BodyKind    | text                     |
+      | BodyValue   | private                  |
+      | ContentType | text/plain               |
+      | TraceHeader | <absent>                 |
+      | Signature   | absent                   |
+    And I remember populated framework state
     When I pay with plain text
     Then the response matches case "PAY11-16"
-      | Field        | Value                    |
-      | HTTPStatuses | 415                      |
-      | ContentType  | application/problem+json |
-      | Code         | unsupported_media_type   |
-    And the database has 0 current payments and 0 history snapshots
+      | Field                  | Value                                                |
+      | HTTPStatuses           | 415                                                  |
+      | ContentType            | application/problem+json                             |
+      | Code                   | unsupported_media_type                               |
+      | JSON.type              | "about:blank"                                        |
+      | JSON.title             | "Unsupported Media Type"                             |
+      | JSON.status            | 415                                                  |
+      | JSON.detail            | "The request content type is not supported."         |
+      | JSON.instance          | "/payments/11111111-1111-4111-8111-111111111111/pay" |
+      | JSON.errors            | []                                                   |
+      | JSON.missingProperties | []                                                   |
+    And framework rejection keeps this populated state and protocol
+      | Field            | Value     |
+      | Payments         | 2         |
+      | History          | 5         |
+      | Receipts         | 1         |
+      | TargetStatus     | pending   |
+      | OrdersCalls      | 0         |
+      | StripeCalls      | 0         |
+      | ProviderSessions | unchanged |
+      | Repeat           | true      |
+      | Allow            | <absent>  |
+      | FaultHits        | 0         |
+
 
   Scenario: PAY11-17 Unknown route
-    A request targets a path without a registered route. The API returns a safe route_not_found problem for that path.
+    A request targets an unregistered route while current payments, history and receipts are populated. Repeated safe route_not_found problems have fresh traces and leave all stored state unchanged.
     Given the order fixture contains
       | Field         | Value                                |
       | OrderId       | 11111111-1111-4111-8111-111111111111 |
@@ -462,15 +582,56 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
     And a payable order
+    And an unrelated succeeded payment fills all collections
+      | Field         | Value                                |
+      | OrderId       | 66666666-6666-4666-8666-666666666666 |
+      | ClientId      | 77777777-7777-4777-8777-777777777777 |
+      | TotalAmount   | 31.73                                |
+      | TotalCurrency | PLN                                  |
+    And a stored payment is prepared in state "pending"
+      | Field               | Value                |
+      | provider_session_id | "cs_framework_guard" |
+      | provider_payment_id | null                 |
+      | failure_code        | null                 |
+    And the framework request contains
+      | Field       | Value          |
+      | Method      | GET            |
+      | Path        | /unknown-route |
+      | BodyKind    | none           |
+      | BodyValue   | <empty>        |
+      | ContentType | <absent>       |
+      | TraceHeader | <absent>       |
+      | Signature   | absent         |
+    And I remember populated framework state
     When I request an unknown route
     Then the response matches case "PAY11-17"
-      | Field        | Value                    |
-      | HTTPStatuses | 404                      |
-      | ContentType  | application/problem+json |
-      | Code         | route_not_found          |
+      | Field                  | Value                    |
+      | HTTPStatuses           | 404                      |
+      | ContentType            | application/problem+json |
+      | Code                   | route_not_found          |
+      | JSON.type              | "about:blank"            |
+      | JSON.title             | "Not Found"              |
+      | JSON.status            | 404                      |
+      | JSON.detail            | "Route was not found."   |
+      | JSON.instance          | "/unknown-route"         |
+      | JSON.errors            | []                       |
+      | JSON.missingProperties | []                       |
+    And framework rejection keeps this populated state and protocol
+      | Field            | Value     |
+      | Payments         | 2         |
+      | History          | 5         |
+      | Receipts         | 1         |
+      | TargetStatus     | pending   |
+      | OrdersCalls      | 0         |
+      | StripeCalls      | 0         |
+      | ProviderSessions | unchanged |
+      | Repeat           | true      |
+      | Allow            | <absent>  |
+      | FaultHits        | 0         |
+
 
   Scenario: PAY11-18 Wrong method
-    POST targets the read-only liveness endpoint. The API returns method_not_allowed and advertises GET in the Allow header.
+    POST targets the read-only liveness endpoint with populated payment state. Both method_not_allowed problems advertise GET, use fresh traces and preserve all collections and dependency sessions.
     Given the order fixture contains
       | Field         | Value                                |
       | OrderId       | 11111111-1111-4111-8111-111111111111 |
@@ -478,10 +639,51 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
     And a payable order
+    And an unrelated succeeded payment fills all collections
+      | Field         | Value                                |
+      | OrderId       | 66666666-6666-4666-8666-666666666666 |
+      | ClientId      | 77777777-7777-4777-8777-777777777777 |
+      | TotalAmount   | 31.73                                |
+      | TotalCurrency | PLN                                  |
+    And a stored payment is prepared in state "pending"
+      | Field               | Value                |
+      | provider_session_id | "cs_framework_guard" |
+      | provider_payment_id | null                 |
+      | failure_code        | null                 |
+    And the framework request contains
+      | Field       | Value        |
+      | Method      | POST         |
+      | Path        | /health/live |
+      | BodyKind    | none         |
+      | BodyValue   | <empty>      |
+      | ContentType | <absent>     |
+      | TraceHeader | <absent>     |
+      | Signature   | absent       |
+    And I remember populated framework state
     When I post to a read-only health route
     Then the response matches case "PAY11-18"
-      | Field        | Value                    |
-      | HTTPStatuses | 405                      |
-      | ContentType  | application/problem+json |
-      | Code         | method_not_allowed       |
+      | Field                  | Value                                   |
+      | HTTPStatuses           | 405                                     |
+      | ContentType            | application/problem+json                |
+      | Code                   | method_not_allowed                      |
+      | JSON.type              | "about:blank"                           |
+      | JSON.title             | "Method Not Allowed"                    |
+      | JSON.status            | 405                                     |
+      | JSON.detail            | "Method is not allowed for this route." |
+      | JSON.instance          | "/health/live"                          |
+      | JSON.errors            | []                                      |
+      | JSON.missingProperties | []                                      |
+
     And the Allow header is "GET"
+    And framework rejection keeps this populated state and protocol
+      | Field            | Value     |
+      | Payments         | 2         |
+      | History          | 5         |
+      | Receipts         | 1         |
+      | TargetStatus     | pending   |
+      | OrdersCalls      | 0         |
+      | StripeCalls      | 0         |
+      | ProviderSessions | unchanged |
+      | Repeat           | true      |
+      | Allow            | GET       |
+      | FaultHits        | 0         |

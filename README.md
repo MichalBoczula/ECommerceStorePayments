@@ -263,6 +263,11 @@ checkout boundaries. Rejected requests preserve populated collections on repeat;
 standalone domain rules remain explicitly separate from HTTP inputs. Their full
 evidence uses the bounded 50,000-file LiveDocs tooling revision pinned in CI.
 
+The [framework scenarios](docs/bdd-11-framework-failures.md) cover all declared
+HTTP status pairs with complete safe problems, exact methods/body/media/size
+boundaries and unchanged populated state. Explicit failure actions distinguish
+unexpected-error fallback tests from natural infrastructure outages.
+
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated
 source projection. CI retains `payments-openapi` and supplies all four JSON files

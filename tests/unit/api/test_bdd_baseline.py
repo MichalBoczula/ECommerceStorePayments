@@ -5,6 +5,7 @@ import subprocess
 import sys
 from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from scripts.bdd_baseline import (
@@ -35,18 +36,18 @@ def sources(tmp_path: Path) -> tuple[Path, Path, Path]:
 def test_original_source_inventory_and_reviewed_coverage() -> None:
     coverage = generate()["coverage"]
     assert coverage == {
-        "expandedBddCases": 271,
-        "matchedRouteCases": 270,
-        "unmatchedRouteCases": 1,
+        "expandedBddCases": 342,
+        "matchedRouteCases": 339,
+        "unmatchedRouteCases": 3,
         "declaredOperationStatusPairs": 42,
-        "guaranteedScenarioStatusPairs": 27,
-        "wrongMethodStatusPairs": 1,
+        "guaranteedScenarioStatusPairs": 42,
+        "wrongMethodStatusPairs": 7,
         "gaps": sorted(
             list(csv.DictReader(GAPS.open(encoding="utf-8"), delimiter="\t")),
             key=lambda row: (row["operationId"], int(row["status"])),
         ),
     }
-    assert len(coverage["gaps"]) == 15
+    assert coverage["gaps"] == []
 
 
 def test_documented_direct_source_command_checks_the_guard() -> None:
@@ -58,7 +59,7 @@ def test_documented_direct_source_command_checks_the_guard() -> None:
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert "27/42" in result.stderr and "15 reviewed gaps" in result.stderr
+    assert "42/42" in result.stderr and "0 reviewed gaps" in result.stderr
 
 
 def test_coordinated_source_and_matrix_removal_cannot_replace_baseline(tmp_path: Path) -> None:
@@ -98,7 +99,7 @@ def test_original_title_is_frozen_but_additive_tables_are_allowed(tmp_path: Path
         "    Given a payable order", "    Given a payable order\n      | Amount | 1299 |", 1
     )
     path.write_text(text)
-    assert generate(matrix=matrix, feature_dir=features, gaps=gaps)["coverage"]["expandedBddCases"] == 271
+    assert generate(matrix=matrix, feature_dir=features, gaps=gaps)["coverage"]["expandedBddCases"] == 342
     path.write_text(text.replace("Create a payment from a payable order", "A replacement behavior", 1))
     with pytest.raises(ValueError, match="Changed baseline BDD identity: PAY11-01"):
         generate(matrix=matrix, feature_dir=features, gaps=gaps)
@@ -165,44 +166,48 @@ def test_removing_uncovered_status_and_gap_cannot_remove_original_contract(tmp_p
     spec = document()
     del spec["paths"]["/payments/{order_id}/pay"]["post"]["responses"]["500"]
     gaps = tmp_path / "gaps.tsv"
-    gaps.write_text(
-        GAPS.read_text().replace(
-            next(row for row in GAPS.read_text().splitlines(True) if row.startswith("payOrder\t500\t")), ""
-        )
-    )
+    # The formerly uncovered 500 is now exercised; the frozen contract still cannot shrink.
+    gaps.write_text(GAPS.read_text())
     with pytest.raises(ValueError, match="baseline operation: payOrder"):
         coverage_report(spec, generate()["operations"], gaps)
 
 
 def test_new_case_closes_gap_only_when_reviewed_gap_is_removed(tmp_path: Path) -> None:
     features, matrix, gaps = sources(tmp_path)
+    spec = deepcopy(document())
+    spec["paths"]["/payments/{order_id}/checkout"]["post"]["responses"]["418"] = deepcopy(
+        spec["paths"]["/payments/{order_id}/checkout"]["post"]["responses"]["400"]
+    )
+    app = SimpleNamespace(openapi=lambda: spec)
+    gaps.write_text(GAPS.read_text() + "createOrderCheckout\t418\tSynthetic reviewed declaration\tPAY-BDD-11\n")
+    assert len(generate(matrix=matrix, feature_dir=features, gaps=gaps, app=app)["coverage"]["gaps"]) == 1
     with (features / "checkout.feature").open("a") as stream:
         stream.write(
             "\n  Scenario: PAY99-01 Additional checkout validation\n"
             "    An additional checkout validation case closes a reviewed declaration gap through a real result.\n"
             "    Given the health request uses\n      | Field | Value |\n      | Path | /health |\n"
             '    When action\n    Then the response matches case "PAY99-01"\n'
-            "      | Field | Value |\n      | HTTPStatuses | 400 |\n"
+            "      | Field | Value |\n      | HTTPStatuses | 418 |\n"
             "      | ContentType | application/problem+json |\n      | Code | invalid_request |\n"
         )
     with matrix.open("a") as stream:
         stream.write(
-            "PAY99-01\tPOST /payments/{order_id}/checkout\tadditional validation\t400\tinvalid_request\tPAY/10\n"
+            "PAY99-01\tPOST /payments/{order_id}/checkout\tadditional validation\t418\tinvalid_request\tPAY/10\n"
         )
-    with pytest.raises(ValueError, match=r"stale=.*createOrderCheckout.*400"):
-        generate(matrix=matrix, feature_dir=features, gaps=gaps)
+    with pytest.raises(ValueError, match=r"stale=.*createOrderCheckout.*418"):
+        generate(matrix=matrix, feature_dir=features, gaps=gaps, app=app)
     gaps.write_text(
-        "\n".join(row for row in gaps.read_text().splitlines() if not row.startswith("createOrderCheckout\t400\t"))
+        "\n".join(row for row in gaps.read_text().splitlines() if not row.startswith("createOrderCheckout\t418\t"))
         + "\n"
     )
-    coverage = generate(matrix=matrix, feature_dir=features, gaps=gaps)["coverage"]
-    assert coverage["expandedBddCases"] == 272 and coverage["guaranteedScenarioStatusPairs"] == 28
-    assert len(coverage["gaps"]) == 14
+    coverage = generate(matrix=matrix, feature_dir=features, gaps=gaps, app=app)["coverage"]
+    assert coverage["expandedBddCases"] == 343 and coverage["guaranteedScenarioStatusPairs"] == 43
+    assert coverage["gaps"] == []
 
 
 @pytest.mark.parametrize("mutation", ["duplicate", "unknown_task", "empty_reason"])
 def test_invalid_gap_inventory_is_rejected(mutation: str, tmp_path: Path) -> None:
-    text = GAPS.read_text()
+    text = GAPS.read_text() + "payOrder\t418\tSynthetic reviewed declaration\tPAY-BDD-11\n"
     if mutation == "duplicate":
         text += text.splitlines(True)[1]
     elif mutation == "unknown_task":
