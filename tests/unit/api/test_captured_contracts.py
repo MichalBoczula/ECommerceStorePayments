@@ -290,6 +290,31 @@ def test_actual_wrong_method_keeps_allow_header_and_original_operation(
     assert value["valid"] and value["classification"] == "wrong-method" and "allow" in value["headersValidated"]
 
 
+@pytest.mark.parametrize(
+    ("path", "status", "classification"),
+    [
+        ("/żółw", 404, "unmatched-route"),
+        ("/payments/zażółć/pay", 400, "operation"),
+        ("/payments/a%2Fb/pay", 404, "unmatched-route"),
+    ],
+)
+def test_encoded_paths_keep_wire_bytes_and_match_actual_decoded_routing(
+    client: TestClient,
+    path: str,
+    status: int,
+    classification: str,
+) -> None:
+    evidence = ScenarioEvidence(
+        "PAY99-02", "Contract probes", "PAY99-02 Encoded routes", {}, contract_check=CapturedContracts(spec()).observe
+    )
+    response = EvidenceClient(client, evidence).request("POST" if path.startswith("/payments/") else "GET", path)
+    records = drain(evidence)
+    assert response.status_code == status
+    assert "%" in records["HTTP 001 request"]["path"]
+    observed = records["HTTP 001 contract"]["value"]
+    assert observed["valid"] and observed["classification"] == classification
+
+
 @pytest.mark.parametrize("mutation", ["status", "title", "instance", "trace", "extra", "missing"])
 def test_problem_contract_requires_full_safe_shape_and_wire_correlations(client: TestClient, mutation: str) -> None:
     evidence = ScenarioEvidence("PAY99-02", "Contract probes", "PAY99-02 Safe problems", {})

@@ -87,7 +87,6 @@ class ProblemDetails(BaseModel):
     instance: str = Field(
         description="Actual request path without query string.",
         examples=["/payments/invalid-uuid/pay"],
-        json_schema_extra={"format": "uri-reference"},
     )
     code: str = Field(description="Stable machine-readable public error code.", examples=["invalid_request"])
     trace_id: str = Field(

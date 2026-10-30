@@ -7,6 +7,7 @@ from collections import defaultdict
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 from jsonschema import ValidationError
 
@@ -100,10 +101,13 @@ class CapturedContracts:
             responseSha256=content["sha256"],
             headersValidated=["content-type", "content-length", "x-trace-id"],
         )
+        # Capture keeps the encoded wire path; ASGI routing and ProblemDetails
+        # use its decoded path (including Unicode and encoded separators).
+        actual_path = unquote(request["path"])
         matches = [
             (path, method, operation)
             for path, pattern, method, operation in self.routes
-            if pattern.fullmatch(request["path"])
+            if pattern.fullmatch(actual_path)
         ]
         selected = next((row for row in matches if row[1] == request["method"]), None)
         if selected is not None:
@@ -114,10 +118,10 @@ class CapturedContracts:
             if status != 405:
                 raise ValueError("Wrong method did not retain its real 405")
             result.update(classification="wrong-method", operationId=operation["operationId"], pathTemplate=path)
-        elif request["path"] in DOCS and request["method"] == "GET" and status == 200:
-            if actual_media != DOCS[request["path"]]:
+        elif actual_path in DOCS and request["method"] == "GET" and status == 200:
+            if actual_media != DOCS[actual_path]:
                 raise ValueError("Documentation media differs from its actual route")
-            if request["path"] == "/openapi.json":
+            if actual_path == "/openapi.json":
                 if body != self.spec:
                     raise ValueError("Served OpenAPI differs from the generated contract")
             elif content["bodyFormat"] != "text" or not raw.strip() or b"<html" not in raw.lower():
@@ -125,8 +129,8 @@ class CapturedContracts:
             return {
                 **result,
                 "classification": "documentation",
-                "schemaValidated": request["path"] == "/openapi.json",
-                "responseSchema": "generated-openapi" if request["path"] == "/openapi.json" else "framework-html",
+                "schemaValidated": actual_path == "/openapi.json",
+                "responseSchema": "generated-openapi" if actual_path == "/openapi.json" else "framework-html",
             }
         else:
             if status != 404:
@@ -154,7 +158,7 @@ class CapturedContracts:
             if (
                 body["status"] != status
                 or body["title"] != HTTPStatus(status).phrase
-                or body["instance"] != request["path"]
+                or body["instance"] != actual_path
                 or body["traceId"] != headers["x-trace-id"]
             ):
                 raise ValueError("Problem does not match actual wire status/path/trace")
@@ -162,7 +166,7 @@ class CapturedContracts:
             for parameter in operation.get("parameters", []):
                 if parameter["in"] == "path":
                     index = path.split("/").index("{" + parameter["name"] + "}")
-                    self.validate(parameter["schema"], request["path"].split("/")[index])
+                    self.validate(parameter["schema"], actual_path.split("/")[index])
             if path.endswith(("/pay", "/checkout")) and request["content"]["byteLength"] != 0:
                 raise ValueError("Successful bodyless command had a request body")
             if operation["operationId"] == "receiveStripeWebhook":

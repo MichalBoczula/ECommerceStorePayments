@@ -51,6 +51,8 @@ generated OpenAPI. Missing, duplicate, foreign or forged observations fail it.
   byte length, fresh trace and declared headers. Problems additionally match the
   wire status, title, request path and trace header. Successful route UUIDs,
   bodyless commands and accepted signed webhook shapes are checked.
+  Encoded wire paths remain intact; operation matching and problem instances use
+  the decoded ASGI path, including Unicode and encoded path separators.
 - Wrong-method exchanges retain their matched operation and actual 405/Allow.
   Unmatched routes retain a global 404 problem. Documentation HTML keeps its real
   media/bytes; served OpenAPI must equal the current generated document.
