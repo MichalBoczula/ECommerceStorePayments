@@ -260,7 +260,8 @@ including recovery from a real PDF storage failure.
 The [business validation scenarios](docs/bdd-10-business-validation.md) author
 exact Orders money tokens, all supported currency conversions and inclusive
 checkout boundaries. Rejected requests preserve populated collections on repeat;
-standalone domain rules remain explicitly separate from HTTP inputs.
+standalone domain rules remain explicitly separate from HTTP inputs. Their full
+evidence uses the bounded 50,000-file LiveDocs tooling revision pinned in CI.
 
 The database-free export also writes `operation-links.json`, `flows.json` and
 `validation-policies.json` beside OpenAPI, derived from the existing validated

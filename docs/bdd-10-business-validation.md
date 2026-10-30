@@ -84,8 +84,16 @@ Full CI, immutable artifact digests and the rendered Allure audit are recorded
 after verification. Docker is unavailable locally; CI must supply actual
 database/container/PDF evidence.
 
-There are no application/API/schema/dependency/image/workflow changes or weakened
-gates. Coverage intent remains 27/42 status pairs with fifteen reviewed gaps.
+There are no Payments application/API/persistence/package-dependency or image
+changes. The required [LiveDocs capacity dependency](https://github.com/MichalBoczula/ECommerceStore.LiveDocs/pull/13)
+raises the shared bounded inventory ceiling from 10,000 to 50,000 source files
+plus one manifest, retaining compressed/unpacked byte limits and all integrity
+checks. The first CI passed all 1,431 tests, but its complete 11,049-file inventory
+exceeded the former ceiling. Payments pins reusable workflow and tooling commit
+`93ce670ba4bcd56ed4c0ca0ec75bf82ffaef7098`; merge the LiveDocs dependency first
+and include it in build/import tooling before selecting the larger archive.
+No cases or attachments are removed to fit the old ceiling. Quality/security
+thresholds remain unchanged. Coverage intent remains 27/42 status pairs with fifteen reviewed gaps.
 Task 11 owns remaining framework failures, and Task 12 owns deterministic
 concurrency/rollback. Tasks 10–16 and overall PAY/22 remain open until their
 respective verification completes. Automatic successful-main Blob publication
