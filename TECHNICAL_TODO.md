@@ -48,7 +48,7 @@ This tracks the Payments work compared with the reference practices in ECommerce
 - [ ] **PAY/21 — First LiveDocs report rollout.** CI packages actual BDD results and generated sources and archives them after successful main image publication. Verify the first upload, select its exact LiveDocs reference, publish the report image and verify the Terraform rollout. See ADR-0023; source publication alone does not complete deployment.
 - [ ] **PAY/22 — BDD documentation hardening.** Implement the scoped
   [BDD backlog](docs/bdd-backlog.md), preserving all 51 original BDD and 89
-  ordinary Acceptance cases. PAY-BDD-01–13 provide the frozen source/runtime
+  ordinary Acceptance cases. PAY-BDD-01–14 provide the frozen source/runtime
   baseline, reviewed gaps, shared executable-table/HTTP/action evidence, complete
   Pay/read checks, retry/history/legacy state and complete checkout/provider/session
   evidence, plus safe checkout failures, exact recovery, persistence interruptions
@@ -63,8 +63,10 @@ This tracks the Payments work compared with the reference practices in ECommerce
   reviewed gaps; plus deterministic real writes, complete winners, actual
   transaction abort/retry and worker claim/lease fencing; plus populated health,
   owned Mongo lifecycle/topology, failed startup cleanup, actual cancellation/recovery,
-  host isolation, CLI limits/batches and documentation evidence. Remaining contracts,
-  flows/rules/RAG and final-report packages stay open. This item does not close
+  host isolation, CLI limits/batches and documentation evidence; plus source-derived
+  serialized contracts, typed examples with required nulls, signed webhook metadata
+  and independently recomputed contract observations for every captured exchange.
+  Remaining flows/rules/RAG and final-report packages stay open. This item does not close
   the separate STRIPE rollout or LiveDocs deployment tasks.
 
 ## Later functional stage

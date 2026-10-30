@@ -10,7 +10,7 @@ from uuid import uuid4
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import Response
 
@@ -52,21 +52,57 @@ TRACE_HEADER = "X-Trace-Id"
 
 
 class ValidationEntry(BaseModel):
-    message: str
-    name: str
-    entity: str
+    """Safe validation detail shape; current handlers emit an empty errors array."""
+
+    model_config = ConfigDict(json_schema_extra={"additionalProperties": False})
+    message: str = Field(
+        description="Safe validation explanation without internal exception text.", examples=["Value is invalid."]
+    )
+    name: str = Field(description="Stable validation rule or field name.", examples=["amount_minor"])
+    entity: str = Field(description="Public entity associated with this validation detail.", examples=["Payment"])
 
 
 class ProblemDetails(BaseModel):
-    type: str = "about:blank"
-    title: str
-    status: int
-    detail: str
-    instance: str
-    code: str
-    trace_id: str = Field(alias="traceId")
-    errors: list[ValidationEntry]
-    missing_properties: list[str] = Field(alias="missingProperties")
+    """Complete safe public problem; presence is separate from an empty array or a default."""
+
+    model_config = ConfigDict(
+        json_schema_serialization_defaults_required=True, json_schema_extra={"additionalProperties": False}
+    )
+    type: str = Field(
+        default="about:blank",
+        description="Problem type URI; current handlers emit about:blank.",
+        examples=["about:blank"],
+        json_schema_extra={"format": "uri", "const": "about:blank"},
+    )
+    title: str = Field(
+        description="Standard HTTP reason phrase for the actual response status.", examples=["Bad Request"]
+    )
+    status: int = Field(
+        description="Actual HTTP response status, also checked against the wire status.", examples=[400]
+    )
+    detail: str = Field(
+        description="Safe public explanation; excludes exception messages and credentials.",
+        examples=["Request validation failed."],
+    )
+    instance: str = Field(
+        description="Actual request path without query string.",
+        examples=["/payments/invalid-uuid/pay"],
+    )
+    code: str = Field(description="Stable machine-readable public error code.", examples=["invalid_request"])
+    trace_id: str = Field(
+        alias="traceId",
+        description="Server-generated trace identifier, equal to X-Trace-Id.",
+        examples=["0123456789abcdef0123456789abcdef"],
+        json_schema_extra={"pattern": "^[0-9a-f]{32}$"},
+    )
+    errors: list[ValidationEntry] = Field(
+        description="Safe validation details; current handlers emit an empty array.", examples=[[]]
+    )
+    missing_properties: list[str] = Field(
+        alias="missingProperties",
+        description="Sorted unique missing body-property names when available; otherwise an empty array.",
+        examples=[[], ["payment_id"]],
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,7 +159,7 @@ UNSUPPORTED_MEDIA_TYPE = ErrorSpec(415, "unsupported_media_type", "The request c
 
 
 def problem_responses(*statuses: int) -> dict[int | str, dict[str, Any]]:
-    schema = ProblemDetails.model_json_schema(by_alias=True)
+    schema = ProblemDetails.model_json_schema(by_alias=True, mode="serialization")
     # Embedded OpenAPI schemas cannot reference a local #/$defs at document root.
     schema["properties"]["errors"]["items"] = schema.pop("$defs")["ValidationEntry"]
     return {

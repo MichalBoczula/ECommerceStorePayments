@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from httpx import AsyncClient
 from kiota_abstractions.authentication.anonymous_authentication_provider import AnonymousAuthenticationProvider
 
+from ecommerce_store_payments.api.contracts.http_metadata import enrich_http_schema
 from ecommerce_store_payments.api.errors import install_error_handlers
 from ecommerce_store_payments.api.routes.health import router as health_router
 from ecommerce_store_payments.api.routes.payments import router as payments_router
@@ -94,6 +95,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             for operation in path_item.values():
                 if isinstance(operation, dict) and "responses" in operation:
                     cast(dict[str, Any], operation["responses"]).pop("422", None)
+        enrich_http_schema(schema)
         return schema
 
     app.openapi = openapi

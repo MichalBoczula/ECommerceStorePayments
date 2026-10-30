@@ -1,7 +1,7 @@
 from typing import Literal
 
 from fastapi import APIRouter, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 from pymongo.errors import PyMongoError
 
 from ecommerce_store_payments.api.errors import ReadinessUnavailableError, problem_responses
@@ -11,7 +11,12 @@ router = APIRouter(tags=["Health"])
 
 
 class HealthResponse(BaseModel):
-    status: Literal["healthy"]
+    """Healthy process or successful Mongo ping; readiness does not certify transactions."""
+
+    model_config = ConfigDict(json_schema_extra={"additionalProperties": False, "examples": [{"status": "healthy"}]})
+    status: Literal["healthy"] = Field(
+        description="Healthy liveness or a successful readiness Mongo ping.", examples=["healthy"]
+    )
 
 
 @router.get("/health", operation_id="get_health", response_model=HealthResponse, responses=problem_responses(405, 500))

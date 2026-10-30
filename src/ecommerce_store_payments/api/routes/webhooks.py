@@ -1,8 +1,9 @@
 import asyncio
 
 from fastapi import APIRouter, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
+from ecommerce_store_payments.api.contracts.webhook_request import webhook_request
 from ecommerce_store_payments.api.dependencies import WebhookServiceDependency
 from ecommerce_store_payments.api.errors import UNSUPPORTED_MEDIA_TYPE, ApiRequestError, ErrorSpec, problem_responses
 from ecommerce_store_payments.application.payments.webhook import WebhookInvalidError, WebhookRetryError
@@ -12,7 +13,21 @@ PROCESSING_TIMEOUT_SECONDS = 10
 
 
 class WebhookAcknowledgement(BaseModel):
-    received: bool = True
+    """Acknowledgement of accepted delivery, including ignored or semantically rejected events."""
+
+    model_config = ConfigDict(
+        json_schema_serialization_defaults_required=True,
+        json_schema_extra={"additionalProperties": False, "examples": [{"received": True}]},
+    )
+    received: bool = Field(
+        default=True,
+        description=(
+            "Delivery was accepted. True does not imply a payment transition or completed "
+            "fulfillment; consult durable receipts."
+        ),
+        examples=[True],
+        json_schema_extra={"const": True},
+    )
 
 
 @router.post(
@@ -20,26 +35,7 @@ class WebhookAcknowledgement(BaseModel):
     response_model=WebhookAcknowledgement,
     operation_id="receiveStripeWebhook",
     responses=problem_responses(400, 405, 413, 415, 500, 503),
-    openapi_extra={
-        "parameters": [
-            {
-                "name": "Stripe-Signature",
-                "in": "header",
-                "required": True,
-                "schema": {"type": "string"},
-                "description": "Stripe timestamp and v1 signature.",
-            }
-        ],
-        "requestBody": {
-            "required": True,
-            "description": "Original Stripe snapshot event bytes; signature verified before parsing.",
-            "content": {
-                "application/json": {
-                    "schema": {"type": "object", "additionalProperties": True},
-                }
-            },
-        },
-    },
+    openapi_extra=webhook_request(),
 )
 async def receive_stripe_webhook(request: Request, webhook_service: WebhookServiceDependency) -> WebhookAcknowledgement:
     """Receive the original signed bytes without contacting Orders, invoices or Stripe."""
