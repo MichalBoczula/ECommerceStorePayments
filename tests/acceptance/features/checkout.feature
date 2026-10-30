@@ -223,8 +223,15 @@ Feature: Hosted checkout creation and recovery
       | ClientId      | 22222222-2222-4222-8222-222222222222 |
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
+    And an unrelated succeeded payment fills all collections
+      | Field         | Value                                |
+      | OrderId       | 66666666-6666-4666-8666-666666666666 |
+      | ClientId      | 77777777-7777-4777-8777-777777777777 |
+      | TotalAmount   | 31.73                                |
+      | TotalCurrency | PLN                                  |
     And Orders reports status "Paid"
     And I remember checkout recovery state
+    And I remember complete business validation state
     When I create checkout for the order
     Then the response matches case "PAY21-05"
       | Field                  | Value                                                     |
@@ -238,7 +245,6 @@ Feature: Hosted checkout creation and recovery
       | JSON.instance          | "/payments/11111111-1111-4111-8111-111111111111/checkout" |
       | JSON.errors            | []                                                        |
       | JSON.missingProperties | []                                                        |
-    And Stripe was not called
     And checkout failure leaves this complete state
       | Field          | Value     |
       | Effect         | unchanged |
@@ -246,6 +252,14 @@ Feature: Hosted checkout creation and recovery
       | StripeMethod   | none      |
       | SessionsAdded  | 0         |
       | CurrentVersion | none      |
+    And business rejection preserves populated state on both requests
+      | Field         | Value     |
+      | OrdersReads   | 1         |
+      | StripeCalls   | 0         |
+      | TargetPayment | absent    |
+      | Collections   | unchanged |
+      | Repeat        | true      |
+
 
   Scenario: PAY21-06 Report provider rejection safely
     Stripe rejects checkout creation with a controlled provider response. The API returns a safe checkout_provider_error and retains Created state.

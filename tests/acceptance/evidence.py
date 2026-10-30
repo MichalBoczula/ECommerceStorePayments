@@ -18,6 +18,9 @@ from scripts.bdd_evidence import instance_id
 
 
 def content_evidence(body: bytes, content_type: str | None) -> dict[str, Any]:
+    def reject_constant(value: str) -> Any:
+        raise ValueError(f"Non-JSON numeric constant: {value}")
+
     media = (content_type or "").split(";", 1)[0].lower()
     is_json = media.endswith("/json") or media.endswith("+json")
     raw: str | None = None
@@ -29,7 +32,7 @@ def content_evidence(body: bytes, content_type: str | None) -> dict[str, Any]:
             value, body_format = raw, "text"
             if is_json:
                 try:
-                    value, body_format = json.loads(raw), "json"
+                    value, body_format = json.loads(raw, parse_constant=reject_constant), "json"
                 except ValueError:
                     body_format = "invalid-json"
         except UnicodeDecodeError:

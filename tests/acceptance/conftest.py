@@ -6,6 +6,8 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from decimal import Decimal
+from functools import lru_cache
+from pathlib import Path
 from typing import Any, cast
 from urllib.parse import parse_qs
 from uuid import UUID, uuid4
@@ -22,6 +24,7 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 from pytest_bdd import given, parsers, then, when
 from pytest_bdd.parser import Feature, Scenario, Step
+from scripts.bdd_evidence import source_evidence
 
 from ecommerce_store_payments.api.app import create_app
 from ecommerce_store_payments.application.payments.checkout_provider import CheckoutRequest
@@ -41,6 +44,7 @@ from ecommerce_store_payments.infrastructure.persistence.mongodb.mongo_database 
 from ecommerce_store_payments.infrastructure.persistence.mongodb.repositories.payment_repository import (
     MongoPaymentRepository,
 )
+from tests.acceptance.business_validation_checks import BusinessValidationChecks
 from tests.acceptance.checkout_checks import CheckoutChecks
 from tests.acceptance.checkout_recovery_checks import CheckoutRecoveryChecks
 from tests.acceptance.evidence import EvidenceClient, ScenarioEvidence, table_values
@@ -754,3 +758,36 @@ def change_fulfillment_boundary(fulfillment_checks: FulfillmentChecks, datatable
 @then("the operator resumes repaired fulfillment with")
 def resume_repaired_fulfillment(fulfillment_checks: FulfillmentChecks, datatable: list[list[str]]) -> None:
     fulfillment_checks.resume(table_values(datatable))
+
+
+@pytest.fixture
+def business_checks(payment_checks: PaymentChecks) -> BusinessValidationChecks:
+    return BusinessValidationChecks(payment_checks)
+
+
+@given("Orders exposes this business contract")
+def business_contract(business_checks: BusinessValidationChecks, datatable: list[list[str]]) -> None:
+    business_checks.configure(table_values(datatable))
+
+
+@given("I remember complete business validation state")
+def business_before(business_checks: BusinessValidationChecks) -> None:
+    business_checks.remember()
+
+
+@then("business rejection preserves populated state on both requests")
+def business_rejection(business_checks: BusinessValidationChecks, datatable: list[list[str]]) -> None:
+    case_id = business_checks.context.evidence.identity["scenarioId"]
+    assert isinstance(case_id, str)
+    expected = _business_profiles()[case_id]["expected"]
+    business_checks.rejection(table_values(datatable), expected)
+
+
+@lru_cache(maxsize=1)
+def _business_profiles() -> dict[str, dict[str, Any]]:
+    return source_evidence(Path(__file__).parent / "features")
+
+
+@then("the accepted business boundary remains stable")
+def business_repeat(business_checks: BusinessValidationChecks, datatable: list[list[str]]) -> None:
+    business_checks.accepted_repeat(table_values(datatable))

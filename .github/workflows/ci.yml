@@ -222,9 +222,9 @@ jobs:
 
   documentation-bundle:
     needs: [quality, acceptance-tests]
-    uses: MichalBoczula/ECommerceStore.LiveDocs/.github/workflows/package-producer.yml@6a1e08fb3a779a25916715221303e3274c8da0b9
+    uses: MichalBoczula/ECommerceStore.LiveDocs/.github/workflows/package-producer.yml@93ce670ba4bcd56ed4c0ca0ec75bf82ffaef7098
     with:
-      tooling-ref: 6a1e08fb3a779a25916715221303e3274c8da0b9
+      tooling-ref: 93ce670ba4bcd56ed4c0ca0ec75bf82ffaef7098
       project: payments
       features: tests/acceptance/features
 

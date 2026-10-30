@@ -165,14 +165,35 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | ClientId      | 22222222-2222-4222-8222-222222222222 |
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
+    And an unrelated succeeded payment fills all collections
+      | Field         | Value                                |
+      | OrderId       | 66666666-6666-4666-8666-666666666666 |
+      | ClientId      | 77777777-7777-4777-8777-777777777777 |
+      | TotalAmount   | 31.73                                |
+      | TotalCurrency | PLN                                  |
     And Orders reports status "Paid"
+    And I remember complete business validation state
     When I pay the order
     Then the response matches case "PAY11-06"
-      | Field        | Value                    |
-      | HTTPStatuses | 409                      |
-      | ContentType  | application/problem+json |
-      | Code         | order_not_payable        |
-    And the database has 0 current payments and 0 history snapshots
+      | Field                  | Value                                                |
+      | HTTPStatuses           | 409                                                  |
+      | ContentType            | application/problem+json                             |
+      | Code                   | order_not_payable                                    |
+      | JSON.type              | "about:blank"                                        |
+      | JSON.title             | "Conflict"                                           |
+      | JSON.status            | 409                                                  |
+      | JSON.detail            | "Order cannot be paid in its current state."         |
+      | JSON.instance          | "/payments/11111111-1111-4111-8111-111111111111/pay" |
+      | JSON.errors            | []                                                   |
+      | JSON.missingProperties | []                                                   |
+    And business rejection preserves populated state on both requests
+      | Field         | Value     |
+      | OrdersReads   | 1         |
+      | StripeCalls   | 0         |
+      | TargetPayment | absent    |
+      | Collections   | unchanged |
+      | Repeat        | true      |
+
 
   Scenario: PAY11-07 Invalid Orders response
     Orders returns an invalid total in its JSON response. Pay exposes a safe order_invalid_response problem and stores nothing.
@@ -182,14 +203,35 @@ Feature: Payment API with real persistence and a controlled Orders boundary
       | ClientId      | 22222222-2222-4222-8222-222222222222 |
       | TotalAmount   | 12.99                                |
       | TotalCurrency | PLN                                  |
+    And an unrelated succeeded payment fills all collections
+      | Field         | Value                                |
+      | OrderId       | 66666666-6666-4666-8666-666666666666 |
+      | ClientId      | 77777777-7777-4777-8777-777777777777 |
+      | TotalAmount   | 31.73                                |
+      | TotalCurrency | PLN                                  |
     And Orders returns "invalid"
+    And I remember complete business validation state
     When I pay the order
     Then the response matches case "PAY11-07"
-      | Field        | Value                    |
-      | HTTPStatuses | 502                      |
-      | ContentType  | application/problem+json |
-      | Code         | order_invalid_response   |
-    And the database has 0 current payments and 0 history snapshots
+      | Field                  | Value                                                |
+      | HTTPStatuses           | 502                                                  |
+      | ContentType            | application/problem+json                             |
+      | Code                   | order_invalid_response                               |
+      | JSON.type              | "about:blank"                                        |
+      | JSON.title             | "Bad Gateway"                                        |
+      | JSON.status            | 502                                                  |
+      | JSON.detail            | "Orders service returned an invalid response."       |
+      | JSON.instance          | "/payments/11111111-1111-4111-8111-111111111111/pay" |
+      | JSON.errors            | []                                                   |
+      | JSON.missingProperties | []                                                   |
+    And business rejection preserves populated state on both requests
+      | Field         | Value     |
+      | OrdersReads   | 1         |
+      | StripeCalls   | 0         |
+      | TargetPayment | absent    |
+      | Collections   | unchanged |
+      | Repeat        | true      |
+
 
   Scenario: PAY11-08 Orders timeout
     The Orders HTTP request times out before returning an order. Pay returns order_timeout without creating durable payment state.

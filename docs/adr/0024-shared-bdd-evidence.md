@@ -50,3 +50,12 @@ completion/conflict actions distinguish injected failures from actual committed
 transactions. Operator replay records actual processed/repeated results and
 full before/after collections; every HTTP delivery and supporting read keeps its
 own captured exchange. No new collector or application behavior is introduced.
+
+## Business validation evidence
+
+[PAY-BDD-10](../bdd-10-business-validation.md) preserves exact authored Orders
+numeric tokens and complete repeated rejection/state evidence. Non-JSON numeric
+constants such as NaN and Infinity retain their exact invalid JSON text and bytes;
+the collector does not place those constants in a JSON evidence envelope.
+Standalone typed domain/converter checks retain their ordinary suite identity
+and do not claim an HTTP input contract or operation-linked exchange.

@@ -36,8 +36,9 @@ selected LiveDocs refresh and Terraform deployment remain manual.
 - [x] **PAY-BDD-09 — Fulfillment and invoice recovery.** Explicit worker actions,
   complete durable progress/retries and Paid/invoice/PDF acknowledgement recovery.
   See [fulfillment and invoice recovery](bdd-09-fulfillment-recovery.md).
-- [ ] **PAY-BDD-10 — Business validation.** Isolated values, exact currency
+- [x] **PAY-BDD-10 — Business validation.** Isolated values, exact currency
   conversion and accepted boundaries; distinguish HTTP inputs from standalone rules.
+  See [business validation](bdd-10-business-validation.md).
 - [ ] **PAY-BDD-11 — Framework failures.** Close reviewed status gaps, cover
   routes/methods/bodies/media and complete safe problems with populated-state checks.
 - [ ] **PAY-BDD-12 — Concurrency and atomicity.** Deterministic races, full
