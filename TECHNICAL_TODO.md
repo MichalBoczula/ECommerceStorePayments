@@ -69,3 +69,13 @@ This tracks the Payments work compared with the reference practices in ECommerce
 - [ ] **STRIPE/4 — End-to-end Angular/BFF flow.** Connect UI and backend contracts after the payment and order APIs stabilize.
 
 Next sequence: STRIPE/1–4. Update checkboxes only after the criterion is actually met.
+
+## Contract registry pilot
+
+- [x] **PACT/08 — Payments consumer Pact.** Consumer-owned GET Orders interactions execute
+  production Kiota, precise JSON parsing and HttpOrderReader mapping over official Pact HTTP.
+  Deterministic spec-v4 bytes and a hash/tool manifest are generated in the existing required
+  ExternalProviders suite; no deployment is required. See ADR-0025 and the registry backlog.
+- [ ] **PACT/09 — Invoice verification and registry CI.** Replay this exact artifact against
+  the candidate Invoice API with isolated provider states; publish contracts/results and bind
+  compatibility evidence to exact source versions and required source CI checks.

@@ -208,3 +208,30 @@ async def test_rejects_unbounded_exponent() -> None:
     async with client:
         with pytest.raises(OrderInvalidResponseError):
             await reader.get_by_id(order_id)
+
+
+@pytest.mark.parametrize(
+    "field_path",
+    [
+        ("id",),
+        ("status",),
+        ("totalAmount",),
+        ("totalCurrency",),
+        ("lines",),
+        ("lines", "lineTotalAmount"),
+        ("lines", "productVersion"),
+        ("lines", "productVersion", "priceCurrency"),
+    ],
+)
+async def test_rejects_missing_consumed_order_field(field_path: tuple[str, ...]) -> None:
+    """Resilience checks stay local and never generate invalid provider obligations."""
+    order_id = uuid4()
+    payload = order_payload(order_id, 12.34)
+    parent = payload
+    for field in field_path[:-1]:
+        parent = parent[field][0] if field == "lines" else parent[field]
+    del parent[field_path[-1]]
+    reader, client = await _get_order(order_id, lambda _request: Response(200, json=payload))
+    async with client:
+        with pytest.raises(OrderInvalidResponseError):
+            await reader.get_by_id(order_id)

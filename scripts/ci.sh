@@ -41,6 +41,15 @@ case "${1:-}" in
     esac
     uv run --no-sync python -m scripts.run_suite "${2:?Provide domain|application|infrastructure|externalproviders|acceptance}"
     ;;
+  pact)
+    rm -rf artifacts/verification/pact
+    mkdir -p artifacts/verification/pact
+    PAYMENTS_PACT_DIR="$PWD/artifacts/verification/pact/pacts" \
+      uv run --no-sync pytest tests/unit/external_providers/test_orders_pact.py \
+        --junitxml=artifacts/verification/pact/junit.xml
+    test -s artifacts/verification/pact/pacts/payments-invoice.json
+    test -s artifacts/verification/pact/pacts/manifest.json
+    ;;
   build)
     uv build --wheel --no-sources --clear
     uv run --no-sync python scripts/verify_wheel.py
@@ -53,7 +62,7 @@ case "${1:-}" in
     bash scripts/smoke_container.sh
     ;;
   *)
-    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|architecture|orders-client|links|openapi|build|audit|container|suite NAME}" >&2
+    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|architecture|orders-client|links|openapi|pact|build|audit|container|suite NAME}" >&2
     exit 2
     ;;
 esac

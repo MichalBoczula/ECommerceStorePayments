@@ -17,6 +17,7 @@ Read this file and [the definition of done](docs/definition-of-done.md) before e
 - For an endpoint change, consider validation, status codes, public error representation, generated OpenAPI, affected use cases, and success/failure HTTP scenarios together.
 - Test pure domain rules in `tests/unit/domain`; use-case decisions in `tests/unit/application`; mapping in `tests/unit/infrastructure`. Test real MongoDB behavior, indexes, and concurrency with Testcontainers in `tests/integration`. When acceptance scenarios are introduced, exercise the public API and real persistence in `tests/acceptance`.
 - Existing repository tests with fake collections remain unit tests; the MongoDB Testcontainers suite checks actual database behavior. pytest-bdd scenarios in `tests/acceptance/features` run the public API against an isolated database per scenario. Update `docs/acceptance-matrix.tsv` when adding an HTTP scenario.
+- The Orders consumer Pact must execute production Kiota, precise JSON parsing and HttpOrderReader over the official Pact HTTP server. Keep expectations consumer-owned and malformed/transport examples out of provider obligations. Preserve deterministic bytes and the exact artifact hash; a passing consumer mock is not provider verification.
 - Do not skip failing tests or weaken gates for a green PR. Ordinary warnings may remain visible; quality and security gates have explicit policies when implemented.
 
 ## Local verification

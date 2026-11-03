@@ -117,6 +117,30 @@ API errors use `application/problem+json` with `type`, `title`, `status`, fixed 
 
 Invalid path parameters return 400 `invalid_request`; malformed JSON returns 400 `invalid_json`; unsupported request media returns 415 `unsupported_media_type`. Pay and Checkout accept no request body. Unknown routes return 404 `route_not_found`; wrong methods return 405 `method_not_allowed`. Internal errors return a generic 500 `internal_error` without exception details. Orders failures map to 502 or 504 with distinct codes. The [ADR-0010](docs/adr/0010-safe-public-errors.md) records the public error policy.
 
+## Orders consumer Pact pilot (PACT/08)
+
+After `bash scripts/ci.sh sync`, run `bash scripts/ci.sh pact`. This needs no Docker,
+Invoice deployment, MongoDB, registry URL or publisher credential. It calls the production
+HttpOrderReader, Kiota client and precise decimal parser over an ephemeral Pact HTTP server,
+then checks exact application money/status mapping and not-found behavior.
+
+The output is `artifacts/verification/pact/pacts/payments-invoice.json` plus `manifest.json`
+with its SHA-256, five-interaction count, Pact specification 4.0 and pinned tool versions.
+Two complete fresh-server runs must produce identical contract bytes. Expectations are owned
+by Payments and contain only consumed fields. Fixed seed parameters describe valid Created
+orders in PLN/JPY/KWD/USD and a missing order; local malformed/transport/large-decimal tests
+remain separate from those provider obligations.
+
+The required ExternalProviders CI suite also generates the Pact and uploads
+`payments-invoice-pact` from `artifacts/verification/externalproviders/pacts/`. Download it
+from the successful run for the exact consumer commit, not an arbitrary latest run. The
+Infrastructure suite generates its own copy under its own report directory. Existing suite,
+coverage, security and final gates still apply. Generated output is not committed.
+
+[ADR-0025](docs/adr/0025-orders-consumer-pact.md) records the field requirements, provider
+states and limits. Provider replay, registry uploads and exact-version compatibility evidence
+are PACT/09; a passing consumer mock test alone is not verified provider compatibility.
+
 ## Runtime container
 
 From the repository root with Docker Compose available:
