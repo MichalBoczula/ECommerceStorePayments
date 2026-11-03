@@ -35,6 +35,7 @@ dev = [
     "httpx2>=2.13,<3",
     "jsonschema==4.25.1",
     "openapi-spec-validator==0.7.2",
+    "pact-python==4.2.0",
     "pyright>=1.1.403,<2",
     "pytest>=9.0.3,<10",
     "pytest-asyncio>=1.1,<2",

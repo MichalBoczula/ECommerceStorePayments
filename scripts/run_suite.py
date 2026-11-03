@@ -71,7 +71,11 @@ def run(name: str) -> int:
     ]
     if name == "acceptance":
         command.extend([f"--alluredir={ROOT / 'artifacts/allure-results/acceptance'}", "--clean-alluredir"])
-    environment = {**os.environ, "COVERAGE_FILE": str(destination / ".coverage")}
+    environment = {
+        **os.environ,
+        "COVERAGE_FILE": str(destination / ".coverage"),
+        "PAYMENTS_PACT_DIR": str(destination / "pacts"),
+    }
     outcome = subprocess.run(command, cwd=ROOT, env=environment, check=False)
     try:
         report = verify(name, destination, sources, suite.minimum, baseline=BASELINE)
