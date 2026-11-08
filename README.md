@@ -138,8 +138,11 @@ Infrastructure suite generates its own copy under its own report directory. Exis
 coverage, security and final gates still apply. Generated output is not committed.
 
 [ADR-0025](docs/adr/0025-orders-consumer-pact.md) records the field requirements, provider
-states and limits. Provider replay, registry uploads and exact-version compatibility evidence
-are PACT/09; a passing consumer mock test alone is not verified provider compatibility.
+states and limits. The PACT/09 **Publish Payments Pact** workflow publishes artifacts
+from successful `main` push CI runs to the registry when `PACT_REGISTRY_URL` and the
+Payments-scoped `PACT_PUBLISHER_TOKEN` are configured. Run it manually on `main`
+with a successful source run ID to bootstrap a pinned artifact. Invoice owns the
+provider replay and publishes its separate verification result.
 
 ## Runtime container
 
