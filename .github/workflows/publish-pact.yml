@@ -1,0 +1,63 @@
+name: Publish Payments Pact
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Successful Payments main CI push run ID
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  publish:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' && vars.PACT_REGISTRY_URL != ''))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify trusted source run
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source_run_id || github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]] || { echo 'Invalid source run ID' >&2; exit 1; }
+          commit=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" |
+            jq -er --arg repo "$GITHUB_REPOSITORY" '
+              select(.repository.full_name == $repo and .head_repository.full_name == $repo
+                and .head_branch == "main" and .event == "push" and .conclusion == "success"
+                and .path == ".github/workflows/ci.yml")
+              | .head_sha | select(test("^[a-f0-9]{40}$"))')
+          printf 'commit=%s\nrun-id=%s\n' "$commit" "$SOURCE_RUN" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: payments-invoice-pact
+          path: pact-input
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.source.outputs.run-id }}
+      - name: Publish exact consumer artifact
+        env:
+          PACT_REGISTRY_URL: ${{ vars.PACT_REGISTRY_URL }}
+          PACT_PUBLISHER_TOKEN: ${{ secrets.PACT_PUBLISHER_TOKEN }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.commit }}
+          SOURCE_RUN: ${{ steps.source.outputs.run-id }}
+        run: python3 scripts/publish_payments_pact.py pact-input "$SOURCE_COMMIT" "$SOURCE_RUN" pact-publication.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: payments-pact-publication
+          path: pact-publication.json
+          if-no-files-found: error
