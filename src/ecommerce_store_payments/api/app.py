@@ -59,6 +59,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         )
                     ),
                     checkout_provider=checkout_provider,
+                    checkout_vat_enabled=resolved_settings.stripe_checkout_vat_enabled,
                 )
                 app.state.webhook_service = WebhookService(
                     verifier=StripeWebhookVerifier(resolved_settings),

@@ -5,6 +5,20 @@ Date: 2026-10-01
 
 STRIPE/2 extends new reservations to card/BLIK and adds verified confirmation; [ADR-0021](0021-verified-stripe-webhooks.md) preserves the original request parameters for older attempts.
 
+## Sandbox VAT on new attempts
+
+The portfolio checkout treats the saved order total as net. With
+`PAYMENTS_STRIPE_CHECKOUT_VAT_ENABLED=true`, new reservations use request
+version 4. They add the Invoice service's 23% VAT to the order subtotal, rounding
+tax to minor units with ties to even. Stripe receives that gross amount on its
+one order line, and verified webhooks must match it exactly. The same Payment
+snapshot retains net Money for matching the authoritative Orders total during
+fulfillment. The request version fixes the tax calculation for the lifetime of
+an attempt, including recovery after a configuration change. Versions 1 and 2
+retain their original charge. Version 3 remains unsupported. Current and
+archived records use the existing schema, and the public Payment amount
+represents the charge for version 4.
+
 ## Context
 
 The existing Pay command prepares or renews a Payment, and WEB/12 depends on that contract. Stripe creation is an external write that cannot participate in a MongoDB transaction. Concurrent calls, a lost provider response or a failed database save must not create additional sessions for one attempt. Stripe idempotency keys have a finite retention period.

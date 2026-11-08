@@ -84,6 +84,24 @@ async def test_confirm_once_and_pass_original_bytes_to_verifier() -> None:
     assert current is not None and current.status is PaymentStatus.SUCCEEDED and current.version == 1
 
 
+async def test_vat_checkout_rejects_the_net_amount_and_confirms_the_gross_amount() -> None:
+    payments = MemoryPaymentRepository()
+    payment = Payment.create(uuid4(), Money(499800, "PLN"))
+    payment.begin_checkout(request_version=4)
+    payment.mark_as_pending("cs_test_fixture")
+    payment = await payments.create(payment)
+    event = notification(payment)
+    assert event.checkout is not None and event.checkout.money == Money(614754, "PLN")
+    verifier = VerifierStub(replace(event, checkout=replace(event.checkout, money=payment.money)))
+    service = WebhookService(verifier, MemoryWebhookRepository(payments), payments)
+    rejected = await service.receive(b"net", "header")
+    assert rejected.state is WebhookState.REJECTED and rejected.reason == "payment_mismatch"
+    verifier.event = notification(payment, event_id="evt_gross")
+    applied = await service.receive(b"gross", "header")
+    assert applied.state is WebhookState.APPLIED
+    assert await service.receive(b"gross", "header") == applied
+
+
 async def test_receipt_survives_interruption_and_restart_can_finish_it() -> None:
     service, payments, webhooks, verifier, payment = await setup_webhook()
     webhooks.interrupt_once = True

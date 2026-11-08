@@ -94,14 +94,16 @@ class InvoicesStub:
         return self.invoice
 
 
-async def setup() -> tuple[FulfillmentService, WorkStub, OrdersStub, InvoicesStub, MemoryPaymentRepository, Payment]:
+async def setup(
+    request_version: int = 1,
+) -> tuple[FulfillmentService, WorkStub, OrdersStub, InvoicesStub, MemoryPaymentRepository, Payment]:
     payment = Payment.create(uuid4(), Money(1299, "PLN"))
-    payment.begin_checkout()
+    payment.begin_checkout(request_version)
     payment.confirm_checkout("cs_test_fixture", "pi_fixture")
     assert payment.checkout_attempt_id is not None
     work = WorkStub(
         FulfillmentWork(
-            "evt_fixture", payment.id, payment.order_id, payment.checkout_attempt_id, payment.money, uuid4(), 1
+            "evt_fixture", payment.id, payment.order_id, payment.checkout_attempt_id, payment.checkout_money, uuid4(), 1
         )
     )
     payments = MemoryPaymentRepository()
@@ -110,8 +112,9 @@ async def setup() -> tuple[FulfillmentService, WorkStub, OrdersStub, InvoicesStu
     return FulfillmentService(work, payments, orders, invoices, lambda: NOW), work, orders, invoices, payments, payment
 
 
-async def test_success_and_already_completed_batch() -> None:
-    service, work, orders, invoices, _, _ = await setup()
+@pytest.mark.parametrize("request_version", [1, 4])
+async def test_success_and_already_completed_batch(request_version: int) -> None:
+    service, work, orders, invoices, _, _ = await setup(request_version)
     assert await service.run_batch(100) == 1
     assert work.paid and work.completed == invoices.invoice
     assert orders.writes == invoices.creates == 1

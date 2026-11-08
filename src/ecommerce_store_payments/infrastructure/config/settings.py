@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     orders_api_base_url: str = "http://localhost:5000"
     orders_api_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
     stripe_enabled: bool = False
+    stripe_checkout_vat_enabled: bool = False
     stripe_secret_key: SecretStr | None = None
     stripe_webhook_secret: SecretStr | None = None
     stripe_success_url: str = "http://localhost:4200/orders?checkout=success"
