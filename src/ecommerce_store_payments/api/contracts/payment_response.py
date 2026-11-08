@@ -32,7 +32,10 @@ class PaymentResponse(BaseModel):
         description="Nonzero order identifier supplied in the route.", examples=[PAYMENT_EXAMPLE["order_id"]]
     )
     amount_minor: int = Field(
-        description="Positive integer amount in the currency's minor units; 1299 PLN minor units means 12.99 PLN.",
+        description=(
+            "Positive integer amount in the currency's minor units. VAT-enabled Stripe attempts report the "
+            "total charged including VAT."
+        ),
         examples=[1299],
         json_schema_extra={"exclusiveMinimum": 0},
     )
@@ -80,7 +83,7 @@ class PaymentResponse(BaseModel):
         return cls(
             id=payment.id,
             order_id=payment.order_id,
-            amount_minor=payment.money.amount_minor,
+            amount_minor=payment.checkout_money.amount_minor,
             currency=payment.money.currency,
             status=payment.status.value,
             provider_session_id=payment.provider_session_id,

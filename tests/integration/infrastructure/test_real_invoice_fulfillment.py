@@ -89,9 +89,13 @@ def test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_rep
                 ) as invoice:
                     url = f"http://{invoice.get_container_host_ip()}:{invoice.get_exposed_port(8080)}"
                     wait_for_invoice_api(url)
-                    for mode in ("normal", "lost_paid", "lost_invoice", "pdf_retry"):
+                    for mode in ("vat", "normal", "lost_paid", "lost_invoice", "pdf_retry"):
                         order_id, client_id, product_version, data_version = (uuid4() for _ in range(4))
                         now = datetime.now(UTC)
+                        subtotal = "4998.00" if mode == "vat" else "12.99"
+                        subtotal_minor = 499800 if mode == "vat" else 1299
+                        charged_minor = 614754 if mode == "vat" else 1299
+                        request_version = 4 if mode == "vat" else 1
                         invoice_db["product-versions"].insert_one(
                             {
                                 "_id": guid(product_version),
@@ -99,7 +103,7 @@ def test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_rep
                                 "CreatedAt": now,
                                 "DeactivatedAt": None,
                                 "ProductId": guid(uuid4()),
-                                "PriceAmount": Decimal128("12.99"),
+                                "PriceAmount": Decimal128(subtotal),
                                 "PriceCurrency": "PLN",
                                 "Name": "Fulfillment product",
                                 "Brand": "Test",
@@ -140,12 +144,17 @@ def test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_rep
                             stripe_webhook_secret=SecretStr(WEBHOOK_SECRET),
                         )
 
-                        async def prepare(settings: Settings = settings, order_id: UUID = order_id) -> Payment:
+                        async def prepare(
+                            settings: Settings = settings,
+                            order_id: UUID = order_id,
+                            subtotal_minor: int = subtotal_minor,
+                            request_version: int = request_version,
+                        ) -> Payment:
                             database = MongoDatabase(settings)
                             try:
                                 await database.ensure_indexes()
-                                payment = Payment.create(order_id, Money(1299, "PLN"))
-                                payment.begin_checkout()
+                                payment = Payment.create(order_id, Money(subtotal_minor, "PLN"))
+                                payment.begin_checkout(request_version)
                                 payment.mark_as_pending("cs_test_fixture")
                                 return await MongoPaymentRepository(database).create(payment)
                             finally:
@@ -240,7 +249,9 @@ def test_verified_payments_complete_real_paid_orders_and_pdfs_with_ambiguous_rep
                                         await database.close()
 
                                 asyncio.run(fulfill())
-                                assert api.get(f"/payments/order/{payment.order_id}").json()["status"] == "succeeded"
+                                confirmed = api.get(f"/payments/order/{payment.order_id}").json()
+                                assert confirmed["status"] == "succeeded"
+                                assert confirmed["amount_minor"] == charged_minor
                                 assert (
                                     api.post(
                                         "/payments/webhooks/stripe",

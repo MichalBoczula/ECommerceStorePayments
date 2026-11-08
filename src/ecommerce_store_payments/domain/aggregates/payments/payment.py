@@ -132,6 +132,10 @@ class Payment:
         return self._money
 
     @property
+    def checkout_money(self) -> Money:
+        return self._money.for_checkout(self._checkout_request_version)
+
+    @property
     def status(self) -> PaymentStatus:
         return self._status
 

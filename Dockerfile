@@ -20,8 +20,10 @@ ENV PATH="/app/.venv/bin:${PATH}" \
 
 # The base image bundles pip with vendored msgpack and setuptools versions.
 # Runtime installation is complete in the build stage, so pip is unnecessary.
+# Disable download retries while upgrading APT for CVE-2026-109518.
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends --only-upgrade libpcre2-8-0 perl-base libssl3 openssl \
+    && apt-get -o Acquire::Retries=0 install --yes --no-install-recommends --only-upgrade \
+        apt libapt-pkg6.0 libpcre2-8-0 perl-base libssl3 openssl \
     && rm -rf /var/lib/apt/lists/* \
     && python -m pip uninstall --yes pip
 

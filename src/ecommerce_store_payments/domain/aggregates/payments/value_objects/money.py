@@ -1,7 +1,11 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import final
 
 from ecommerce_store_payments.domain.aggregates.payments.exceptions import MoneyValidationError, PaymentErrorCode
+
+# Version 3 remains unsupported for existing reservations.
+VAT_CHECKOUT_REQUEST_VERSION = 4
 
 
 @final
@@ -12,6 +16,13 @@ class Money:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "currency", self._validate(self.amount_minor, self.currency))
+
+    def for_checkout(self, request_version: int) -> Money:
+        if request_version != VAT_CHECKOUT_REQUEST_VERSION:
+            return self
+        # Match Invoice's 23% VAT on the order subtotal, rounded to even at the cent.
+        tax_minor = round(Decimal(self.amount_minor) * Decimal("0.23"))
+        return Money(self.amount_minor + tax_minor, self.currency)
 
     @staticmethod
     def _validate(amount_minor: object, currency: object) -> str:

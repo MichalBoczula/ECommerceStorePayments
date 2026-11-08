@@ -111,6 +111,17 @@ async def test_new_request_version_enables_card_and_blik_and_legacy_recovery_rem
         await provider.create(replace(request, request_version=3))
 
 
+async def test_vat_version_sends_gross_total_once_to_stripe() -> None:
+    provider, transport, request = make_provider()
+    transport.payload["amount_total"] = 614754
+    await provider.create(replace(request, request_version=4, money=Money(614754, "PLN")))
+    body = parse_qs(str(transport.calls[0][3]))
+    assert body["line_items[0][price_data][unit_amount]"] == ["614754"]
+    assert body["payment_method_types[1]"] == ["blik"]
+    assert "automatic_tax[enabled]" not in body
+    assert not any("tax_rates" in field for field in body)
+
+
 @pytest.mark.parametrize("state", ["open", "complete", "expired"])
 async def test_retrieve_never_creates_or_confirms_payment(state: str) -> None:
     provider, transport, request = make_provider()

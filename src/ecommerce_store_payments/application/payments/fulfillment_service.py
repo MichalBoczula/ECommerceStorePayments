@@ -16,6 +16,7 @@ from ecommerce_store_payments.application.payments.fulfillment import (
 )
 from ecommerce_store_payments.domain.aggregates.payments.enums.payment_status import PaymentStatus
 from ecommerce_store_payments.domain.aggregates.payments.repositories.payment_repository import PaymentRepository
+from ecommerce_store_payments.domain.aggregates.payments.value_objects.money import Money
 
 
 def utc_now() -> datetime:
@@ -75,8 +76,8 @@ class FulfillmentService:
         except FulfillmentLeaseLostError:
             pass
 
-    def _validate_order(self, work: FulfillmentWork, order: FulfillmentOrder) -> None:
-        if order.order_id != work.order_id or order.money != work.money or order.client_id.int == 0:
+    def _validate_order(self, work: FulfillmentWork, order: FulfillmentOrder, order_money: Money) -> None:
+        if order.order_id != work.order_id or order.money != order_money or order.client_id.int == 0:
             raise FulfillmentBlockedError("order_mismatch")
         if work.client_id is not None and work.client_id != order.client_id:
             raise FulfillmentBlockedError("order_owner_changed")
@@ -96,12 +97,12 @@ class FulfillmentService:
             payment is None
             or payment.status is not PaymentStatus.SUCCEEDED
             or payment.order_id != work.order_id
-            or payment.money != work.money
+            or payment.checkout_money != work.money
             or payment.checkout_attempt_id != work.attempt_id
         ):
             raise FulfillmentBlockedError("payment_mismatch")
         order = await self._orders.get(work.order_id)
-        self._validate_order(work, order)
+        self._validate_order(work, order, payment.money)
         if order.status == "Created":
             if work.order_paid:
                 raise FulfillmentBlockedError("order_state_regressed")
@@ -110,12 +111,12 @@ class FulfillmentService:
             except FulfillmentRetryError:
                 # Repeat Paid is 400; timeouts/409/5xx can also conceal a committed write.
                 order = await self._orders.get(work.order_id)
-                self._validate_order(work, order)
+                self._validate_order(work, order, payment.money)
                 if order.status != "Paid":
                     raise
             else:
                 order = await self._orders.get(work.order_id)
-                self._validate_order(work, order)
+                self._validate_order(work, order, payment.money)
                 if order.status != "Paid":
                     raise FulfillmentRetryError("order_not_confirmed")
         await self._work.save_order_paid(work, order.client_id, self._clock())

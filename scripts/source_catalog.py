@@ -49,7 +49,7 @@ METHODS = {
     "PaymentService.checkout": method(
         "checkout",
         "Create or recover a hosted checkout",
-        "Uses server money and a durable attempt to create/reuse one provider session.",
+        "Uses server money and a durable attempt to create/reuse one provider session with the reserved VAT policy.",
         (
             "Ambiguous provider acknowledgements or persistence may retain a reservation; the "
             "23-hour boundary requires reconciliation."
@@ -79,7 +79,7 @@ METHODS = {
     "WebhookService._apply": method(
         "apply-receipt",
         "Decide a receipt state and reason",
-        "Matches payment/order/money/attempt/session and applies permitted terminal transitions.",
+        "Matches the payment, order, attempt, reserved charge and session before applying terminal transitions.",
         ("Ignored/rejected reasons can accompany HTTP 200; these source guards are not runtime branch telemetry."),
     ),
     "FulfillmentService.run_batch": method(
@@ -112,7 +112,7 @@ METHODS = {
     "FulfillmentService._validate_order": method(
         "fulfillment-order",
         "Validate fulfillment order ownership and money",
-        "Requires matching order/money/client and a Created or Paid authoritative state.",
+        "Requires matching order, net money and client plus a Created or Paid authoritative state.",
         "Mismatch, owner change or nonpayable state blocks automatic fulfillment.",
     ),
     "FulfillmentService._validate_invoice": method(
@@ -348,6 +348,12 @@ GUARDS = {
     "PaymentService.checkout": [
         ("provider-missing", "provider is None", "No checkout provider is composed"),
         (
+            "reserved-version",
+            "existing is not None and existing.checkout_attempt_id is not None "
+            "and existing.status in (PaymentStatus.CREATED, PaymentStatus.PENDING)",
+            "The current attempt retains its original provider request and VAT policy",
+        ),
+        (
             "money-changed",
             "payment.money != order.money",
             "Current payment money differs from authoritative order money",
@@ -425,14 +431,19 @@ GUARDS = {
         ("unsupported", "checkout is None", "The verified event has no supported checkout notification"),
         ("payment-missing", "payment is None", "The referenced current payment is missing"),
         (
-            "payment-mismatch",
-            "payment.order_id != checkout.order_id or payment.money != checkout.money",
-            "Order identity or money does not match the current payment",
+            "order-mismatch",
+            "payment.order_id != checkout.order_id",
+            "Order identity does not match the current payment",
         ),
         (
             "stale-attempt",
             "payment.checkout_attempt_id != checkout.attempt_id",
             "The notification targets an older/different checkout attempt",
+        ),
+        (
+            "payment-mismatch",
+            "payment.checkout_money != checkout.money",
+            "The provider amount differs from the reserved charge",
         ),
         (
             "session-mismatch",
@@ -469,8 +480,8 @@ GUARDS = {
     "FulfillmentService._validate_order": [
         (
             "mismatch",
-            "order.order_id != work.order_id or order.money != work.money or order.client_id.int == 0",
-            "Authoritative order identity/money/client is invalid",
+            "order.order_id != work.order_id or order.money != order_money or order.client_id.int == 0",
+            "Authoritative order identity, net money or client is invalid",
         ),
         (
             "owner-changed",
@@ -499,10 +510,10 @@ GUARDS = {
             "payment-mismatch",
             (
                 "payment is None or payment.status is not PaymentStatus.SUCCEEDED or payment.order_id "
-                "!= work.order_id or (payment.money != work.money) or (payment.checkout_attempt_id != "
+                "!= work.order_id or (payment.checkout_money != work.money) or (payment.checkout_attempt_id != "
                 "work.attempt_id)"
             ),
-            "Current succeeded payment identity/money/attempt does not match the work",
+            "Current succeeded payment identity, reserved charge or attempt does not match the work",
         ),
         ("created-order", "order.status == 'Created'", "The authoritative order is still Created"),
         ("invoice-missing", "invoice is None", "No completed invoice was found"),

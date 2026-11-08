@@ -21,6 +21,7 @@ from ecommerce_store_payments.domain.aggregates.payments.repositories.exceptions
     PaymentDuplicateError,
 )
 from ecommerce_store_payments.domain.aggregates.payments.repositories.payment_repository import PaymentRepository
+from ecommerce_store_payments.domain.aggregates.payments.value_objects.money import VAT_CHECKOUT_REQUEST_VERSION
 
 
 @final
@@ -30,10 +31,13 @@ class PaymentService:
         payment_repository: PaymentRepository,
         order_reader: OrderReader,
         checkout_provider: CheckoutProvider | None = None,
+        *,
+        checkout_vat_enabled: bool = False,
     ) -> None:
         self._payment_repository = payment_repository
         self._order_reader = order_reader
         self._checkout_provider = checkout_provider
+        self._checkout_request_version = VAT_CHECKOUT_REQUEST_VERSION if checkout_vat_enabled else 2
 
     async def checkout(self, order_id: UUID) -> CheckoutResult:
         """Reserve, create or recover one checkout without confirming payment."""
@@ -43,7 +47,15 @@ class PaymentService:
         provider.require_available()
         order = await self._order_reader.get_by_id(order_id)
         self._require_created_order(order_id, order.status)
-        provider.validate_money(order.money)
+        existing = await self._payment_repository.get_by_order_id(order_id)
+        request_version = self._checkout_request_version
+        if (
+            existing is not None
+            and existing.checkout_attempt_id is not None
+            and existing.status in (PaymentStatus.CREATED, PaymentStatus.PENDING)
+        ):
+            request_version = existing.checkout_request_version
+        provider.validate_money(order.money.for_checkout(request_version))
         result = await self.pay(order_id)
         payment = result.payment
         if payment.money != order.money:
@@ -51,7 +63,7 @@ class PaymentService:
         if payment.status not in (PaymentStatus.CREATED, PaymentStatus.PENDING):
             raise CheckoutUnavailableError()
         if payment.status is PaymentStatus.CREATED and payment.checkout_attempt_id is None:
-            payment.begin_checkout(request_version=2)
+            payment.begin_checkout(request_version=self._checkout_request_version)
             try:
                 payment = await self._payment_repository.update(payment)
             except PaymentConflictError:
@@ -63,7 +75,11 @@ class PaymentService:
             # Legacy pending records have no durable provider attempt identity.
             raise CheckoutRecoveryRequiredError()
         request = CheckoutRequest(
-            payment.id, payment.order_id, payment.checkout_attempt_id, payment.money, payment.checkout_request_version
+            payment.id,
+            payment.order_id,
+            payment.checkout_attempt_id,
+            payment.checkout_money,
+            payment.checkout_request_version,
         )
         if payment.status is PaymentStatus.PENDING:
             if payment.provider_session_id is None:

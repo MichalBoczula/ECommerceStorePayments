@@ -100,6 +100,24 @@ async def test_timeout_after_provider_acceptance_replays_same_durable_attempt() 
     assert result.payment.checkout_attempt_id == reserved.checkout_attempt_id
 
 
+async def test_vat_checkout_charges_gross_and_replays_the_reserved_amount_after_restart() -> None:
+    _, repository, reader, provider = setup_checkout()
+    reader.order = OrderPaymentDetails(reader.order.order_id, Money(499800, "PLN"), "Created")
+    service = PaymentService(repository, reader, provider, checkout_vat_enabled=True)
+    provider.timeout_once = True
+    with pytest.raises(CheckoutTimeoutError):
+        await service.checkout(reader.order.order_id)
+
+    restarted = PaymentService(repository, reader, provider)
+    result = await restarted.checkout(reader.order.order_id)
+    assert result.payment.money == Money(499800, "PLN")
+    assert result.payment.checkout_money == Money(614754, "PLN")
+    assert result.payment.checkout_request_version == 4
+    assert provider.requests[0].money == Money(614754, "PLN")
+    assert provider.requests[0] == provider.requests[1]
+    assert len(provider.sessions) == 1
+
+
 class FailingSaveRepository(MemoryPaymentRepository):
     async def update(self, payment: Payment) -> Payment:
         if payment.status is PaymentStatus.PENDING:
@@ -221,3 +239,16 @@ async def test_legacy_reserved_attempt_recovers_with_original_request_version() 
     await repository.update(payment)
     recovered = await service.checkout(payment.order_id)
     assert recovered.payment.checkout_request_version == provider.requests[0].request_version == 1
+
+
+async def test_vat_rollout_reuses_an_open_checkout_at_its_original_amount() -> None:
+    service, repository, reader, provider = setup_checkout()
+    original = await service.checkout(reader.order.order_id)
+
+    enabled = PaymentService(repository, reader, provider, checkout_vat_enabled=True)
+    recovered = await enabled.checkout(reader.order.order_id)
+
+    assert recovered.session == original.session
+    assert recovered.payment.checkout_request_version == 2
+    assert recovered.payment.checkout_money == reader.order.money
+    assert len(provider.requests) == provider.reads == 1

@@ -50,10 +50,12 @@ class WebhookService:
             return WebhookState.IGNORED, "unsupported_event", False
         if payment is None:
             return WebhookState.REJECTED, "payment_not_found", False
-        if payment.order_id != checkout.order_id or payment.money != checkout.money:
+        if payment.order_id != checkout.order_id:
             return WebhookState.REJECTED, "payment_mismatch", False
         if payment.checkout_attempt_id != checkout.attempt_id:
             return WebhookState.IGNORED, "stale_attempt", False
+        if payment.checkout_money != checkout.money:
+            return WebhookState.REJECTED, "payment_mismatch", False
         if payment.provider_session_id not in (None, checkout.session_id):
             return WebhookState.REJECTED, "session_mismatch", False
         if event.outcome is CheckoutOutcome.SUCCEEDED:

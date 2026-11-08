@@ -12,7 +12,7 @@ from ecommerce_store_payments.application.payments.exceptions import (
     CheckoutProviderError,
     CheckoutTimeoutError,
 )
-from ecommerce_store_payments.domain.aggregates.payments.value_objects.money import Money
+from ecommerce_store_payments.domain.aggregates.payments.value_objects.money import VAT_CHECKOUT_REQUEST_VERSION, Money
 from ecommerce_store_payments.infrastructure.config.settings import Settings
 
 STRIPE_API_VERSION = "2026-08-26.dahlia"
@@ -60,7 +60,7 @@ class StripeCheckoutProvider:
         self.require_available()
         self.validate_money(request.money)
         assert self._client is not None
-        if request.request_version not in (1, 2):
+        if request.request_version not in (1, 2, VAT_CHECKOUT_REQUEST_VERSION):
             raise CheckoutProviderError()
         try:
             session = await self._client.v1.checkout.sessions.create_async(

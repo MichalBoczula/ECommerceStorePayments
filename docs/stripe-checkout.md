@@ -9,6 +9,7 @@ For a real account request without completing a payment, run the separate [sandb
 Keep `PAYMENTS_STRIPE_ENABLED=false` for baseline Pay/Get usage. For checkout, set these values through a local ignored `.env` or secret configuration:
 
 - `PAYMENTS_STRIPE_ENABLED=true`
+- `PAYMENTS_STRIPE_CHECKOUT_VAT_ENABLED=true`: add the Invoice service's fixed 23% VAT to new sandbox checkout attempts. The default is false. The portfolio Terraform deployment enables it.
 - `PAYMENTS_STRIPE_SECRET_KEY`: your account's `sk_test_...` secret, never a live/publishable key.
 - `PAYMENTS_STRIPE_SUCCESS_URL`: fixed frontend return URL; default `http://localhost:4200/orders?checkout=success`.
 - `PAYMENTS_STRIPE_CANCEL_URL`: fixed frontend return URL; default `http://localhost:4200/orders?checkout=cancel`.
@@ -16,7 +17,9 @@ Keep `PAYMENTS_STRIPE_ENABLED=false` for baseline Pay/Get usage. For checkout, s
 
 URLs must use HTTPS outside loopback hosts, without embedded credentials or fragments. These defaults return to the existing orders screen; displaying provider return state is STRIPE/4. No browser-provided destination or amount is accepted. Do not change return URL/request configuration while recovering an unresolved attempt.
 
-Use a reachable Invoice/Orders API and a MongoDB replica set. Local Compose can receive the Stripe variables from its environment; its optional env example contains no key. An existing order must be Created, use consistent PLN snapshots and total at least PLN 2. Configure your Stripe test account for the selected currency; provider/account restrictions may still reject a request.
+Use a reachable Invoice/Orders API and a MongoDB replica set. Local Compose can receive the Stripe variables from its environment; its optional env example contains no key. An existing order must be Created and use consistent PLN snapshots. The charge must be at least PLN 2. Configure your Stripe test account for the selected currency; provider/account restrictions may still reject a request.
+
+VAT checkout sends the gross total as a single Stripe line. For a 4,998.00 PLN order subtotal, the charge and invoice total are both 6,147.54 PLN. Stripe receives 614754 minor units. Orders still returns the net subtotal, and the Payment response reports the Stripe charge once the attempt is reserved.
 
 ## Real-account smoke check
 
@@ -24,7 +27,7 @@ This check requires your Stripe test account, configured credentials and a runni
 
 1. Create a customer and verify registration created its cart. Add a PLN product and create an order using the existing portfolio flow.
 2. Start Payments with the configuration above. Call bodyless `POST /payments/<order UUID>/checkout` through Swagger or your HTTP client; the Payments API route is available now, BFF/frontend checkout wiring comes in STRIPE/4.
-3. Expect HTTP 200, nested Payment status `pending`, a test session ID and an HTTPS `checkout_url`. Verify the amount matches the order snapshot.
+3. Expect HTTP 200, nested Payment status `pending`, a test session ID and an HTTPS `checkout_url`. Verify the amount matches the order snapshot plus VAT when enabled.
 4. Repeat the call and verify the same Payment/session ID and checkout URL; inspect Stripe's test dashboard for one session.
 5. Open the returned URL manually and confirm the expected amount/currency is shown. Stop at checkout creation when validating STRIPE/1. For signed card/BLIK completion checks, continue with the [webhook runbook](stripe-webhooks.md).
 6. Record only nonsecret evidence (commit, order/session IDs, response status, displayed amount). Never paste an API key, secret-bearing configuration or payment details into a PR.
@@ -42,7 +45,7 @@ This check requires your Stripe test account, configured credentials and a runni
 | `checkout_recovery_required` (409) | Created reservation is too old or a legacy Pending record lacks identity. Reconcile with Stripe before any replacement; do not delete/reset it to bypass the guard. |
 | `checkout_unavailable` (409) | The current Payment state does not allow checkout. |
 
-The reservation and Pending save are separate atomic MongoDB/history transactions around the provider call. Read the current record and history to distinguish a Created reservation from a saved Pending session. Preserve attempt identity across restart. A completed or expired provider session has `checkout_url=null`; provider retrieval does not infer a domain terminal state or generate a new session. STRIPE/2 confirms terminal state through verified webhooks. Legacy request version 1 remains card-only during recovery; new version 2 reservations request card and BLIK.
+The reservation and Pending save are separate atomic MongoDB/history transactions around the provider call. Read the current record and history to distinguish a Created reservation from a saved Pending session. Preserve attempt identity across restart. A completed or expired provider session has `checkout_url=null`; provider retrieval does not infer a domain terminal state or generate a new session. STRIPE/2 confirms terminal state through verified webhooks. Request version 1 remains card-only. Versions 2 and 4 use card and BLIK, with VAT applied by version 4 only. Existing attempts retain their reserved amount across changes to the VAT setting.
 
 Readiness remains a MongoDB check. Checkout availability and outbound Stripe access are tested by the feature and are not included in health probes. Existing authentication/ownership limitations of the demo remain; do not use real customer data.
 

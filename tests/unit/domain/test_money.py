@@ -14,6 +14,11 @@ def test_money_normalizes_currency() -> None:
     assert money.currency == "PLN"
 
 
+@pytest.mark.parametrize(("subtotal", "gross"), [(150, 184), (250, 308)])
+def test_checkout_vat_rounds_half_to_even(subtotal: int, gross: int) -> None:
+    assert Money(subtotal, "PLN").for_checkout(4) == Money(gross, "PLN")
+
+
 @pytest.mark.parametrize("amount_minor", [0, -1, True, cast(int, 1.5)])
 def test_money_rejects_non_positive_amount(amount_minor: int) -> None:
     with pytest.raises(MoneyValidationError) as error:
