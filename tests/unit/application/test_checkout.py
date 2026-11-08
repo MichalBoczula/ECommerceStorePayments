@@ -232,13 +232,23 @@ async def test_terminal_retry_uses_new_attempt_on_same_payment() -> None:
     assert len(provider.sessions) == 2
 
 
-@pytest.mark.parametrize("request_version", [1, 2])
-async def test_legacy_reserved_attempt_recovers_with_original_request_version(request_version: int) -> None:
-    _, repository, reader, provider = setup_checkout()
+async def test_legacy_reserved_attempt_recovers_with_original_request_version() -> None:
+    service, repository, reader, provider = setup_checkout()
     payment = await repository.create(Payment.create(reader.order.order_id, reader.order.money))
-    payment.begin_checkout(request_version=request_version)
+    payment.begin_checkout(request_version=1)
     await repository.update(payment)
-    service = PaymentService(repository, reader, provider, checkout_vat_enabled=True)
     recovered = await service.checkout(payment.order_id)
-    assert recovered.payment.checkout_request_version == provider.requests[0].request_version == request_version
-    assert provider.requests[0].money == reader.order.money
+    assert recovered.payment.checkout_request_version == provider.requests[0].request_version == 1
+
+
+async def test_vat_rollout_reuses_an_open_checkout_at_its_original_amount() -> None:
+    service, repository, reader, provider = setup_checkout()
+    original = await service.checkout(reader.order.order_id)
+
+    enabled = PaymentService(repository, reader, provider, checkout_vat_enabled=True)
+    recovered = await enabled.checkout(reader.order.order_id)
+
+    assert recovered.session == original.session
+    assert recovered.payment.checkout_request_version == 2
+    assert recovered.payment.checkout_money == reader.order.money
+    assert len(provider.requests) == provider.reads == 1

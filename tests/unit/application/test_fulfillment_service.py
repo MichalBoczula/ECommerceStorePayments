@@ -112,13 +112,22 @@ async def setup(
     return FulfillmentService(work, payments, orders, invoices, lambda: NOW), work, orders, invoices, payments, payment
 
 
-@pytest.mark.parametrize("request_version", [1, 4])
-async def test_success_and_already_completed_batch(request_version: int) -> None:
-    service, work, orders, invoices, _, _ = await setup(request_version)
+async def test_success_and_already_completed_batch() -> None:
+    service, work, orders, invoices, _, _ = await setup()
     assert await service.run_batch(100) == 1
     assert work.paid and work.completed == invoices.invoice
     assert orders.writes == invoices.creates == 1
     assert await service.run_batch(100) == 0
+
+
+async def test_vat_fulfillment_matches_the_gross_receipt_and_net_order() -> None:
+    service, work, orders, invoices, _, _ = await setup(request_version=4)
+    assert work.work.money == Money(1598, "PLN")
+    assert orders.order.money == Money(1299, "PLN")
+
+    assert await service.run_batch(100) == 1
+    assert work.paid and work.completed == invoices.invoice
+    assert orders.writes == invoices.creates == 1
 
 
 @pytest.mark.parametrize("code", ["timeout", "400", "409", "500"])
