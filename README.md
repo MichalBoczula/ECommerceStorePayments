@@ -144,6 +144,12 @@ Payments-scoped `PACT_PUBLISHER_TOKEN` are configured. Run it manually on `main`
 with a successful source run ID to bootstrap a pinned artifact. Invoice owns the
 provider replay and publishes its separate verification result.
 
+## Web payment lookup provider Pact (PACT/10)
+
+Payments CI replays Web's payment lookup against the real HTTP API and an
+isolated MongoDB replica set. The [provider verification guide](docs/web-pact-provider.md)
+describes the pinned artifact, fixture and registry receipt.
+
 ## Runtime container
 
 From the repository root with Docker Compose available:

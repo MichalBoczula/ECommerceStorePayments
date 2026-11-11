@@ -1,0 +1,2 @@
+# Preserve the exact consumer CI artifact bytes across platforms.
+contracts/pact/web-payments.json -text

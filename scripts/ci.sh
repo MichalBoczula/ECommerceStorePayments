@@ -50,6 +50,15 @@ case "${1:-}" in
     test -s artifacts/verification/pact/pacts/payments-invoice.json
     test -s artifacts/verification/pact/pacts/manifest.json
     ;;
+  pact-provider)
+    prepare_mongo_image
+    results="$PWD/artifacts/verification/pact-provider"
+    mkdir -p "$results"
+    rm -f "$results"/{junit.xml,pact-results.json,verification.json}
+    PAYMENTS_PROVIDER_PACT_DIR="$results" \
+      uv run --no-sync pytest tests/provider_pact/test_web_payments_pact.py --junitxml="$results/junit.xml"
+    test -s "$results/verification.json"
+    ;;
   build)
     uv build --wheel --no-sources --clear
     uv run --no-sync python scripts/verify_wheel.py
@@ -62,7 +71,7 @@ case "${1:-}" in
     bash scripts/smoke_container.sh
     ;;
   *)
-    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|architecture|orders-client|links|openapi|pact|build|audit|container|suite NAME}" >&2
+    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|architecture|orders-client|links|openapi|pact|pact-provider|build|audit|container|suite NAME}" >&2
     exit 2
     ;;
 esac
