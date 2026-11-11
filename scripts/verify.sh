@@ -8,7 +8,7 @@ for stage in sync format lint types architecture orders-client links openapi bui
   bash scripts/ci.sh "$stage"
 done
 
-for suite in domain application infrastructure externalproviders acceptance; do
+for suite in domain application infrastructure externalproviders pact-provider acceptance; do
   echo "Running $suite suite"
   bash scripts/ci.sh suite "$suite"
 done

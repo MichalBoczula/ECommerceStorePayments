@@ -1,0 +1,104 @@
+{
+  "consumer": {
+    "name": "web"
+  },
+  "interactions": [
+    {
+      "description": "load a succeeded payment by order ID",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a succeeded payment exists for an order and another order has no payment",
+          "params": {
+            "missingOrderId": "45000000-0000-4000-8000-000000000098",
+            "payment": {
+              "amount_minor": 614754,
+              "currency": "PLN",
+              "id": "45000000-0000-4000-8000-000000000001",
+              "order_id": "45000000-0000-4000-8000-000000000002",
+              "status": "succeeded"
+            }
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/payments/order/45000000-0000-4000-8000-000000000002"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "amount_minor": 614754,
+            "currency": "PLN",
+            "id": "45000000-0000-4000-8000-000000000001",
+            "order_id": "45000000-0000-4000-8000-000000000002",
+            "status": "succeeded"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "look up a payment for an order without one",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a succeeded payment exists for an order and another order has no payment",
+          "params": {
+            "missingOrderId": "45000000-0000-4000-8000-000000000098",
+            "payment": {
+              "amount_minor": 614754,
+              "currency": "PLN",
+              "id": "45000000-0000-4000-8000-000000000001",
+              "order_id": "45000000-0000-4000-8000-000000000002",
+              "status": "succeeded"
+            }
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/payments/order/45000000-0000-4000-8000-000000000098"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "status": 404
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/problem+json"
+          ]
+        },
+        "status": 404
+      },
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "17.1.4"
+    },
+    "pactRust": {
+      "ffi": "0.5.8",
+      "models": "1.3.16"
+    },
+    "pactSpecification": {
+      "version": "4.0"
+    }
+  },
+  "provider": {
+    "name": "payments"
+  }
+}

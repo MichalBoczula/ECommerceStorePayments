@@ -144,6 +144,12 @@ Payments-scoped `PACT_PUBLISHER_TOKEN` are configured. Run it manually on `main`
 with a successful source run ID to bootstrap a pinned artifact. Invoice owns the
 provider replay and publishes its separate verification result.
 
+## Web payment lookup provider Pact (PACT/10)
+
+Payments CI replays Web's payment lookup against the real HTTP API and an
+isolated MongoDB replica set. The [provider verification guide](docs/web-pact-provider.md)
+describes the pinned artifact, fixture and registry receipt.
+
 ## Runtime container
 
 From the repository root with Docker Compose available:
@@ -175,7 +181,7 @@ The Pay command needs an Invoice API reachable at `PAYMENTS_ORDERS_API_BASE_URL`
 
 The Invoice OpenAPI snapshot in `contracts/invoice/openapi.json` came from its successful CI artifact at commit `03a0ce67d55091c8593a078f3b8977e4cd836dfd`. After syncing, run `bash scripts/ci.sh orders-client` to verify that Kiota 1.34.1 regenerates exactly the committed client. The script downloads the pinned Linux binary when Kiota is absent and checks its SHA-256; set `KIOTA_BIN` to use a local executable. The Infrastructure integration suite pulls the [matching Invoice image](https://hub.docker.com/r/mb0101/ecommerce-store-invoice-api) by digest and checks a seeded order against MongoDB. Docker is required for that test. Unit and acceptance tests keep a controlled Orders transport for adverse responses.
 
-With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for Application, Infrastructure, Acceptance and container smoke. The audit needs access to the OSV vulnerability service. After `bash scripts/ci.sh sync`, run a focused source/build stage with `bash scripts/ci.sh format`, `lint`, `types`, `architecture`, `orders-client`, `links`, `openapi`, `build`, `audit`, or `container`; run a test suite with `bash scripts/ci.sh suite domain` (or `application`, `infrastructure`, `externalproviders`, `acceptance`).
+With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same stages as CI. Docker must be running for Application, Infrastructure, Pact Provider, Acceptance and container smoke. The audit needs access to the OSV vulnerability service. After `bash scripts/ci.sh sync`, run a focused source/build stage with `bash scripts/ci.sh format`, `lint`, `types`, `architecture`, `orders-client`, `links`, `openapi`, `build`, `audit`, or `container`; run a test suite with `bash scripts/ci.sh suite domain` (or `application`, `infrastructure`, `externalproviders`, `pact-provider`, `acceptance`).
 
 | Suite | Tests exercised | Coverage |
 | --- | --- | --- |
@@ -183,6 +189,7 @@ With Bash (Git Bash/WSL on Windows), run `bash scripts/verify.sh` for the same s
 | `application` | Service unit tests and real MongoDB Pay flow | Application, minimum 70% line coverage. |
 | `infrastructure` | Mapper/settings/repository and Orders boundary unit tests; real MongoDB and pinned Invoice image integration | Entire handwritten Infrastructure, minimum 70% line coverage. |
 | `externalproviders` | Orders HTTP boundary unit tests, also included in Infrastructure | Infrastructure clients, report only. |
+| `pact-provider` | Pinned Web Pact replay over HTTP with real MongoDB | API, report only. |
 | `acceptance` | API and architecture unit tests, health integration and pytest-bdd HTTP scenarios with real MongoDB | API, report only. |
 
 Each suite writes `junit.xml`, `coverage.xml`, `htmlcov/` and `summary.md` to `artifacts/verification/<suite>/`. The runner removes stale reports first, fails on zero tests or missing/invalid reports, and writes the Markdown summary into the CI job summary. The Invoice image integration test additionally needs Docker Hub access; `orders-client` needs the pinned Kiota binary or a download from GitHub. A focused unit suite can run without Docker, while the full `verify.sh` also runs container smoke and the network-backed dependency audit.

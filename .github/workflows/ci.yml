@@ -197,6 +197,57 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  pact-provider:
+    needs: quality
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.18"
+          enable-cache: true
+      - name: Install pinned Python
+        run: uv python install
+      - name: Check lock and install
+        run: bash scripts/ci.sh sync
+      - name: Verify the pinned Web Payments Pact
+        run: bash scripts/ci.sh suite pact-provider
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: web-payments-verification
+          path: artifacts/verification/pact-provider/
+          if-no-files-found: warn
+          retention-days: 14
+
+  publish-web-pact-verification:
+    if: >-
+      always() && !cancelled() && github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' && vars.PACT_REGISTRY_URL != '' &&
+      (needs.pact-provider.result == 'success' || needs.pact-provider.result == 'failure')
+    needs: pact-provider
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: web-payments-verification
+          path: pact-evidence
+      - name: Publish the exact provider result
+        env:
+          PACT_REGISTRY_URL: ${{ vars.PACT_REGISTRY_URL }}
+          PACT_PUBLISHER_TOKEN: ${{ secrets.PACT_PUBLISHER_TOKEN }}
+        run: python3 scripts/publish_web_pact_verification.py pact-evidence/verification.json web-payments-verification-receipt.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: web-payments-verification-receipt
+          path: web-payments-verification-receipt.json
+          if-no-files-found: error
+
   acceptance-tests:
     needs: quality
     runs-on: ubuntu-22.04
@@ -235,7 +286,7 @@ jobs:
       features: tests/acceptance/features
 
   quality-gate:
-    needs: [quality, domain-unit-tests, application-unit-tests, infrastructure-integration-tests, external-providers-tests, acceptance-tests, documentation-bundle, dependency-audit, dependency-review, secret-scan]
+    needs: [quality, domain-unit-tests, application-unit-tests, infrastructure-integration-tests, external-providers-tests, pact-provider, acceptance-tests, documentation-bundle, dependency-audit, dependency-review, secret-scan]
     if: always()
     runs-on: ubuntu-24.04
     steps:
@@ -247,13 +298,14 @@ jobs:
           APPLICATION_RESULT: ${{ needs.application-unit-tests.result }}
           INFRASTRUCTURE_RESULT: ${{ needs.infrastructure-integration-tests.result }}
           EXTERNAL_PROVIDERS_RESULT: ${{ needs.external-providers-tests.result }}
+          PACT_PROVIDER_RESULT: ${{ needs.pact-provider.result }}
           ACCEPTANCE_RESULT: ${{ needs.acceptance-tests.result }}
           DOCUMENTATION_RESULT: ${{ needs.documentation-bundle.result }}
           AUDIT_RESULT: ${{ needs.dependency-audit.result }}
           REVIEW_RESULT: ${{ needs.dependency-review.result }}
           SECRET_RESULT: ${{ needs.secret-scan.result }}
         run: |
-          for check in QUALITY DOMAIN APPLICATION INFRASTRUCTURE EXTERNAL_PROVIDERS ACCEPTANCE DOCUMENTATION AUDIT SECRET; do
+          for check in QUALITY DOMAIN APPLICATION INFRASTRUCTURE EXTERNAL_PROVIDERS PACT_PROVIDER ACCEPTANCE DOCUMENTATION AUDIT SECRET; do
             result_var="${check}_RESULT"
             result="${!result_var}"
             if [[ "$result" != success ]]; then

@@ -37,9 +37,9 @@ case "${1:-}" in
     ;;
   suite)
     case "${2:-}" in
-      application|infrastructure|acceptance) prepare_mongo_image ;;
+      application|infrastructure|pact-provider|acceptance) prepare_mongo_image ;;
     esac
-    uv run --no-sync python -m scripts.run_suite "${2:?Provide domain|application|infrastructure|externalproviders|acceptance}"
+    uv run --no-sync python -m scripts.run_suite "${2:?Provide domain|application|infrastructure|externalproviders|pact-provider|acceptance}"
     ;;
   pact)
     rm -rf artifacts/verification/pact
