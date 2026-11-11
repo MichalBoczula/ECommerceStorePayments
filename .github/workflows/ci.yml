@@ -212,7 +212,7 @@ jobs:
       - name: Check lock and install
         run: bash scripts/ci.sh sync
       - name: Verify the pinned Web Payments Pact
-        run: bash scripts/ci.sh pact-provider
+        run: bash scripts/ci.sh suite pact-provider
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:

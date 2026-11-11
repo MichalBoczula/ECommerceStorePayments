@@ -1506,6 +1506,14 @@
         ]
       }
     },
+    "pact-provider": {
+      "count": 1,
+      "members": {
+        "tests.provider_pact.test_web_payments_pact": [
+          "test_pinned_web_payments_pact"
+        ]
+      }
+    },
     "acceptance": {
       "count": 140,
       "members": {

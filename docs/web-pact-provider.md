@@ -20,7 +20,7 @@ With Docker available, run from the repository root.
 
 ```bash
 bash scripts/ci.sh sync
-bash scripts/ci.sh pact-provider
+bash scripts/ci.sh suite pact-provider
 ```
 
 CI uploads the raw Pact report, JUnit and the normalized result as

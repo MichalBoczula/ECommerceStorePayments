@@ -10,7 +10,7 @@ The baseline ran one unit suite, one integration suite and one acceptance suite 
 
 ## Decision
 
-Run five named suites via `bash scripts/ci.sh suite <name>` and the same `scripts/run_suite.py` entry point locally and in CI:
+Run named suites via `bash scripts/ci.sh suite <name>` and the same `scripts/run_suite.py` entry point locally and in CI.
 
 | Suite | Tests | Coverage scope | Minimum |
 | --- | --- | --- | --- |
@@ -18,17 +18,19 @@ Run five named suites via `bash scripts/ci.sh suite <name>` and the same `script
 | Application | Application unit and real MongoDB application integration | `application` | 70% lines |
 | Infrastructure | Infrastructure unit, Orders client unit and real MongoDB repository integration | entire `infrastructure` package | 70% lines |
 | ExternalProviders | Orders HTTP adapter unit | `infrastructure/clients` | report only |
+| Pact Provider | Pinned Web Pact replay over HTTP with real MongoDB | `api` | report only |
 | Acceptance | API unit, architecture/report gate unit, real MongoDB API integration and HTTP BDD | `api` | report only |
 
 The Orders client tests run twice intentionally: the Infrastructure gate measures the entire package without exclusions, while ExternalProviders retains its own boundary report. Provider session and webhook work remains in the later STRIPE backlog.
 
 Each suite clears its old result directory and writes `junit.xml`, Cobertura `coverage.xml`, HTML coverage and `summary.md` under `artifacts/verification/<suite>/`. A verifier reads both reports, requires tests and covered source lines, checks the exact coverage scope and enforces the three thresholds from raw covered/valid line counts. It fails on a missing report, failed test, empty run, wrong source or low coverage; the runner also preserves pytest's nonzero exit status. Ordinary warnings remain visible. Unit tests inject missing/failed reports and a subprocess failure to prove the gate behavior.
 
-CI runs source/build checks first, then five independent suite jobs. Each uploads its own reports even if the suite fails; the quality gate requires all source/build, suite and security jobs to succeed before the container job runs. The final gate also requires the container job. `scripts/verify.sh` runs the same stages sequentially. Docker is needed for Application, Infrastructure and Acceptance. See [ADR-0019](0019-ci-graph-and-dockerhub-publication.md) for the later CI graph and publication decision.
+CI runs source/build checks before the independent suite jobs. Each uploads its own reports even if the suite fails. The quality gate requires all source/build, suite and security jobs to succeed before the container job runs. The final gate also requires the container job. `scripts/verify.sh` runs the same stages sequentially. Docker is needed for Application, Infrastructure, Pact Provider and Acceptance. See [ADR-0019](0019-ci-graph-and-dockerhub-publication.md) for the later CI graph and publication decision.
 
 ## Consequences
 
-PAY-BDD-01 freezes the original executed member identities for all five suites.
+PAY-BDD-01 freezes the executed member identities for the five original suites.
+The same check protects the Pact Provider test identity.
 The runner passes this baseline into report verification; a replacement test at
 the same total cannot hide a removed member. Skips fail and actual JUnit elements
 must agree with success counters. Additions are allowed. Two random UUID parameter

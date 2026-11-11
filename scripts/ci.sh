@@ -37,9 +37,9 @@ case "${1:-}" in
     ;;
   suite)
     case "${2:-}" in
-      application|infrastructure|acceptance) prepare_mongo_image ;;
+      application|infrastructure|pact-provider|acceptance) prepare_mongo_image ;;
     esac
-    uv run --no-sync python -m scripts.run_suite "${2:?Provide domain|application|infrastructure|externalproviders|acceptance}"
+    uv run --no-sync python -m scripts.run_suite "${2:?Provide domain|application|infrastructure|externalproviders|pact-provider|acceptance}"
     ;;
   pact)
     rm -rf artifacts/verification/pact
@@ -49,15 +49,6 @@ case "${1:-}" in
         --junitxml=artifacts/verification/pact/junit.xml
     test -s artifacts/verification/pact/pacts/payments-invoice.json
     test -s artifacts/verification/pact/pacts/manifest.json
-    ;;
-  pact-provider)
-    prepare_mongo_image
-    results="$PWD/artifacts/verification/pact-provider"
-    mkdir -p "$results"
-    rm -f "$results"/{junit.xml,pact-results.json,verification.json}
-    PAYMENTS_PROVIDER_PACT_DIR="$results" \
-      uv run --no-sync pytest tests/provider_pact/test_web_payments_pact.py --junitxml="$results/junit.xml"
-    test -s "$results/verification.json"
     ;;
   build)
     uv build --wheel --no-sources --clear
@@ -71,7 +62,7 @@ case "${1:-}" in
     bash scripts/smoke_container.sh
     ;;
   *)
-    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|architecture|orders-client|links|openapi|pact|pact-provider|build|audit|container|suite NAME}" >&2
+    echo "Usage: bash scripts/ci.sh {sync|format|lint|types|architecture|orders-client|links|openapi|pact|build|audit|container|suite NAME}" >&2
     exit 2
     ;;
 esac

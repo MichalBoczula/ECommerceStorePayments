@@ -38,6 +38,7 @@ SUITES = {
         70,
     ),
     "externalproviders": Suite(("tests/unit/external_providers",), ("infrastructure/clients",)),
+    "pact-provider": Suite(("tests/provider_pact",), ("api",)),
     "acceptance": Suite(
         (
             "tests/unit/api",
@@ -76,9 +77,13 @@ def run(name: str) -> int:
         "COVERAGE_FILE": str(destination / ".coverage"),
         "PAYMENTS_PACT_DIR": str(destination / "pacts"),
     }
+    if name == "pact-provider":
+        environment["PAYMENTS_PROVIDER_PACT_DIR"] = str(destination)
     outcome = subprocess.run(command, cwd=ROOT, env=environment, check=False)
     try:
         report = verify(name, destination, sources, suite.minimum, baseline=BASELINE)
+        if name == "pact-provider" and not (destination / "verification.json").stat().st_size:
+            raise ValueError("Empty Pact verification report")
         if name == "acceptance":
             check_bdd_results(ROOT / "tests/acceptance/features", ROOT / "artifacts/allure-results/acceptance")
             check_evidence_results(ROOT / "tests/acceptance/features", ROOT / "artifacts/allure-results/acceptance")
