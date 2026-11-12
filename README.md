@@ -117,19 +117,19 @@ API errors use `application/problem+json` with `type`, `title`, `status`, fixed 
 
 Invalid path parameters return 400 `invalid_request`; malformed JSON returns 400 `invalid_json`; unsupported request media returns 415 `unsupported_media_type`. Pay and Checkout accept no request body. Unknown routes return 404 `route_not_found`; wrong methods return 405 `method_not_allowed`. Internal errors return a generic 500 `internal_error` without exception details. Orders failures map to 502 or 504 with distinct codes. The [ADR-0010](docs/adr/0010-safe-public-errors.md) records the public error policy.
 
-## Orders consumer Pact pilot (PACT/08)
+## Payments → Invoice consumer Pact (PACT/08, PACT/10)
 
-After `bash scripts/ci.sh sync`, run `bash scripts/ci.sh pact`. This needs no Docker,
-Invoice deployment, MongoDB, registry URL or publisher credential. It calls the production
-HttpOrderReader, Kiota client and precise decimal parser over an ephemeral Pact HTTP server,
-then checks exact application money/status mapping and not-found behavior.
+After `bash scripts/ci.sh sync`, run `bash scripts/ci.sh pact`. The command runs the
+production Kiota client and precise decimal parser against an ephemeral Pact HTTP server.
+It checks the Orders reader and both fulfillment adapters through their application ports.
 
 The output is `artifacts/verification/pact/pacts/payments-invoice.json` plus `manifest.json`
-with its SHA-256, five-interaction count, Pact specification 4.0 and pinned tool versions.
-Two complete fresh-server runs must produce identical contract bytes. Expectations are owned
-by Payments and contain only consumed fields. Fixed seed parameters describe valid Created
-orders in PLN/JPY/KWD/USD and a missing order; local malformed/transport/large-decimal tests
-remain separate from those provider obligations.
+with its SHA-256, ten-interaction count, Pact specification 4.0 and pinned tool versions.
+Two complete fresh-server runs must produce identical contract bytes. The original five
+interactions cover Created orders in PLN/JPY/KWD/USD and a missing order. The five
+fulfillment interactions cover a Paid order with its owner, a status patch, a completed
+invoice, a missing invoice and invoice creation. Provider state parameters describe the
+fixtures for replay. [Contract details](docs/adr/0025-orders-consumer-pact.md)
 
 The required ExternalProviders CI suite also generates the Pact and uploads
 `payments-invoice-pact` from `artifacts/verification/externalproviders/pacts/`. Download it

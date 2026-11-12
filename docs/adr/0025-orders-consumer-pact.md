@@ -18,7 +18,7 @@ native Pact FFI dependency. Use Pact specification 4 HTTP, consumer `payments`, 
 `invoice`, matching the registry's logical application IDs. Keep generated output ignored.
 No runtime dependency, public endpoint, persistence schema or production adapter changes.
 
-`test_orders_pact.py` defines five consumer-owned interactions: four Created orders in PLN,
+`test_orders_pact.py` began with five consumer-owned interactions for four Created orders in PLN,
 JPY, KWD and USD, and a 404. Each state has a fixed requested UUID and explicit seed parameters.
 Success bodies include only fields read by HttpOrderReader: id, status, totalAmount,
 totalCurrency, lines[].lineTotalAmount and lines[].productVersion.priceCurrency. Exact fixture
@@ -49,14 +49,30 @@ remain local HTTP boundary tests. In particular, Pact FFI's JSON number represen
 round very large decimal examples; the 29-digit preservation regression stays in the existing
 precise-parser tests. It must not become a rounded example or a false provider obligation.
 
+### PACT/10 fulfillment extension
+
+The same artifact adds five interactions through `HttpFulfillmentOrders` and
+`HttpFulfillmentInvoices`. Their provider states are independent.
+
+| Request | Provider state and consumer requirement |
+| --- | --- |
+| `GET /orders/{orderId}` | Seed a Paid order with the supplied client and exact order money. Payments reads the order owner, Paid status and precise minor-unit amount. |
+| `PATCH /orders/{orderId}/status` | Seed a Created order. Payments sends `{"status":"Paid"}` and expects HTTP 200. The worker reads the order separately to reconcile its status. |
+| `GET /invoices/by-order/{orderId}` | Seed a completed invoice with the supplied invoice, order and client-data version IDs. The adapter validates the invoice response and maps it to `CompletedInvoice`. |
+| `GET /invoices/by-order/{orderId}` | Keep the order without a completed invoice. The adapter maps HTTP 404 to `None`. |
+| `POST /invoices/{clientId}/{orderId}` | Seed the supplied Paid order and its client-data version with no invoice. The bodyless request returns HTTP 200 and a completed invoice. |
+
+Both invoice success responses require `id`, `orderId`, `clietDataVersionId`,
+`storageUrl` and `createdAt`. The wire spelling `clietDataVersionId` matches
+the existing DTO. The creation matcher accepts the generated invoice UUID.
+Both responses require a nonblank storage URL and an ISO timestamp with an offset
+or `Z`. The order and client-data version IDs match the supplied fixture.
+
 ## Consequences
 
-The producer artifact contains five deterministic, valid provider obligations and detects
-mapping/request changes in Payments CI without a deployed provider or registry. It is not
-provider verification and does not establish compatibility with a particular Invoice version.
-PACT/09 must replay this exact contract against a candidate Invoice API, implement the two
-parameterized provider states, publish exact-version evidence and wire the source gates.
-Other Payments fulfillment operations remain outside this read pilot.
+The producer artifact contains ten deterministic interactions and detects mapping
+and request changes in Payments CI. Invoice can pin the published artifact to
+replay the expanded contract against its API and publish exact-version evidence.
 
 ## Alternatives considered
 
